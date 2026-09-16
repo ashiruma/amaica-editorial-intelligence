@@ -57,7 +57,7 @@ export default function LegendPage() {
   return (
     <div className="min-h-screen bg-background">
       <Masthead variant="public" />
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <main id="main-content" tabIndex={-1} className="max-w-4xl mx-auto px-4 sm:px-6 py-8 outline-none">
         <Link to="/" className="text-xs text-ink-light hover:text-primary inline-flex items-center gap-1 mb-4">
           <ArrowLeft size={12} /> Back
         </Link>

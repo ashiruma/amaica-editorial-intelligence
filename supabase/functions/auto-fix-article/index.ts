@@ -24,9 +24,29 @@ function replaceSection(body: string, name: string, newContent: string): string 
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY");
+
+    let apiUrl = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+    let authHeader = `Bearer ${GEMINI_API_KEY}`;
+    let modelName = "gemini-1.5-flash";
+
+    if (GEMINI_API_KEY) {
+      apiUrl = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+      authHeader = `Bearer ${GEMINI_API_KEY}`;
+      modelName = "gemini-1.5-flash";
+    } else if (OPENAI_API_KEY) {
+      apiUrl = "https://api.openai.com/v1/chat/completions";
+      authHeader = `Bearer ${OPENAI_API_KEY}`;
+      modelName = "gpt-4o-mini";
+    } else if (DEEPSEEK_API_KEY) {
+      apiUrl = "https://api.deepseek.com/v1/chat/completions";
+      authHeader = `Bearer ${DEEPSEEK_API_KEY}`;
+      modelName = "deepseek-chat";
+    } else {
+      throw new Error("No AI API key configured (set GEMINI_API_KEY, OPENAI_API_KEY, or DEEPSEEK_API_KEY)");
+    }
 
     const { headline, lede, body, template_type, sources, issues } = await req.json();
     if (!body && !headline) throw new Error("Missing draft content");
@@ -45,6 +65,9 @@ Deno.serve(async (req) => {
       if (id === "quotes-count" || id.startsWith("attribution-")) targets.add("Quotes");
       if (id === "paragraphs" || id === "wordcount") {
         targets.add("Background"); targets.add("Why it matters"); targets.add("Outlook");
+      }
+      if (id.startsWith("ai-content-") || id === "hype-words") {
+        targets.add("Background"); targets.add("Why it matters");
       }
     }
     const refreshSources = issueIds.includes("sources-missing") || issueIds.includes("sources-notes") || targets.size > 0;
@@ -84,12 +107,15 @@ RULES:
 - Background: 12–24 months of context.
 - Key Details: who, what, when, where, how much, how many. No filler.
 - NO hype words (amazing, incredible, stunning, slayed, shook, absolutely).
+- NO AI clichés or corporate buzzwords (inaugural, foray into, foster talent, diverse programme, broader audience, central focus was, navigate the industry, landscape, testament to, delve into, vibrant tapestry, nestled in, beacon of hope, serves as a reminder, is a new initiative from, historically served as).
+- NO trailing participial clauses (e.g. ", highlighting...", ", providing...", ", offering...", ", showcasing..."). Break into independent active sentences.
+- BURSTINESS (0% AI MANDATE): Deliberately vary sentence lengths across sections (mix 4–7 word sentences with 10–15 word sentences). Ensure at least 25% of sentences are very short (under 6 words). Never write uniform flat sentence rhythms.
 - REFRESH sources: keep existing URLs, but ensure every source has 2–4 short factual notes (names, dates, prices, venues, quotes). Add any URLs already named in the body that are missing.
 
 Return STRICT JSON via the tool.`;
 
     const reqBody = JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: modelName,
         messages: [
           { role: "system", content: "You are a senior entertainment editor doing surgical rewrites. Do not invent facts. Output only what the tool schema asks for." },
           { role: "user", content: userPrompt },
@@ -148,10 +174,10 @@ Return STRICT JSON via the tool.`;
         tool_choice: { type: "function", function: { name: "apply_fixes" } },
     });
     const { response: aiRes } = await fetchWithBackoff(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      apiUrl,
       {
         method: "POST",
-        headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        headers: { "Authorization": authHeader, "Content-Type": "application/json" },
         body: reqBody,
       },
       { maxAttempts: 4, baseMs: 1000, capMs: 8000 },
@@ -160,7 +186,7 @@ Return STRICT JSON via the tool.`;
 
     if (!aiRes.ok) {
       if (aiRes.status === 429) return new Response(JSON.stringify({ error: "Rate limit reached." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (aiRes.status === 402) return new Response(JSON.stringify({ error: "Lovable AI credits required." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (aiRes.status === 402) return new Response(JSON.stringify({ error: "AI provider quota exceeded. Please check API billing." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       throw new Error(`AI gateway ${aiRes.status}: ${await aiRes.text()}`);
     }
     const aiData = await aiRes.json();

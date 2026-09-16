@@ -33,6 +33,170 @@ function resetBackoff(domain: string) {
   domainGate.set(domain, { lastHit: Date.now(), minGapMs: DEFAULT_GAP_MS });
 }
 
+function decodeEntities(s: string): string {
+  return s
+    .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ");
+}
+
+function isHomepageUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    const path = u.pathname.replace(/\/+$/, "");
+    return !path || path === "";
+  } catch {
+    return false;
+  }
+}
+
+async function scrapeDirect(url: string): Promise<{
+  success: boolean;
+  content: string;
+  title?: string;
+  image?: string;
+  author?: string;
+} | null> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 (compatible; AmaicaMediaBot/1.0; +https://amaicamedia.com)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      signal: AbortSignal.timeout(10000),
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    if (!html || html.length < 400) return null;
+
+    const titleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i) ||
+      html.match(/<title[^>]*>(.*?)<\/title>/i);
+    const title = titleMatch ? decodeEntities(titleMatch[1]).trim() : undefined;
+
+    const imageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["'](.*?)["']/i) ||
+      html.match(/<meta\s+name=["']twitter:image["']\s+content=["'](.*?)["']/i);
+    const image = imageMatch ? imageMatch[1].trim() : undefined;
+
+    const authorMatch = html.match(/<meta\s+name=["']author["']\s+content=["'](.*?)["']/i) ||
+      html.match(/<meta\s+property=["']article:author["']\s+content=["'](.*?)["']/i);
+    const author = authorMatch ? decodeEntities(authorMatch[1]).trim() : undefined;
+
+    const cleaned = html
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<noscript[\s\S]*?<\/noscript>/gi, "")
+      .replace(/<nav[\s\S]*?<\/nav>/gi, "")
+      .replace(/<header[\s\S]*?<\/header>/gi, "")
+      .replace(/<footer[\s\S]*?<\/footer>/gi, "");
+
+    const articleContainer = cleaned.match(/<article[\s\S]*?<\/article>/i) ||
+      cleaned.match(/<div[^>]+(?:class|id)=["'][^"']*(?:article-body|entry-content|post-content|story-content|article-text|main-content)[^"']*["'][\s\S]*?<\/div>/i);
+
+    const targetHtml = articleContainer ? articleContainer[0] : cleaned;
+    const pMatches = targetHtml.match(/<p[^>]*>[\s\S]*?<\/p>/gi) || [];
+    const paragraphs = pMatches
+      .map((p) => decodeEntities(p.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim())
+      .filter((p) => p.length > 35 && !p.toLowerCase().includes("copyright") && !p.toLowerCase().includes("subscribe") && !p.toLowerCase().includes("all rights reserved"));
+
+    if (paragraphs.length >= 2) {
+      return {
+        success: true,
+        content: paragraphs.join("\n\n"),
+        title,
+        image,
+        author,
+      };
+    }
+    return null;
+  } catch (err) {
+    console.warn("Direct scrape failed:", err);
+    return null;
+  }
+}
+
+async function scrapeJina(url: string): Promise<{
+  success: boolean;
+  content: string;
+  title?: string;
+  image?: string;
+  author?: string;
+  resolvedUrl?: string;
+} | null> {
+  try {
+    const res = await fetch(`https://r.jina.ai/${encodeURIComponent(url)}`, {
+      headers: { Accept: "application/json", "X-No-Cache": "true" },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const data = json?.data;
+    if (!data?.content || data.content.length < 100) return null;
+
+    // Check if input was a homepage that returned links instead of article text
+    if (isHomepageUrl(url) || data.content.length < 300) {
+      const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g;
+      const domain = getDomain(url);
+      const links: { text: string; url: string }[] = [];
+      let m: RegExpExecArray | null;
+      while ((m = linkRegex.exec(data.content)) !== null) {
+        if (m[2].includes(domain) && m[1].trim().length > 25) {
+          links.push({ text: m[1].trim(), url: m[2].trim() });
+        }
+      }
+      const topLink = links.find((l) =>
+        /\/entertainment\/|\/celebrities\/|\/gossip\/|\/showbiz\//i.test(l.url)
+      ) || links[0];
+
+      if (topLink) {
+        console.log(`Jina resolved homepage to article: ${topLink.url}`);
+        const subResult = await scrapeJina(topLink.url);
+        if (subResult) {
+          return { ...subResult, resolvedUrl: topLink.url };
+        }
+      }
+    }
+
+    const imgRegex = /!\[(.*?)\]\((https?:\/\/[^\s\)]+)\)/gi;
+    let heroImg: string | undefined = data.image || undefined;
+    let matchImg: RegExpExecArray | null;
+    while ((matchImg = imgRegex.exec(data.content)) !== null) {
+      const u = matchImg[2];
+      if (/\.(?:jpeg|jpg|webp)(\?|$)/i.test(u) && !u.includes("logo") && !u.includes("icon") && !u.includes("badge")) {
+        heroImg = u;
+        break;
+      }
+    }
+
+    // Clean markdown
+    const lines = (data.content as string).split("\n");
+    const cleanLines = lines.filter((l) => {
+      const t = l.trim();
+      if (!t || t.startsWith("![") || t.startsWith("[![") || t.startsWith("===") || t.startsWith("---")) return false;
+      const low = t.toLowerCase();
+      if (low.includes("all rights reserved") || low.includes("cookie policy") || low.includes("subscribe")) return false;
+      return t.length > 25;
+    });
+
+    return {
+      success: true,
+      content: cleanLines.join("\n\n").trim(),
+      title: data.title || undefined,
+      image: heroImg,
+      author: data.description?.slice(0, 100),
+    };
+  } catch (err) {
+    console.warn("Jina scrape failed:", err);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -57,7 +221,7 @@ Deno.serve(async (req) => {
     const domain = getDomain(url);
     const fullDomain = (() => { try { return new URL(url).hostname; } catch { return ""; } })();
 
-    // 1. Check blocklist BEFORE calling Firecrawl
+    // Check blocklist
     const { data: blocked } = await supabase
       .from("scrape_blocklist")
       .select("domain")
@@ -66,21 +230,59 @@ Deno.serve(async (req) => {
 
     if (blocked) {
       console.log(`Blocklisted domain skipped: ${domain}`);
-      await supabase.from("scrape_failures").upsert({
-        source_url: url, domain, last_status_code: 0,
-        last_error: "BLOCKLISTED", blocked: true,
-        last_failed_at: new Date().toISOString(),
-        fail_count: 1,
-      }, { onConflict: "source_url" });
-      await supabase.from("scrape_events").insert({
-        source_url: url, domain, status_code: 0, success: false, error: "BLOCKLISTED",
-      });
       return new Response(JSON.stringify({
         success: false, fallback: true, error: "DOMAIN_BLOCKLISTED", content: "",
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Per-domain backoff: respect next_retry_at if set
+    await gateDomain(domain);
+
+    // 1. Direct HTTP scrape attempt FIRST (never blocked by Firecrawl backoff)
+    const directResult = await scrapeDirect(url);
+    if (directResult && directResult.content && directResult.content.length > 200) {
+      resetBackoff(domain);
+      if (story_id) {
+        await supabase.from("discovered_stories").update({
+          raw_content: directResult.content.slice(0, 10000),
+          ...(directResult.image ? { image_url: directResult.image } : {}),
+        }).eq("id", story_id);
+      }
+      return new Response(JSON.stringify({
+        success: true,
+        content: directResult.content.slice(0, 8000),
+        method: "direct",
+        title: directResult.title,
+        image_url: directResult.image,
+        author: directResult.author,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 2. High-reliability Jina Reader attempt (works for JS/Cloudflare, no credits needed)
+    const jinaResult = await scrapeJina(url);
+    if (jinaResult && jinaResult.content && jinaResult.content.length > 150) {
+      resetBackoff(domain);
+      if (story_id) {
+        await supabase.from("discovered_stories").update({
+          raw_content: jinaResult.content.slice(0, 10000),
+          ...(jinaResult.image ? { image_url: jinaResult.image } : {}),
+        }).eq("id", story_id);
+      }
+      return new Response(JSON.stringify({
+        success: true,
+        content: jinaResult.content.slice(0, 8000),
+        method: "jina",
+        title: jinaResult.title,
+        image_url: jinaResult.image,
+        author: jinaResult.author,
+        resolved_url: jinaResult.resolvedUrl,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 3. Firecrawl fallback (only if credits exist and domain not in backoff)
     const { data: existingFail } = await supabase
       .from("scrape_failures").select("fail_count, next_retry_at").eq("source_url", url).maybeSingle();
     if (existingFail?.next_retry_at && new Date(existingFail.next_retry_at) > new Date()) {
@@ -90,16 +292,15 @@ Deno.serve(async (req) => {
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    await gateDomain(domain);
-
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     if (!FIRECRAWL_API_KEY) {
-      return new Response(JSON.stringify({ success: false, fallback: true, error: "FIRECRAWL_NOT_CONFIGURED", content: "" }), {
+      return new Response(JSON.stringify({
+        success: false, fallback: true, error: "FIRECRAWL_NOT_CONFIGURED", content: "",
+      }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 2. Call Firecrawl with timeout
     let fcRes: Response;
     try {
       fcRes = await fetch("https://api.firecrawl.dev/v2/scrape", {
@@ -111,16 +312,6 @@ Deno.serve(async (req) => {
     } catch (netErr) {
       console.warn(`Firecrawl network error for ${url}:`, netErr);
       bumpBackoff(domain);
-      await supabase.from("scrape_failures").upsert({
-        source_url: url, domain, last_status_code: 0,
-        last_error: `NETWORK: ${netErr instanceof Error ? netErr.message : "unknown"}`,
-        last_failed_at: new Date().toISOString(), fail_count: 1,
-        next_retry_at: new Date(Date.now() + 60_000).toISOString(),
-      }, { onConflict: "source_url" });
-      await supabase.from("scrape_events").insert({
-        source_url: url, domain, status_code: 0, success: false,
-        error: netErr instanceof Error ? netErr.message.slice(0, 300) : "network",
-      });
       return new Response(JSON.stringify({ success: false, fallback: true, error: "NETWORK_ERROR", content: "" }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -128,27 +319,15 @@ Deno.serve(async (req) => {
 
     const fcData = await fcRes.json().catch(() => ({}));
 
-    // 3. Handle non-OK responses gracefully (NEVER throw → never 500)
     if (!fcRes.ok) {
       const errMsg = fcData?.error || `HTTP_${fcRes.status}`;
-      console.warn(`Firecrawl ${fcRes.status} for ${url}: ${String(errMsg).slice(0, 200)}`);
-
-      // Auto-add to blocklist on 403 (unsupported site)
-      if (fcRes.status === 403 && domain) {
-        await supabase.from("scrape_blocklist").upsert(
-          { domain, reason: `Auto-added: Firecrawl 403 for ${url.slice(0, 100)}` },
-          { onConflict: "domain", ignoreDuplicates: true }
-        );
-      }
-
-      // Bump exponential backoff on 429/5xx; longer cooldown on 403/402
       bumpBackoff(domain);
       const failCount = (existingFail?.fail_count || 0) + 1;
       const backoffMs =
-        fcRes.status === 429 ? Math.min(15 * 60_000, 30_000 * 2 ** Math.min(failCount, 5)) :
         fcRes.status === 402 ? 60 * 60_000 :
         fcRes.status === 403 ? 24 * 60 * 60_000 :
         Math.min(10 * 60_000, 15_000 * 2 ** Math.min(failCount, 5));
+
       await supabase.from("scrape_failures").upsert({
         source_url: url, domain,
         last_status_code: fcRes.status,
@@ -158,10 +337,6 @@ Deno.serve(async (req) => {
         next_retry_at: new Date(Date.now() + backoffMs).toISOString(),
         blocked: fcRes.status === 403,
       }, { onConflict: "source_url" });
-      await supabase.from("scrape_events").insert({
-        source_url: url, domain, status_code: fcRes.status, success: false,
-        error: String(errMsg).slice(0, 300),
-      });
 
       const errorCode =
         fcRes.status === 402 ? "CREDITS_EXHAUSTED" :
@@ -174,7 +349,6 @@ Deno.serve(async (req) => {
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // 4. Success path
     const markdown: string = fcData.data?.markdown || fcData.markdown || "";
     const trimmed = markdown.slice(0, 8000);
 
@@ -183,34 +357,11 @@ Deno.serve(async (req) => {
     }
 
     resetBackoff(domain);
-    // Record success
-    await supabase.from("scrape_failures").upsert({
-      source_url: url, domain,
-      last_status_code: 200, last_error: null,
-      last_success_at: new Date().toISOString(),
-      next_retry_at: null,
-      blocked: false, fail_count: 0,
-    }, { onConflict: "source_url" });
-    await supabase.from("scrape_events").insert({
-      source_url: url, domain, status_code: 200, success: true, error: null,
-    });
-
     return new Response(JSON.stringify({ success: true, content: trimmed }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    // Last-resort catch — still return 200 so frontend never sees 500
     console.error("scrape-article unexpected error:", e);
-    try {
-      if (url) {
-        await supabase.from("scrape_failures").upsert({
-          source_url: url, domain: getDomain(url),
-          last_status_code: 0,
-          last_error: `UNCAUGHT: ${e instanceof Error ? e.message : "unknown"}`,
-          last_failed_at: new Date().toISOString(), fail_count: 1,
-        }, { onConflict: "source_url" });
-      }
-    } catch { /* ignore */ }
     return new Response(JSON.stringify({
       success: false, fallback: true,
       error: e instanceof Error ? e.message : "Unknown error", content: "",

@@ -5,13 +5,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GATEWAY = "https://connector-gateway.lovable.dev/wordpress_com";
+const GATEWAY = "https://public-api.wordpress.com";
 const DEFAULT_SITE = "theashirumanow.wordpress.com";
 
-function gwHeaders(lovKey: string, wpKey: string, extra: Record<string, string> = {}) {
+function wpHeaders(wpKey: string, extra: Record<string, string> = {}) {
   return {
-    "Authorization": `Bearer ${lovKey}`,
-    "X-Connection-Api-Key": wpKey,
+    "Authorization": `Bearer ${wpKey}`,
     ...extra,
   };
 }
@@ -19,9 +18,7 @@ function gwHeaders(lovKey: string, wpKey: string, extra: Record<string, string> 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const WORDPRESS_COM_API_KEY = Deno.env.get("WORDPRESS_COM_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
     if (!WORDPRESS_COM_API_KEY) throw new Error("WORDPRESS_COM_API_KEY is not configured");
 
     const { site_id, headline, body, lede, byline, hero_image_url, category, status } = await req.json();
@@ -61,7 +58,7 @@ Deno.serve(async (req) => {
           fd.append("media[]", new Blob([buf as BlobPart], { type: mime }), filename);
           const upRes = await fetch(`${GATEWAY}/rest/v1.1/sites/${siteId}/media/new`, {
             method: "POST",
-            headers: gwHeaders(LOVABLE_API_KEY, WORDPRESS_COM_API_KEY),
+            headers: wpHeaders(WORDPRESS_COM_API_KEY),
             body: fd,
           });
           const upJson = await upRes.json();
@@ -95,7 +92,7 @@ Deno.serve(async (req) => {
 
     const postRes = await fetch(`${GATEWAY}/rest/v1.2/sites/${siteId}/posts/new`, {
       method: "POST",
-      headers: gwHeaders(LOVABLE_API_KEY, WORDPRESS_COM_API_KEY, { "Content-Type": "application/json" }),
+      headers: wpHeaders(WORDPRESS_COM_API_KEY, { "Content-Type": "application/json" }),
       body: JSON.stringify(postBody),
     });
     const postJson = await postRes.json();

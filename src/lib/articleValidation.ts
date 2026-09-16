@@ -1,3 +1,5 @@
+import { analyzeAiContent, type AiDetectionResult } from "./aiContentDetector";
+
 export type SourceNote = string | { text: string; section?: string };
 export type SourceRef = { url: string; title?: string; notes?: SourceNote[] };
 
@@ -32,11 +34,18 @@ export const REQUIRED_HEADINGS = [
   "Outlook",
 ] as const;
 
-const MIN_WORDS_BY_TEMPLATE: Record<string, number> = {
-  breaking: 1600,
-  event_preview: 1600,
-  profile: 1600,
-  review: 1600,
+export const MIN_WORDS_BY_TEMPLATE: Record<string, number> = {
+  breaking: 350,
+  event_preview: 450,
+  review: 600,
+  profile: 800,
+};
+
+export const TARGET_WORDS_BY_TEMPLATE: Record<string, { min: number; ideal: number; max: number }> = {
+  breaking: { min: 350, ideal: 500, max: 800 },
+  event_preview: { min: 450, ideal: 650, max: 1000 },
+  review: { min: 600, ideal: 850, max: 1200 },
+  profile: { min: 800, ideal: 1100, max: 1600 },
 };
 
 const MIN_PARAGRAPHS = 6;
@@ -131,15 +140,29 @@ export function validateArticle(input: ArticleCheckInput): Issue[] {
     });
   }
 
-  // Required headings
-  const headings = findHeadings(body).map((h) => h.toLowerCase());
-  const missingHeadings = REQUIRED_HEADINGS.filter((h) => !headings.some((existing) => existing.includes(h.toLowerCase())));
-  for (const h of missingHeadings) {
+  // Formulaic outline headings check (modern inverted-pyramid newsrooms weave background,
+  // official reactions, and impact naturally into continuous paragraphs without rigid outline headers)
+  const FORMULAIC_OUTLINE_HEADINGS = [
+    "background",
+    "key details",
+    "quotes",
+    "official response",
+    "official statement",
+    "why it matters",
+    "outlook",
+    "summary",
+    "conclusion",
+    "introduction",
+  ];
+  const detectedOutlineHeadings = findHeadings(body).filter((h) =>
+    FORMULAIC_OUTLINE_HEADINGS.some((f) => h.toLowerCase().includes(f))
+  );
+  if (detectedOutlineHeadings.length > 0) {
     issues.push({
-      id: `heading-${h}`,
-      severity: "error",
-      message: `Missing required section: ${h}`,
-      suggestion: `Add a "## ${h}" section in its standard position.`,
+      id: "formulaic-headings",
+      severity: "warning",
+      message: `Formulaic outline header${detectedOutlineHeadings.length > 1 ? "s" : ""} detected (${detectedOutlineHeadings.map((h) => `## ${h}`).join(", ")})`,
+      suggestion: "Inverted-pyramid journalism weaves background, official responses, and broader significance naturally into continuous paragraphs without explicit outline headers. Dissolve these headers into natural narrative prose.",
     });
   }
 
@@ -232,7 +255,27 @@ export function validateArticle(input: ArticleCheckInput): Issue[] {
     });
   }
 
+  // AI Written Content Detection - Strict 0% AI Clearance Gate
+  const aiResult = analyzeAiContent(body, input.headline || "", input.lede || "");
+  if (aiResult.score > 0 || aiResult.flaggedPhrases.length > 0) {
+    const topFlagged = aiResult.flaggedPhrases.slice(0, 4).map((f) => `"${f.phrase}"`).join(", ");
+    issues.push({
+      id: aiResult.score >= 76 ? "ai-content-heavy" : "ai-content-elevated",
+      severity: "error", // Strict 0% Gate: All AI or refinement flags are hard blocking errors
+      message: aiResult.score >= 76
+        ? `Flagged as AI-generated (${aiResult.score}% probability): ${aiResult.clicheCount} clichés found${topFlagged ? ` (${topFlagged})` : ""}`
+        : `AI content or refinement detected (${aiResult.score}% probability${topFlagged ? `: found ${topFlagged}` : ""})`,
+      suggestion: "Strict 0% AI Gate requires 100% human voice before approval. Click 'Auto-Fix to 0% AI' or humanize text.",
+    });
+  }
+
   return issues;
+}
+
+export function validateArticleWithAiDetails(input: ArticleCheckInput): { issues: Issue[]; aiResult: AiDetectionResult } {
+  const issues = validateArticle(input);
+  const aiResult = analyzeAiContent(input.body || "", input.headline || "", input.lede || "");
+  return { issues, aiResult };
 }
 
 export function canApprove(issues: Issue[]): boolean {

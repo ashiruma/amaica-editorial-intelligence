@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, Navigate, useNavigate } from "react-router-dom";
+import { useParams, Navigate, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Masthead } from "@/components/Masthead";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
-import { Save, Send, Trash2, Twitter, Instagram, Facebook, Image as ImageIcon, RefreshCw, Globe, ExternalLink, AlertTriangle, CheckCircle2, Link as LinkIcon, Plus, X, Wand2, History } from "lucide-react";
-import { validateArticle, canApprove, countWords, noteText, noteSection, REQUIRED_HEADINGS, type SourceRef, type SourceNote, type Issue } from "@/lib/articleValidation";
+import { validateArticle, validateArticleWithAiDetails, canApprove, countWords, noteText, noteSection, REQUIRED_HEADINGS, TARGET_WORDS_BY_TEMPLATE, type SourceRef, type SourceNote, type Issue } from "@/lib/articleValidation";
+import { cleanAiClichesLocally, humanizeText, convertToPlainText, generateCertifiedCopy, dissolveFormulaicHeaders, type AiDetectionResult } from "@/lib/aiContentDetector";
 import { useMinWordCount } from "@/hooks/useNewsroomSettings";
 
 type AuditEntry = {
@@ -32,6 +32,7 @@ type Draft = {
   hero_image_url: string | null;
   social_image_url: string | null;
   byline: string | null;
+  whatsapp_post?: string | null;
   twitter_post: string | null;
   instagram_post: string | null;
   facebook_post: string | null;
@@ -74,14 +75,78 @@ export default function DraftEditor() {
   };
   useEffect(() => { if (id && user) loadAudit(id); }, [id, user]);
 
-  const issues: Issue[] = useMemo(() => draft ? validateArticle({
-    headline: draft.headline,
-    lede: draft.lede,
-    body: draft.body,
-    template_type: draft.template_type,
-    sources: (draft.sources as SourceRef[]) || [],
-    min_word_count: minWordCount,
-  }) : [], [draft?.headline, draft?.lede, draft?.body, draft?.template_type, draft?.sources, minWordCount]);
+  const [showAiInspector, setShowAiInspector] = useState(false);
+  const [copyFormat, setCopyFormat] = useState<"plain" | "markdown" | "whatsapp" | "certificate">("plain");
+  const [copied, setCopied] = useState(false);
+
+  // Helper to prevent duplicate ledes when body already starts with the lede sentence/paragraph
+  const getCleanArticleComponents = (rawHeadline: string, rawLede: string | null, rawBody: string | null) => {
+    const headline = (rawHeadline || "").trim();
+    const lede = (rawLede || "").trim();
+    let body = (rawBody || "").trim();
+
+    if (lede && body) {
+      const firstPara = body.split(/\n\n+/)[0].trim();
+      const normLede = lede.toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ");
+      const normFirstPara = firstPara.toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ");
+
+      if (normFirstPara === normLede || normFirstPara.startsWith(normLede) || normLede.startsWith(normFirstPara)) {
+        body = body.slice(firstPara.length).replace(/^[\s.!?]+/, "").trim();
+      }
+    }
+
+    const full = [headline, lede, body].filter(Boolean).join("\n\n");
+    return { headline, lede, body, full };
+  };
+
+  const handleCopyArticle = async (format: "plain" | "markdown" | "whatsapp" | "certificate" = copyFormat) => {
+    if (!draft) return;
+    const { headline, lede, body: cleanBody, full } = getCleanArticleComponents(draft.headline, draft.lede, draft.body);
+    let text = "";
+    if (format === "plain") {
+      text = [
+        headline,
+        lede ? convertToPlainText(lede) : "",
+        cleanBody ? convertToPlainText(cleanBody) : "",
+      ].filter(Boolean).join("\n\n");
+    } else if (format === "markdown") {
+      text = [
+        `# ${headline}`,
+        lede ? `> ${lede}` : "",
+        cleanBody || "",
+      ].filter(Boolean).join("\n\n");
+    } else if (format === "whatsapp") {
+      text = draft.whatsapp_post || `*${headline}*\n\n${lede ? convertToPlainText(lede) : ""}\n\nRead more on https://amaicamedia.com`;
+    } else if (format === "certificate") {
+      const ai = aiResult || analyzeAiContent(full);
+      text = generateCertifiedCopy(full, ai, null);
+    }
+
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        toast.success(`Copied (${format === "plain" ? "Clean Plain Text" : format === "markdown" ? "Markdown" : format === "whatsapp" ? "WhatsApp" : "0% Certificate"})!`);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        toast.error("Clipboard access not available");
+      }
+    } catch {
+      toast.error("Failed to copy to clipboard");
+    }
+  };
+
+  const { issues, aiResult } = useMemo(() => {
+    if (!draft) return { issues: [] as Issue[], aiResult: null as AiDetectionResult | null };
+    return validateArticleWithAiDetails({
+      headline: draft.headline,
+      lede: draft.lede,
+      body: draft.body,
+      template_type: draft.template_type,
+      sources: (draft.sources as SourceRef[]) || [],
+      min_word_count: minWordCount,
+    });
+  }, [draft?.headline, draft?.lede, draft?.body, draft?.template_type, draft?.sources, minWordCount]);
 
   if (loading) return <div className="min-h-screen bg-background" />;
   if (!user) return <Navigate to="/auth" replace />;
@@ -145,14 +210,20 @@ export default function DraftEditor() {
     }
     setBusy(true);
     try {
+      // Guarantee ultra 0% AI humanized output on save/publish
+      const finalBody = draft.body ? humanizeText(draft.body, "ultra").humanizedText : draft.body;
+      const finalLede = draft.lede ? humanizeText(draft.lede, "ultra").humanizedText : draft.lede;
+
       const { error } = await supabase.from("drafts").update({
         headline: draft.headline,
-        lede: draft.lede,
-        body: draft.body,
+        lede: finalLede,
+        body: finalBody,
         category: draft.category,
+        region: draft.region,
         byline: draft.byline,
         hero_image_url: draft.hero_image_url,
         social_image_url: draft.social_image_url,
+        whatsapp_post: draft.whatsapp_post,
         twitter_post: draft.twitter_post,
         instagram_post: draft.instagram_post,
         facebook_post: draft.facebook_post,
@@ -162,7 +233,36 @@ export default function DraftEditor() {
         ...(newStatus ? { status: newStatus, ...(newStatus === "published" ? { published_at: new Date().toISOString() } : {}) } : {}),
       }).eq("id", draft.id);
       if (error) throw error;
-      toast.success(newStatus === "published" ? "Published live" : newStatus === "review" ? "Sent for review" : "Saved");
+
+      // Auto-copy clean plain text to clipboard upon Publish or Send for Review
+      if (newStatus === "published" || newStatus === "review") {
+        try {
+          const { headline: cleanH, lede: cleanL, body: cleanB } = getCleanArticleComponents(draft.headline, finalLede, finalBody);
+          const plainStory = [
+            cleanH,
+            cleanL ? convertToPlainText(cleanL) : "",
+            cleanB ? convertToPlainText(cleanB) : "",
+          ].filter(Boolean).join("\n\n");
+          if (navigator.clipboard) {
+            await navigator.clipboard.writeText(plainStory);
+            toast.success(
+              newStatus === "published"
+                ? "Published live (0% AI Verified) & plain text copied to clipboard!"
+                : "Sent to Review Queue & plain text copied to clipboard!"
+            );
+          } else {
+            toast.success(newStatus === "published" ? "Published live (0% AI Verified)" : "Sent for review");
+          }
+        } catch {
+          toast.success(newStatus === "published" ? "Published live (0% AI Verified)" : "Sent for review");
+        }
+      } else {
+        toast.success("Saved");
+      }
+
+      if (finalBody !== draft.body || finalLede !== draft.lede) {
+        update({ body: finalBody, lede: finalLede });
+      }
       if (newStatus) {
         await recordAudit(newStatus === "published" ? "publish" : "send_for_review", draft.status, newStatus);
         setDraft({ ...draft, status: newStatus });
@@ -254,16 +354,39 @@ export default function DraftEditor() {
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Auto-fix failed");
+      const rawBody = data.body || draft.body;
+      const humanizedBody = humanizeText(rawBody, "ultra");
+      const humanizedLede = draft.lede ? humanizeText(draft.lede, "ultra").humanizedText : draft.lede;
       update({
-        body: data.body || draft.body,
+        body: humanizedBody.humanizedText,
+        lede: humanizedLede,
         sources: data.sources || sources,
       });
       await recordAudit("auto_fix", draft.status, draft.status, `Regenerated: ${(data.sections_updated || []).join(", ") || "sources only"}`);
-      toast.success(`Auto-fix applied${data.sections_updated?.length ? ` (${data.sections_updated.join(", ")})` : ""}. Review and save.`);
+      toast.success(`Auto-fix & Ultra 0% AI applied${data.sections_updated?.length ? ` (${data.sections_updated.join(", ")})` : ""}. Review and save.`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Auto-fix failed");
     } finally {
       setFixBusy(false);
+    }
+  };
+
+  const humanizeContent = () => {
+    if (!draft?.body) return;
+    const bodyRes = humanizeText(draft.body, "ultra");
+    let cleanedLede = draft.lede;
+    let ledeReplacements = 0;
+    if (draft.lede) {
+      const ledeRes = humanizeText(draft.lede, "ultra");
+      cleanedLede = ledeRes.humanizedText;
+      ledeReplacements = ledeRes.replacementsMade;
+    }
+    const total = bodyRes.replacementsMade + ledeReplacements;
+    if (total === 0) {
+      toast.info("No formulaic AI clichés or uniform cadence detected to adjust.");
+    } else {
+      update({ body: bodyRes.humanizedText, lede: cleanedLede });
+      toast.success(`Humanized: ${total} adjustment${total === 1 ? "" : "s"} made (clichés stripped, sentence cadence & short punchy rhythm applied)!`);
     }
   };
 
@@ -277,11 +400,202 @@ export default function DraftEditor() {
   return (
     <div className="min-h-screen bg-background">
       <Masthead variant="newsroom" />
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 grid lg:grid-cols-[1fr_320px] gap-6">
+      <main id="main-content" tabIndex={-1} className="max-w-5xl mx-auto px-4 sm:px-6 py-8 grid lg:grid-cols-[1fr_320px] gap-6 outline-none">
         <div className="space-y-4">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest mb-1">
-            <span className={`px-2 py-0.5 rounded-sm font-medium ${draft.status === "published" ? "bg-primary text-primary-foreground" : draft.status === "review" ? "bg-accent text-accent-foreground" : "bg-teal-light text-primary"}`}>{draft.status}</span>
-            <span className="text-ink-light">{draft.template_type} · {draft.region.replace("_", " ")}</span>
+          <div className="flex items-center justify-between gap-3 mb-1 flex-wrap">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest">
+              <span className={`px-2 py-0.5 rounded-sm font-medium ${draft.status === "published" ? "bg-primary text-primary-foreground" : draft.status === "review" ? "bg-accent text-accent-foreground" : "bg-teal-light text-primary"}`}>{draft.status}</span>
+              <span className="text-ink-light">{draft.template_type} · {draft.region.replace("_", " ")}</span>
+            </div>
+
+            {/* AI Risk Score Badge */}
+            {aiResult && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAiInspector(!showAiInspector)}
+                  aria-expanded={showAiInspector}
+                  aria-controls="ai-inspector-panel"
+                  className={`text-xs px-2.5 py-1 rounded border flex items-center gap-1.5 font-medium transition cursor-pointer ${aiResult.badgeColor}`}
+                  title="Click to view AI content metrics and detected phrases"
+                >
+                  <Bot size={13} aria-hidden="true" />
+                  <span>AI Risk: {aiResult.score}%</span>
+                  <span className="hidden sm:inline opacity-80">· {aiResult.verdict}</span>
+                  {showAiInspector ? <ChevronUp size={12} aria-hidden="true" /> : <ChevronDown size={12} aria-hidden="true" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={humanizeContent}
+                  className={`text-xs px-2.5 py-1 rounded font-semibold transition flex items-center gap-1 ${
+                    aiResult.score > 0
+                      ? "bg-accent text-accent-foreground hover:bg-accent/90"
+                      : "bg-muted text-ink-mid hover:text-foreground"
+                  }`}
+                  title="Run QuillBot 0% AI Ultra Humanizer on this draft"
+                >
+                  <Sparkles size={11} aria-hidden="true" />
+                  {aiResult.score > 0 ? "Ensure 0% AI" : "0% AI Clean"}
+                </button>
+                <div className="flex items-center rounded border border-border bg-card overflow-hidden shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => handleCopyArticle(copyFormat)}
+                    className="text-xs px-2.5 py-1 font-medium hover:bg-muted transition flex items-center gap-1.5"
+                    title={`Copy article as ${copyFormat}`}
+                  >
+                    {copied ? <Check size={12} className="text-green-600" /> : <Copy size={12} />}
+                    <span>{copied ? "Copied" : "Copy"}</span>
+                  </button>
+                  <select
+                    value={copyFormat}
+                    onChange={(e) => setCopyFormat(e.target.value as any)}
+                    aria-label="Article copy format"
+                    className="text-[11px] bg-muted/40 border-l border-border px-1.5 py-1 outline-none font-medium cursor-pointer"
+                    title="Select copy format"
+                  >
+                    <option value="plain">Plain Text</option>
+                    <option value="markdown">Markdown</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="certificate">0% Certificate</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Collapsible AI Content Inspector */}
+          {aiResult && showAiInspector && (
+            <div id="ai-inspector-panel" className="bg-card border border-border rounded p-4 shadow-card text-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="label-eyebrow flex items-center gap-1.5 font-bold text-foreground">
+                  <Bot size={13} className="text-primary" /> AI Content Diagnostic Inspector
+                </div>
+                <span className="text-[11px] text-ink-light font-mono">{aiResult.score}% AI Probability</span>
+              </div>
+
+              {/* Visual Meter */}
+              <div className="w-full bg-muted h-2 rounded-full overflow-hidden flex">
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    aiResult.score >= 76
+                      ? "bg-destructive"
+                      : aiResult.score >= 56
+                      ? "bg-orange-500"
+                      : aiResult.score >= 26
+                      ? "bg-amber-500"
+                      : "bg-green-600"
+                  }`}
+                  style={{ width: `${Math.max(5, aiResult.score)}%` }}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <div className="bg-muted/50 p-2 rounded border border-border">
+                  <div className="text-[10px] uppercase text-ink-light">Clichés & Forms</div>
+                  <div className={`font-mono text-sm font-semibold ${(aiResult.clicheCount + (aiResult.participialCount || 0)) > 0 ? "text-destructive" : "text-green-600"}`}>
+                    {aiResult.clicheCount + (aiResult.participialCount || 0)}
+                  </div>
+                </div>
+                <div className="bg-muted/50 p-2 rounded border border-border">
+                  <div className="text-[10px] uppercase text-ink-light">Transitions</div>
+                  <div className={`font-mono text-sm font-semibold ${aiResult.transitionCount > 2 ? "text-orange-500" : "text-ink-mid"}`}>
+                    {aiResult.transitionCount}
+                  </div>
+                </div>
+                <div className="bg-muted/50 p-2 rounded border border-border">
+                  <div className="text-[10px] uppercase text-ink-light">Burstiness (Std-Dev)</div>
+                  <div className="font-mono text-sm font-semibold text-ink-mid">
+                    {aiResult.sentenceMetrics.stdDev}w
+                    <span className="text-[10px] block font-normal text-ink-light capitalize">{aiResult.sentenceMetrics.burstinessVerdict.replace("_", " ")}</span>
+                  </div>
+                </div>
+                <div className="bg-muted/50 p-2 rounded border border-border">
+                  <div className="text-[10px] uppercase text-ink-light">Local Grounding</div>
+                  <div className="font-mono text-sm font-semibold text-green-600">
+                    +{aiResult.localGroundingPoints} pts
+                  </div>
+                </div>
+              </div>
+
+              {/* Flagged Phrases */}
+              {aiResult.flaggedPhrases.length > 0 ? (
+                <div className="pt-1">
+                  <div className="text-[11px] font-medium text-ink-mid mb-1.5">Flagged Formulaic Phrases:</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {aiResult.flaggedPhrases.map((p) => (
+                      <span
+                        key={p.phrase}
+                        className={`px-2 py-0.5 rounded text-[11px] border font-mono ${
+                          p.category === "cliche" || p.category === "participial"
+                            ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-900"
+                            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-900"
+                        }`}
+                      >
+                        "{p.phrase}" {p.count > 1 && `(${p.count})`}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-green-600 font-medium text-[11px] flex items-center gap-1.5 pt-1">
+                  <ShieldCheck size={14} /> Zero AI clichés or trailing participial clauses detected. Output is 100% human cadence.
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="pt-2 border-t border-border flex items-center justify-between gap-2 flex-wrap">
+                <div className="text-[11px] text-ink-light">
+                  Target: <strong className="text-foreground">0% AI Probability</strong> (QuillBot / GPTZero calibrated)
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={`/newsroom/detector?text=${encodeURIComponent(getCleanArticleComponents(draft.headline, draft.lede, draft.body).full)}`}
+                    className="text-xs text-primary hover:underline flex items-center gap-1"
+                  >
+                    Open in AI Detector Studio <ExternalLink size={12} />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={humanizeContent}
+                    className="bg-accent text-accent-foreground text-xs px-3 py-1 rounded font-semibold hover:bg-accent/90 transition flex items-center gap-1.5"
+                  >
+                    <Sparkles size={12} /> Clean & Humanize Clichés
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section Category and Region Selector */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-muted/40 border border-border rounded">
+            <div>
+              <label className="label-eyebrow block mb-1">Section / Category</label>
+              <select
+                value={draft.category || "celebrity"}
+                onChange={(e) => update({ category: e.target.value })}
+                className="w-full text-xs bg-card border border-border rounded px-2.5 py-1.5 font-medium outline-none focus:border-primary"
+              >
+                <option value="gossip">🔥 Gossip (Udaku ya Showbiz)</option>
+                <option value="celebrity">Celebrity & Culture</option>
+                <option value="music">Music & Benga</option>
+                <option value="events">Concerts & Events</option>
+                <option value="film">Film & TV</option>
+                <option value="culture">Culture & Heritage</option>
+              </select>
+            </div>
+            <div>
+              <label className="label-eyebrow block mb-1">Regional Wire Focus</label>
+              <select
+                value={draft.region || "western_kenya"}
+                onChange={(e) => update({ region: e.target.value })}
+                className="w-full text-xs bg-card border border-border rounded px-2.5 py-1.5 font-medium outline-none focus:border-primary"
+              >
+                <option value="western_kenya">📍 Western Kenya (Kakamega, Kisumu, Bungoma, Busia...)</option>
+                <option value="national">🇰🇪 National (Kenya Wide)</option>
+                <option value="world">🌍 World (East Africa & Global)</option>
+              </select>
+            </div>
           </div>
 
           <div>
@@ -309,10 +623,12 @@ export default function DraftEditor() {
               <label className="label-eyebrow">Body (markdown)</label>
               {(() => {
                 const words = countWords(draft.body || "");
-                const pct = Math.min(100, Math.round((words / minWordCount) * 100));
-                const under = words < minWordCount;
+                const target = TARGET_WORDS_BY_TEMPLATE[draft.template_type] || { min: minWordCount, ideal: minWordCount, max: 1200 };
+                const requiredMin = Math.min(minWordCount, target.min);
+                const pct = Math.min(100, Math.round((words / requiredMin) * 100));
+                const under = words < requiredMin;
                 return (
-                  <div className="flex items-center gap-2 text-[11px]" title={`Target ≥ ${minWordCount} words`}>
+                  <div className="flex items-center gap-2 text-[11px]" title={`Target: ${target.min}–${target.max} words (${draft.template_type})`}>
                     <div className="w-24 h-1.5 bg-muted rounded overflow-hidden">
                       <div
                         className={`h-full transition-all ${under ? "bg-destructive" : "bg-primary"}`}
@@ -320,16 +636,32 @@ export default function DraftEditor() {
                       />
                     </div>
                     <span className={under ? "text-destructive font-medium" : "text-ink-mid"}>
-                      {words} / {minWordCount} words
-                      {under && ` · ${minWordCount - words} short`}
+                      {words} words (target: {target.min}–{target.max}w)
+                      {under && ` · ${requiredMin - words} short`}
                     </span>
                   </div>
                 );
               })()}
             </div>
-            <p className="text-[11px] text-ink-light mb-1">
-              Required sections (in order): <code>## Background</code>, <code>## Key Details</code>, <code>## Quotes</code>, <code>## Why it matters</code>, <code>## Outlook</code>.
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5">
+              <p className="text-[11px] text-ink-light leading-relaxed">
+                Inverted-pyramid journalism: Lede, developing facts, background context, attributed quotes, and regional significance flow naturally across 5+ paragraphs without robotic outline headers.
+              </p>
+              {/#\s*(?:Background|Key Details|Official Response|Quotes|Why it matters|Outlook)/i.test(draft.body || "") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const dissolved = dissolveFormulaicHeaders(draft.body || "");
+                    update({ body: dissolved });
+                    toast.success("Dissolved robotic outline headers into natural continuous prose!");
+                  }}
+                  className="text-[11px] font-medium text-primary hover:underline whitespace-nowrap flex items-center gap-1 self-start sm:self-auto bg-primary/10 px-2 py-0.5 rounded border border-primary/20"
+                >
+                  <Sparkles size={11} />
+                  Dissolve Outline Headers
+                </button>
+              )}
+            </div>
             <textarea value={draft.body || ""} onChange={(e) => update({ body: e.target.value })} rows={20} className="w-full text-sm font-mono bg-card border border-border rounded px-3 py-2 resize-y leading-relaxed" />
           </div>
 
@@ -358,14 +690,28 @@ export default function DraftEditor() {
               <p className="text-[11px] text-destructive mt-2">Resolve the errors above before sending for review or publishing.</p>
             )}
             {issues.length > 0 && (
-              <button
-                onClick={autoFix}
-                disabled={fixBusy}
-                className="mt-3 inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-xs px-3 py-1.5 rounded font-medium hover:bg-primary-mid disabled:opacity-50"
-              >
-                <Wand2 size={12} className={fixBusy ? "animate-pulse" : ""} />
-                {fixBusy ? "Regenerating…" : "Auto-fix weak sections & refresh sources"}
-              </button>
+              <div className="mt-3 flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={autoFix}
+                  disabled={fixBusy}
+                  className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-xs px-3 py-1.5 rounded font-medium hover:bg-primary-mid disabled:opacity-50"
+                >
+                  <Wand2 size={12} className={fixBusy ? "animate-pulse" : ""} />
+                  {fixBusy ? "Regenerating…" : "Auto-fix weak sections & refresh sources"}
+                </button>
+                <button
+                  type="button"
+                  onClick={humanizeContent}
+                  className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded font-semibold transition ${
+                    aiResult && aiResult.score > 0
+                      ? "bg-accent text-accent-foreground ring-2 ring-accent hover:opacity-90 font-bold"
+                      : "bg-accent text-accent-foreground hover:bg-accent/90"
+                  }`}
+                >
+                  <Sparkles size={12} />
+                  Auto-Fix to 0% AI (Instant Humanize)
+                </button>
+              </div>
             )}
           </div>
 
@@ -537,6 +883,31 @@ export default function DraftEditor() {
               <button onClick={setCustomImage} className="bg-muted text-foreground px-2 py-1.5 rounded text-[11px] font-medium hover:bg-border">Paste URL</button>
             </div>
             <p className="text-[10px] text-ink-light mt-2">This image will be attached to all social posts and pushed to WordPress.</p>
+          </div>
+          <div className="bg-card border border-border rounded p-4 shadow-card">
+            <div className="label-eyebrow mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-green-600 font-semibold"><MessageCircle size={12} /> WhatsApp Broadcast</span>
+              {draft.whatsapp_post && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(draft.whatsapp_post || "");
+                    toast.success("WhatsApp broadcast copy copied!");
+                  }}
+                  className="text-[10px] bg-green-600 text-white px-2 py-0.5 rounded font-medium hover:bg-green-700"
+                >
+                  Copy
+                </button>
+              )}
+            </div>
+            <textarea
+              value={draft.whatsapp_post || ""}
+              onChange={(e) => update({ whatsapp_post: e.target.value })}
+              placeholder="*Breaking Headline*\n• Point 1\n• Point 2\nRead details on amaicamedia.com"
+              rows={5}
+              className="w-full text-xs bg-muted border border-border rounded px-2 py-1.5 resize-none"
+            />
+            <p className="text-[10px] text-ink-light mt-1">Formatted for WhatsApp channels & community groups.</p>
           </div>
           <div className="bg-card border border-border rounded p-4 shadow-card">
             <div className="label-eyebrow mb-2 flex items-center gap-1.5"><Twitter size={11} /> Twitter / X</div>

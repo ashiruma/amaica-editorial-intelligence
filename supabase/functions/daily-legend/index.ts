@@ -1,4 +1,4 @@
-// Daily Our Legends generator: picks a legend, writes a tribute via Lovable AI,
+// Daily Our Legends generator: picks a legend, writes a tribute via Amaica AI,
 // upserts today's legend_features row, and creates a newsroom draft for editorial.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -6,8 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
 async function findImage(supabase: ReturnType<typeof createClient>, query: string): Promise<string | null> {
   try {
@@ -29,12 +27,20 @@ Impact: ${legend.impact}
 
 Write a fresh tribute for today's "Our Legends" feature. Lead with their human impact, not just credits.`;
 
+  const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY");
+  const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
+  const endpoint = GEMINI_KEY
+    ? "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+    : "https://api.openai.com/v1/chat/completions";
+  const auth = `Bearer ${GEMINI_KEY || OPENAI_KEY}`;
+  const model = GEMINI_KEY ? "gemini-1.5-flash" : "gpt-4o-mini";
+
   const { fetchWithBackoff } = await import("../_shared/backoff.ts");
-  const { response: res } = await fetchWithBackoff("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const { response: res } = await fetchWithBackoff(endpoint, {
     method: "POST",
-    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+    headers: { Authorization: auth, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model,
       messages: [{ role: "system", content: sys }, { role: "user", content: user }],
       tools: [{
         type: "function",

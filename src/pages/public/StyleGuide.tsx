@@ -81,7 +81,7 @@ export default function StyleGuide() {
   return (
     <div className="min-h-screen bg-background">
       <Masthead variant="public" />
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+      <main id="main-content" tabIndex={-1} className="max-w-3xl mx-auto px-4 sm:px-6 py-10 outline-none">
         <Link to="/" className="inline-flex items-center gap-1 text-xs text-ink-light hover:text-primary mb-6">
           <ArrowLeft size={12} /> Back
         </Link>

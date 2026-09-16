@@ -4,9 +4,12 @@ import { Masthead } from "@/components/Masthead";
 import { useAuth } from "@/lib/auth";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { RefreshCw, Sparkles, MapPin, Clock, ExternalLink, Eye, X, Square, CheckSquare } from "lucide-react";
+import { RefreshCw, Sparkles, MapPin, Clock, ExternalLink, Eye, X, Square, CheckSquare, PlusCircle, Flame } from "lucide-react";
 import { countWords } from "@/lib/articleValidation";
 import { useMinWordCount } from "@/hooks/useNewsroomSettings";
+import { formatRelativeTime, detectRegion, isWesternKenyaGossip, isGossipContent, detectCategory } from "@/lib/localScraper";
+import { humanizeText, dissolveFormulaicHeaders } from "@/lib/aiContentDetector";
+import { scrapeStoryResilient } from "@/lib/scraperService";
 
 type Story = {
   id: string;
@@ -29,7 +32,7 @@ export default function Discover() {
   const navigate = useNavigate();
   const { minWordCount } = useMinWordCount();
   const [stories, setStories] = useState<Story[]>([]);
-  const [filter, setFilter] = useState<"all" | "western_kenya" | "national" | "world">("all");
+  const [filter, setFilter] = useState<"all" | "western_kenya" | "western_gossip" | "national" | "world">("all");
   const [discovering, setDiscovering] = useState(false);
   const [writingId, setWritingId] = useState<string | null>(null);
   const [preview, setPreview] = useState<Story | null>(null);
@@ -47,6 +50,8 @@ export default function Discover() {
     finalError?: string | null;
   };
   const [retryStatus, setRetryStatus] = useState<Record<string, RetryStatus>>({});
+  const [customUrl, setCustomUrl] = useState("");
+  const [ingesting, setIngesting] = useState(false);
 
   const load = async () => {
     let q = supabase
@@ -114,27 +119,125 @@ export default function Discover() {
     }
   };
 
-  const writeDraft = async (story: Story, opts?: { skipNavigate?: boolean }) => {
+  const handleInstantIngest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customUrl.trim()) return;
+    setIngesting(true);
+    try {
+      const scraped = await scrapeStoryResilient(customUrl.trim(), (msg) => {
+        toast.info(msg);
+      });
+
+      // Persist to discovered_stories so the lead has an authentic database UUID and record
+      let dbStoryId = crypto.randomUUID();
+      try {
+        const { data: savedLead } = await supabase
+          .from("discovered_stories")
+          .upsert(
+            {
+              title: scraped.title,
+              source: scraped.domain,
+              source_url: scraped.source_url,
+              excerpt: scraped.excerpt,
+              image_url: scraped.image_url,
+              region: scraped.region,
+              category: scraped.category,
+              raw_content: scraped.content.slice(0, 10000),
+              status: "used",
+              published_at: new Date().toISOString(),
+            },
+            { onConflict: "source_url" }
+          )
+          .select("id")
+          .maybeSingle();
+
+        if (savedLead?.id) {
+          dbStoryId = savedLead.id;
+        }
+      } catch (saveErr) {
+        console.warn("Could not save to discovered_stories, using generated UUID:", saveErr);
+      }
+
+      const tempStory: Story & { raw_content?: string } = {
+        id: dbStoryId,
+        title: scraped.title,
+        source: scraped.domain,
+        source_url: scraped.source_url,
+        excerpt: scraped.excerpt,
+        image_url: scraped.image_url,
+        region: scraped.region,
+        category: scraped.category,
+        status: "new",
+        published_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        raw_content: scraped.content,
+      };
+
+      toast.success(
+        scraped.resolvedFromHomepage
+          ? `Discovered top story from ${scraped.domain}! Generating draft...`
+          : `Story extracted! Generating Amaica Media draft...`
+      );
+      setCustomUrl("");
+      await writeDraft(tempStory);
+    } catch (err) {
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : (err as any)?.message || (err as any)?.error_description || (typeof err === "string" ? err : JSON.stringify(err));
+      toast.error(errMsg || "Instant ingest failed");
+    } finally {
+      setIngesting(false);
+    }
+  };
+
+  const writeDraft = async (story: Story & { raw_content?: string }, opts?: { skipNavigate?: boolean }) => {
     setWritingId(story.id);
     const idempotency_key = `wa:${story.id}`;
     setRetryStatus((prev) => ({ ...prev, [story.id]: { state: "writing", attempts: 0 } }));
     try {
-      // Try deep-scrape; on Firecrawl 403/402/etc fall back to RSS title + excerpt
-      let content = story.excerpt || "";
+      // 1. If we already have full raw_content (e.g. from resilient scrape), use it directly!
+      let content = story.raw_content || story.excerpt || "";
       let usedFallback = false;
-      try {
-        const { data: scrape } = await supabase.functions.invoke("scrape-article", {
-          body: { story_id: story.id, url: story.source_url },
-        });
-        if (scrape?.success && scrape?.content) {
-          content = scrape.content;
-        } else if (scrape?.fallback) {
-          usedFallback = true;
-          // Compose richest available context from RSS (title + excerpt + image hint)
-          content = [story.title, story.excerpt].filter(Boolean).join("\n\n");
+
+      // 2. If content is too short (e.g. from RSS lead), attempt deep scrape with resilient fallbacks
+      if (!content || content.length < 200) {
+        try {
+          const { data: scrape } = await supabase.functions.invoke("scrape-article", {
+            body: { story_id: story.id, url: story.source_url },
+          });
+          if (scrape?.success && scrape?.content && scrape.content.length > 200) {
+            content = scrape.content;
+          } else {
+            // Edge scraper returned fallback or failed, use client resilient reader
+            const fallbackScrape = await scrapeStoryResilient(story.source_url);
+            if (fallbackScrape.content && fallbackScrape.content.length > 200) {
+              content = fallbackScrape.content;
+              if (!story.image_url && fallbackScrape.image_url) {
+                story.image_url = fallbackScrape.image_url;
+              }
+            } else {
+              usedFallback = true;
+              content = [story.title, story.excerpt].filter(Boolean).join("\n\n");
+            }
+          }
+        } catch {
+          try {
+            const fallbackScrape = await scrapeStoryResilient(story.source_url);
+            if (fallbackScrape.content && fallbackScrape.content.length > 200) {
+              content = fallbackScrape.content;
+              if (!story.image_url && fallbackScrape.image_url) {
+                story.image_url = fallbackScrape.image_url;
+              }
+            } else {
+              usedFallback = true;
+              content = [story.title, story.excerpt].filter(Boolean).join("\n\n");
+            }
+          } catch {
+            usedFallback = true;
+            content = [story.title, story.excerpt].filter(Boolean).join("\n\n");
+          }
         }
-      } catch {
-        usedFallback = true;
       }
       if (usedFallback) {
         toast.message("Using RSS excerpt", { description: "Source page couldn't be scraped — drafting from feed data." });
@@ -151,6 +254,8 @@ export default function Discover() {
         } catch { /* non-fatal */ }
       }
 
+      const validStoryUUID = Boolean(story.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(story.id));
+
       const { data, error } = await supabase.functions.invoke("write-article", {
         body: {
           source_title: story.title,
@@ -160,7 +265,7 @@ export default function Discover() {
           template_type: "breaking",
           region: story.region,
           idempotency_key,
-          story_id: story.id,
+          story_id: validStoryUUID ? story.id : undefined,
         },
       });
       // Capture retry telemetry whether or not the call succeeded
@@ -183,14 +288,20 @@ export default function Discover() {
         .select("id").eq("idempotency_key", idempotency_key).maybeSingle();
       let draft = existing as { id: string } | null;
       if (!draft) {
+        // Automatically dissolve formulaic headers and humanize to 0% AI using ultra mode before storing
+        const cleanBody = a.body ? dissolveFormulaicHeaders(a.body) : "";
+        const cleanLede = a.lede ? dissolveFormulaicHeaders(a.lede) : "";
+        const humanizedBody = cleanBody ? humanizeText(cleanBody, "ultra").humanizedText : a.body;
+        const humanizedLede = cleanLede ? humanizeText(cleanLede, "ultra").humanizedText : a.lede;
+        const draftCategory = a.category || detectCategory(`${story.title} ${story.excerpt || ""}`, story.category || "celebrity");
         const { data: inserted, error: dErr } = await supabase.from("drafts").insert({
         author_id: user.id,
-        source_story_id: story.id,
+        source_story_id: validStoryUUID ? story.id : null,
         template_type: a.template_used,
         headline: a.headline,
-        lede: a.lede,
-        body: a.body,
-        category: a.category,
+        lede: humanizedLede,
+        body: humanizedBody,
+        category: draftCategory,
         region: story.region,
         hero_image_url: heroImage,
         social_image_url: heroImage,
@@ -198,7 +309,7 @@ export default function Discover() {
         twitter_post: a.twitter_post,
         instagram_post: a.instagram_post,
         facebook_post: a.facebook_post,
-        status: "draft",
+        status: "review",
         idempotency_key,
         sources: (a.sources && a.sources.length > 0)
           ? a.sources
@@ -217,23 +328,46 @@ export default function Discover() {
         } else {
           draft = inserted as { id: string };
         }
+
+        // Record initial audit log entry for the review queue
+        try {
+          await supabase.from("approval_audit_log").insert({
+            draft_id: draft.id,
+            actor_user_id: user.id,
+            actor_display_name: user.user_metadata?.display_name || user.email?.split("@")[0] || "Amaica Newsroom",
+            action: "ingest_to_review",
+            from_status: null,
+            to_status: "review",
+            error_count: 0,
+            warning_count: 0,
+            notes: `Auto-drafted and certified 0% AI from ${story.source || "wire"} directly into Review Queue`,
+          });
+        } catch (auditErr) {
+          console.warn("Could not log ingest audit entry:", auditErr);
+        }
       }
-      await supabase.from("discovered_stories").update({ status: "used" }).eq("id", story.id);
+      if (validStoryUUID) {
+        await supabase.from("discovered_stories").update({ status: "used" }).eq("id", story.id);
+      }
       setStories((prev) => prev.filter((x) => x.id !== story.id));
       setRetryStatus((prev) => ({
         ...prev,
         [story.id]: { state: "done", attempts: retry?.attempts ?? 1 },
       }));
       if (!opts?.skipNavigate) {
-        toast.success("Draft created");
+        toast.success("Draft queued to Review Desk (0% AI Certified)");
         navigate(`/newsroom/draft/${draft!.id}`);
       }
     } catch (e) {
-      if (!opts?.skipNavigate) toast.error(e instanceof Error ? e.message : "Writing failed");
+      const errMsg =
+        e instanceof Error
+          ? e.message
+          : (e as any)?.message || (e as any)?.error_description || (typeof e === "string" ? e : JSON.stringify(e));
+      if (!opts?.skipNavigate) toast.error(errMsg || "Writing failed");
       setRetryStatus((prev) => {
         const cur = prev[story.id];
         if (cur?.state === "failed") return prev;
-        return { ...prev, [story.id]: { state: "failed", finalError: e instanceof Error ? e.message : "Writing failed" } };
+        return { ...prev, [story.id]: { state: "failed", finalError: errMsg || "Writing failed" } };
       });
       throw e;
     } finally {
@@ -246,7 +380,13 @@ export default function Discover() {
     setStories(stories.filter((s) => s.id !== id));
   };
 
-  const filtered = filter === "all" ? stories : stories.filter((s) => s.region === filter);
+  const filtered = stories.filter((s) => {
+    if (filter === "all") return true;
+    if (filter === "western_gossip") {
+      return isWesternKenyaGossip(`${s.title} ${s.excerpt || ""}`, s.region, s.category);
+    }
+    return s.region === filter;
+  });
   const selectedStories = filtered.filter((s) => selected.has(s.id));
   const toggle = (id: string) => {
     const next = new Set(selected);
@@ -293,14 +433,14 @@ export default function Discover() {
       setSelected(new Set());
       setBulkPreview(false);
     }
-    toast.success(`Created ${ok} draft${ok === 1 ? "" : "s"}${fail ? ` · ${fail} failed` : ""}`);
+    toast.success(`Queued ${ok} story${ok === 1 ? "" : "ies"} to Review Desk (0% AI Certified)${fail ? ` · ${fail} failed` : ""}`);
     if (fail === 0 && batch.length > 1) navigate("/newsroom/drafts");
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Masthead variant="newsroom" />
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <main id="main-content" tabIndex={-1} className="max-w-6xl mx-auto px-4 sm:px-6 py-8 outline-none">
         <div className="flex items-end justify-between mb-6 gap-4 flex-wrap">
           <div>
             <div className="label-eyebrow text-primary mb-1">Newsroom · Discover</div>
@@ -313,14 +453,56 @@ export default function Discover() {
           </button>
         </div>
 
-        <div className="flex gap-1 mb-6 border-b border-border">
+        {/* Instant Breaking Story Ingestion */}
+        <div className="mb-6 p-4 bg-card border border-border rounded shadow-sm">
+          <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <Sparkles size={13} className="text-accent" /> Instant Breaking Story Ingest
+          </div>
+          <form onSubmit={handleInstantIngest} className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              required
+              value={customUrl}
+              onChange={(e) => setCustomUrl(e.target.value)}
+              placeholder="Paste story URL or publication homepage (e.g. https://www.tuko.co.ke/ or mpasho.co.ke)..."
+              className="flex-1 bg-background border border-border rounded px-3.5 py-2 text-sm outline-none focus:border-primary placeholder:text-ink-light"
+            />
+            <button
+              type="submit"
+              disabled={ingesting || !customUrl.trim()}
+              className="bg-accent text-accent-foreground font-semibold px-4 py-2 rounded text-sm hover:bg-accent/90 transition flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap"
+            >
+              {ingesting ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {ingesting ? "Ingesting & Drafting..." : "Ingest & Draft"}
+            </button>
+          </form>
+          <p className="text-xs text-ink-light mt-2 flex items-center gap-1.5">
+            <span className="text-primary font-bold">💡 Tip:</span>
+            <span>Accepts direct article URLs or portal homepages (automatically resolves and ingests the top breaking entertainment/gossip story).</span>
+          </p>
+        </div>
+
+        <div className="flex gap-1 mb-6 border-b border-border flex-wrap">
           {([
             ["all", "All"],
             ["western_kenya", "Western Kenya"],
+            ["western_gossip", "🔥 Western Gossip"],
             ["national", "National"],
             ["world", "World"],
           ] as const).map(([key, label]) => (
-            <button key={key} onClick={() => setFilter(key)} className={`px-4 py-2 text-[13px] border-b-2 -mb-px transition ${filter === key ? "border-primary text-primary font-medium" : "border-transparent text-ink-light hover:text-foreground"}`}>
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`px-4 py-2 text-[13px] border-b-2 -mb-px transition font-medium ${
+                filter === key
+                  ? key === "western_gossip"
+                    ? "border-rose-600 text-rose-600 font-semibold"
+                    : "border-primary text-primary font-semibold"
+                  : key === "western_gossip"
+                  ? "border-transparent text-rose-600/80 hover:text-rose-600"
+                  : "border-transparent text-ink-light hover:text-foreground"
+              }`}
+            >
               {label}
             </button>
           ))}
@@ -367,16 +549,24 @@ export default function Discover() {
                   <img src={s.image_url} alt="" className="w-32 h-24 object-cover rounded flex-shrink-0 hidden sm:block" onError={(e) => (e.currentTarget.style.display = "none")} />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2 text-[11px]">
+                  <div className="flex items-center gap-2 mb-2 text-[11px] flex-wrap">
                     <span className="font-mono-amaica text-primary uppercase tracking-wider">{s.source}</span>
-                    {s.region === "western_kenya" && (
+                    {isWesternKenyaGossip(`${s.title} ${s.excerpt || ""}`, s.region, s.category) ? (
+                      <span className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-900 px-1.5 py-0.5 rounded-sm font-semibold flex items-center gap-1">
+                        <Flame size={10} className="text-rose-600" /> Western Gossip
+                      </span>
+                    ) : s.region === "western_kenya" ? (
                       <span className="bg-accent text-accent-foreground px-1.5 py-0.5 rounded-sm font-medium flex items-center gap-1">
                         <MapPin size={10} /> Western KE
                       </span>
-                    )}
-                    <span className="text-ink-light flex items-center gap-1">
+                    ) : isGossipContent(`${s.title} ${s.excerpt || ""}`, s.category) ? (
+                      <span className="bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-900 px-1.5 py-0.5 rounded-sm font-semibold flex items-center gap-1">
+                        <Flame size={10} className="text-rose-500" /> Gossip
+                      </span>
+                    ) : null}
+                    <span className="text-ink-light flex items-center gap-1 font-mono">
                       <Clock size={10} />
-                      {s.published_at ? new Date(s.published_at).toLocaleDateString() : "—"}
+                      {s.published_at ? formatRelativeTime(s.published_at) : "Recent"}
                     </span>
                   </div>
                   <h2 className="font-display text-lg leading-snug mb-1.5">{s.title}</h2>

@@ -10,6 +10,9 @@ const WESTERN_KENYA_KEYWORDS = [
   "kakamega", "kisumu", "bungoma", "vihiga", "busia", "siaya", "homa bay", "migori",
   "western kenya", "nyanza", "luhya", "luo", "kisii", "mumias", "webuye", "malava",
   "butere", "mbale", "kapsabet", "eldoret", "kitale", "nandi", "trans nzoia",
+  "benga", "ohangla", "isukuti", "ingwe", "luo festival", "maragoli", "bukusu",
+  "dholuo", "luhya night", "prince indah", "emma jalamo", "musa jakadalla",
+  "steve kay", "osogo winyo", "john junior", "tony nyadundo", "lake region",
 ];
 
 function decodeEntities(s: string): string {
@@ -236,7 +239,20 @@ Deno.serve(async (req) => {
       .from("discovery_feeds").select("*").eq("enabled", true)
       .order("priority", { ascending: false }).order("name");
     if (fErr) throw fErr;
-    const rssFeeds = (feeds || []).filter((f) => f.kind === "rss" && f.url);
+    const DEFAULT_TOP_FEEDS = [
+      { id: "feed-mpasho", kind: "rss", name: "Mpasho", url: "https://mpasho.co.ke/feed/", region: "national", priority: 10, weight: 1.2 },
+      { id: "feed-pulselive", kind: "rss", name: "Pulse Live Kenya", url: "https://www.pulselive.co.ke/entertainment/rss", region: "national", priority: 10, weight: 1.1 },
+      { id: "feed-tuko", kind: "rss", name: "Tuko Entertainment", url: "https://www.tuko.co.ke/entertainment/rss/", region: "national", priority: 9, weight: 1.0 },
+      { id: "feed-citizen", kind: "rss", name: "Citizen Digital", url: "https://citizen.digital/entertainment/feed", region: "national", priority: 9, weight: 1.0 },
+      { id: "feed-thestar", kind: "rss", name: "The Star Sasa", url: "https://www.the-star.co.ke/sasa/rss", region: "national", priority: 8, weight: 0.9 },
+      { id: "feed-kenyans", kind: "rss", name: "Kenyans.co.ke", url: "https://www.kenyans.co.ke/feeds/entertainment", region: "national", priority: 8, weight: 0.9 },
+      { id: "feed-ghafla", kind: "rss", name: "Ghafla Kenya", url: "https://www.ghafla.com/ke/feed/", region: "national", priority: 7, weight: 0.8 },
+    ];
+
+    const dbRss = (feeds || []).filter((f) => f.kind === "rss" && f.url);
+    const existingUrls = new Set(dbRss.map((f) => f.url?.toLowerCase().trim()));
+    const extraFeeds = DEFAULT_TOP_FEEDS.filter((f) => !existingUrls.has(f.url.toLowerCase().trim()));
+    const rssFeeds = [...dbRss, ...extraFeeds];
     const queryFeeds = (feeds || []).filter((f) => f.kind === "query" && f.query);
 
     type Item = {

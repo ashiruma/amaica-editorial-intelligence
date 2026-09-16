@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +17,7 @@ import Admin from "./pages/newsroom/Admin";
 import ScrapeHealth from "./pages/newsroom/ScrapeHealth";
 import NewsroomLegends from "./pages/newsroom/Legends";
 import DiscoveryAdmin from "./pages/newsroom/DiscoveryAdmin";
+import AiDetectorStudio from "./pages/newsroom/AiDetectorStudio";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -34,7 +35,8 @@ const App = () => (
           <Route path="/legends/:id" element={<LegendPage />} />
           <Route path="/style-guide" element={<StyleGuide />} />
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+          <Route path="/~oauth/initiate" element={<Navigate to="/auth" replace />} />
+          <Route path="/oauth/consent" element={<OAuthConsent />} />
           <Route path="/newsroom" element={<Discover />} />
           <Route path="/newsroom/drafts" element={<DraftsList />} />
           <Route path="/newsroom/draft/:id" element={<DraftEditor />} />
@@ -43,6 +45,8 @@ const App = () => (
           <Route path="/newsroom/health" element={<ScrapeHealth />} />
           <Route path="/newsroom/legends" element={<NewsroomLegends />} />
           <Route path="/newsroom/discovery" element={<DiscoveryAdmin />} />
+          <Route path="/newsroom/detector" element={<AiDetectorStudio />} />
+          <Route path="/newsroom/ai-detector" element={<AiDetectorStudio />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

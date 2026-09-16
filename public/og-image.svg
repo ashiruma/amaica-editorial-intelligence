@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="ogBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="60%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="ogGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="ogCrimson" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fda4af"/>
+      <stop offset="100%" stop-color="#e11d48"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#ogBg)"/>
+
+  <!-- Top Decorative Accent Bar -->
+  <rect x="0" y="0" width="1200" height="6" fill="url(#ogGold)"/>
+
+  <!-- Subtle Grid Accent -->
+  <g opacity="0.05" stroke="#ffffff" stroke-width="1">
+    <line x1="0" y1="100" x2="1200" y2="100"/>
+    <line x1="0" y1="200" x2="1200" y2="200"/>
+    <line x1="0" y1="300" x2="1200" y2="300"/>
+    <line x1="0" y1="400" x2="1200" y2="400"/>
+    <line x1="0" y1="500" x2="1200" y2="500"/>
+    <line x1="200" y1="0" x2="200" y2="630"/>
+    <line x1="400" y1="0" x2="400" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="800" y1="0" x2="800" y2="630"/>
+    <line x1="1000" y1="0" x2="1000" y2="630"/>
+  </g>
+
+  <!-- Brand Emblem on Left -->
+  <g transform="translate(100, 190)">
+    <rect width="130" height="130" rx="28" fill="#0f172a" stroke="url(#ogGold)" stroke-width="4"/>
+    <path d="M 32 100 L 58 32 L 72 32 L 98 100 L 83 100 L 65 52 L 47 100 Z" fill="url(#ogGold)"/>
+    <polygon points="42,77 88,77 84,69 46,69" fill="url(#ogCrimson)"/>
+    <circle cx="65" cy="22" r="5" fill="#fbbf24"/>
+  </g>
+
+  <!-- Main Titles -->
+  <g transform="translate(270, 220)">
+    <!-- Eyebrow -->
+    <text x="0" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700" letter-spacing="4" fill="#fbbf24">AMAICA MEDIA • EDITORIAL INTELLIGENCE</text>
+    
+    <!-- Title -->
+    <text x="0" y="65" font-family="'Playfair Display', Georgia, serif" font-size="54" font-weight="900" fill="#ffffff">AI Forensics &amp; Newsroom Studio</text>
+    
+    <!-- Subtitle -->
+    <text x="0" y="115" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" fill="#94a3b8">Turnitin-Grade Multi-Vector Detection • Fact-Locked Humanization • 50+ Stories/Hour Wire Engine</text>
+  </g>
+
+  <!-- Bottom Pills -->
+  <g transform="translate(100, 480)">
+    <!-- Badge 1 -->
+    <rect x="0" y="0" width="230" height="42" rx="21" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <circle cx="22" cy="21" r="6" fill="#10b981"/>
+    <text x="38" y="27" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="600" fill="#f8fafc">0% AI Score Clearance</text>
+
+    <!-- Badge 2 -->
+    <rect x="250" y="0" width="240" height="42" rx="21" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <circle cx="272" cy="21" r="6" fill="#3b82f6"/>
+    <text x="288" y="27" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="600" fill="#f8fafc">100% Entity Preservation</text>
+
+    <!-- Badge 3 -->
+    <rect x="510" y="0" width="220" height="42" rx="21" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <circle cx="532" cy="21" r="6" fill="#f59e0b"/>
+    <text x="548" y="27" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="600" fill="#f8fafc">Real-Time News Wire</text>
+  </g>
+
+  <!-- Footer Brand -->
+  <text x="1100" y="590" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="500" fill="#64748b">amaicamedia.com</text>
+</svg>
