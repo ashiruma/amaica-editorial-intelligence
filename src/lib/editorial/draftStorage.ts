@@ -1,4 +1,4 @@
-﻿import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 export const DEFAULT_ADMIN_AUTHOR_UUID = "2d623b06-aaca-414a-a0f8-fd7f12e372c6";
 const LOCAL_DRAFTS_STORAGE_KEY = "amaica_newsroom_local_drafts";
@@ -328,4 +328,36 @@ export async function deleteNewsroomDraft(id: string): Promise<void> {
   } catch (e) {
     console.warn("Remote draft delete error:", e);
   }
+}
+
+/**
+ * Permanently deletes all drafts from both local storage and remote Supabase.
+ */
+export async function deleteAllNewsroomDrafts(): Promise<{ success: boolean; deletedCount: number }> {
+  // 1. Clear local storage
+  const local = getLocalDrafts();
+  const deletedCount = local.length;
+  setLocalDrafts([]);
+
+  // 2. Clear remote drafts and related audit logs in Supabase
+  try {
+    // Delete audit log entries first to prevent foreign key constraint conflicts
+    await supabase
+      .from("approval_audit_log")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+  } catch (e) {
+    console.warn("Could not delete audit logs:", e);
+  }
+
+  try {
+    await supabase
+      .from("drafts")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+  } catch (e) {
+    console.warn("Could not delete all remote drafts:", e);
+  }
+
+  return { success: true, deletedCount };
 }

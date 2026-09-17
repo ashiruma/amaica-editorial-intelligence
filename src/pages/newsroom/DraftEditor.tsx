@@ -426,6 +426,25 @@ export default function DraftEditor() {
     }
   };
 
+  const sendToIntelligence = () => {
+    if (!draft) return;
+    const { headline: cleanH, lede: cleanL, body: cleanB } = getCleanArticleComponents(draft.headline, draft.lede, draft.body);
+    try {
+      sessionStorage.setItem("intelligence_incoming_draft", JSON.stringify({
+        id: draft.id,
+        headline: cleanH,
+        lede: cleanL,
+        body: cleanB,
+        category: draft.category,
+        region: draft.region,
+      }));
+    } catch (e) {
+      console.warn("Could not set sessionStorage incoming draft:", e);
+    }
+    toast.info("Opening in AI Intelligence Studio for fixing...");
+    navigate(`/newsroom/ai-detector?draftId=${draft.id}`);
+  };
+
   const remove = async () => {
     if (!confirm("Delete this draft permanently?")) return;
     try {
@@ -476,6 +495,15 @@ export default function DraftEditor() {
                 >
                   <Sparkles size={11} aria-hidden="true" />
                   {aiResult.score > 0 ? "Ensure 0% AI" : "0% AI Clean"}
+                </button>
+                <button
+                  type="button"
+                  onClick={sendToIntelligence}
+                  className="text-xs px-2.5 py-1 rounded font-semibold transition flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white shadow-xs cursor-pointer"
+                  title="Open in AI Intelligence segment for advanced forensic scanning, QuillBot modes, and sentence-by-sentence fixing"
+                >
+                  <Wand2 size={11} aria-hidden="true" />
+                  <span>Send to Intelligence</span>
                 </button>
                 <div className="flex items-center rounded border border-border bg-card overflow-hidden shadow-2xs">
                   <button

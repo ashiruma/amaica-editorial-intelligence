@@ -5,6 +5,7 @@ import {
   fetchAllNewsroomDrafts,
   updateDraftContent,
   deleteNewsroomDraft,
+  deleteAllNewsroomDrafts,
   isValidUUID,
   ensureValidAuthorUUID,
   DEFAULT_ADMIN_AUTHOR_UUID,
@@ -108,5 +109,30 @@ describe("Newsroom Draft Storage & Resilience", () => {
     await deleteNewsroomDraft(created.id);
 
     expect(await getDraftById(created.id)).toBeNull();
+  });
+
+  it("deletes all drafts from storage when deleteAllNewsroomDrafts is called", async () => {
+    await saveNewDraft({
+      headline: "Draft 1",
+      lede: "Lede 1",
+      body: "Body 1",
+      category: "music",
+      region: "national",
+      template_type: "breaking",
+    });
+    await saveNewDraft({
+      headline: "Draft 2",
+      lede: "Lede 2",
+      body: "Body 2",
+      category: "film",
+      region: "national",
+      template_type: "breaking",
+    });
+
+    expect(getLocalDrafts().length).toBeGreaterThanOrEqual(2);
+
+    const result = await deleteAllNewsroomDrafts();
+    expect(result.success).toBe(true);
+    expect(getLocalDrafts().length).toBe(0);
   });
 });

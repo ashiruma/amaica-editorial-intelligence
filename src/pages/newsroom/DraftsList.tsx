@@ -3,10 +3,11 @@ import { Link, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Masthead } from "@/components/Masthead";
 import { useAuth } from "@/lib/auth";
-import { FileText, Bot, Flame } from "lucide-react";
+import { toast } from "sonner";
+import { FileText, Bot, Flame, Trash2, AlertTriangle } from "lucide-react";
 import { analyzeAiContent } from "@/lib/aiContentDetector";
 import { isWesternKenyaGossip, isGossipContent } from "@/lib/localScraper";
-import { fetchAllNewsroomDrafts } from "@/lib/editorial/draftStorage";
+import { fetchAllNewsroomDrafts, deleteAllNewsroomDrafts } from "@/lib/editorial/draftStorage";
 
 type Draft = {
   id: string;
@@ -25,6 +26,8 @@ export default function DraftsList() {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [showPublished, setShowPublished] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "review" | "western_gossip" | "western_kenya" | "gossip">("all");
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -49,6 +52,20 @@ export default function DraftsList() {
     return true;
   });
 
+  const handleDeleteAll = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await deleteAllNewsroomDrafts();
+      setDrafts([]);
+      setShowDeleteAllConfirm(false);
+      toast.success(`Deleted all ${res.deletedCount} drafts from newsroom`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete drafts");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) return <div className="min-h-screen bg-background" />;
   if (!user) return <Navigate to="/newsroom/auth" replace />;
 
@@ -61,10 +78,23 @@ export default function DraftsList() {
             <div className="label-eyebrow text-primary mb-1">Newsroom · Drafts</div>
             <h1 className="font-display text-3xl">Working stories</h1>
           </div>
-          <label className="flex items-center gap-2 text-xs text-ink-mid">
-            <input type="checkbox" checked={showPublished} onChange={(e) => setShowPublished(e.target.checked)} />
-            Include published (edit live posts)
-          </label>
+          <div className="flex items-center gap-3 flex-wrap">
+            <label className="flex items-center gap-2 text-xs text-ink-mid cursor-pointer">
+              <input type="checkbox" checked={showPublished} onChange={(e) => setShowPublished(e.target.checked)} />
+              Include published (edit live posts)
+            </label>
+            {drafts.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteAllConfirm(true)}
+                className="px-3 py-1.5 rounded text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 hover:bg-rose-100 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                title="Delete all drafts permanently"
+              >
+                <Trash2 size={13} />
+                <span>Delete All Drafts</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Quick filter tabs */}
@@ -145,6 +175,40 @@ export default function DraftsList() {
                 </Link>
               );
             })}
+          </div>
+        )}
+
+        {/* Delete All Drafts Confirmation Modal */}
+        {showDeleteAllConfirm && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-xs">
+            <div className="bg-card border border-border rounded-lg max-w-md w-full p-6 shadow-xl space-y-4">
+              <div className="flex items-center gap-2.5 text-rose-600">
+                <AlertTriangle className="w-5 h-5 shrink-0" />
+                <h2 className="text-base font-bold text-foreground">Delete All Newsroom Drafts?</h2>
+              </div>
+              <p className="text-xs text-ink-mid">
+                Are you sure you want to permanently delete all {drafts.length} working drafts? This will purge all draft stories from both local newsroom storage and the remote database. This action cannot be undone.
+              </p>
+              <div className="pt-2 flex justify-end gap-2 border-t border-border">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setShowDeleteAllConfirm(false)}
+                  className="px-3.5 py-1.5 text-xs rounded border border-border text-ink-mid hover:text-foreground cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={handleDeleteAll}
+                  className="px-3.5 py-1.5 text-xs font-semibold rounded bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <Trash2 size={13} />
+                  {isDeleting ? "Deleting all..." : "Yes, Delete All Drafts"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>

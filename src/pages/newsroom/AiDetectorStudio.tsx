@@ -3,7 +3,12 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { fetchAllNewsroomDrafts } from "@/lib/editorial/draftStorage";
+import {
+  fetchAllNewsroomDrafts,
+  getDraftById,
+  updateDraftContent,
+  deleteAllNewsroomDrafts,
+} from "@/lib/editorial/draftStorage";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +34,11 @@ import {
   Layers,
   ChevronDown,
   Zap,
+  Wand2,
+  Check,
+  Trash2,
+  ArrowLeft,
+  AlertTriangle,
 } from "lucide-react";
 import { Masthead } from "@/components/Masthead";
 
@@ -131,6 +141,11 @@ export default function AiDetectorStudio() {
     }>
   >([]);
 
+  // Linked Draft State (when sent from Draft Editor for fixing)
+  const [originDraftId, setOriginDraftId] = useState<string | null>(null);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [isDeletingDrafts, setIsDeletingDrafts] = useState(false);
+
   // Audit Log & Version History
   const [auditLogs, setAuditLogs] = useState<NewsroomAuditLogItem[]>([
     {
@@ -207,13 +222,54 @@ export default function AiDetectorStudio() {
 
   // Handle URL Query Params
   useEffect(() => {
+    const queryDraftId = params.get("draftId");
     const queryText = params.get("text");
-    if (queryText) {
+
+    let handled = false;
+    if (queryDraftId) {
+      setOriginDraftId(queryDraftId);
+      // 1. Try sessionStorage for instantaneous data transfer from DraftEditor
+      try {
+        const stored = sessionStorage.getItem("intelligence_incoming_draft");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.id === queryDraftId) {
+            setHeadline(parsed.headline || "");
+            const full = [parsed.lede, parsed.body].filter(Boolean).join("\n\n") || parsed.headline;
+            setContent(full);
+            runAnalysis(full, parsed.headline || "");
+            handled = true;
+            toast.info(`Loaded draft "${parsed.headline}" for fixing in Intelligence Studio`);
+          }
+        }
+      } catch (e) {
+        console.warn("Could not read incoming draft from session:", e);
+      }
+
+      // 2. If not in session, fetch via getDraftById
+      if (!handled) {
+        getDraftById(queryDraftId).then((d) => {
+          if (d) {
+            setHeadline(d.headline);
+            const full = [d.lede, d.body].filter(Boolean).join("\n\n") || d.headline;
+            setContent(full);
+            runAnalysis(full, d.headline);
+            toast.info(`Loaded draft "${d.headline}" for fixing in Intelligence Studio`);
+          }
+        });
+        handled = true;
+      }
+    }
+
+    if (!handled && queryText) {
       setContent(queryText);
       const { headline: h } = extractArticleComponents(queryText);
       if (h) setHeadline(h);
       runAnalysis(queryText, h);
-    } else {
+      handled = true;
+    }
+
+    if (!handled) {
       // Auto-analyze initial sample
       runAnalysis(SAMPLE_JOURNALISM_TEXT, "Fally Ipupa Delivers Live Performance in Nairobi");
     }
@@ -486,13 +542,49 @@ export default function AiDetectorStudio() {
     }
   };
 
-  const handleSelectDraft = (d: { headline: string; lede?: string; body?: string }) => {
+  const handleSelectDraft = (d: { id?: string; headline: string; lede?: string; body?: string }) => {
+    if (d.id) setOriginDraftId(d.id);
     setHeadline(d.headline);
     const fullText = d.lede ? `${d.lede}\n\n${d.body || ""}`.trim() : (d.body || "").trim();
     setContent(fullText);
     setRetrieveDialogOpen(false);
     runAnalysis(fullText, d.headline);
     toast.success(`Retrieved draft: "${d.headline}"`);
+  };
+
+  const handleSaveAndReturnToDraft = async () => {
+    if (!originDraftId) return;
+    try {
+      const paragraphs = content.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+      const cleanLede = paragraphs[0] || null;
+      const cleanBody = paragraphs.length > 1 ? paragraphs.slice(1).join("\n\n") : paragraphs[0] || "";
+
+      await updateDraftContent(originDraftId, {
+        headline,
+        lede: cleanLede,
+        body: cleanBody,
+      });
+
+      toast.success("Applied fixes to newsroom draft!");
+      navigate(`/newsroom/draft/${originDraftId}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to sync fix to draft");
+    }
+  };
+
+  const handleDeleteAllDrafts = async () => {
+    setIsDeletingDrafts(true);
+    try {
+      const res = await deleteAllNewsroomDrafts();
+      setAvailableDrafts([]);
+      toast.success(`Deleted all ${res.deletedCount} drafts from newsroom.`);
+      setShowDeleteAllConfirm(false);
+      setRetrieveDialogOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete drafts");
+    } finally {
+      setIsDeletingDrafts(false);
+    }
   };
 
   // Navigation module switcher handler
@@ -599,8 +691,56 @@ export default function AiDetectorStudio() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Delete All Drafts Quick Action */}
+            <button
+              type="button"
+              onClick={() => setShowDeleteAllConfirm(true)}
+              className="px-2.5 py-1.5 rounded bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-xs font-semibold hover:bg-rose-100 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+              title="Delete all drafts from both intelligence and drafts segment"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete All Drafts</span>
+            </button>
           </div>
         </div>
+
+        {/* Connected Draft Fix Banner (when sent from Draft Editor) */}
+        {originDraftId && (
+          <div className="mb-5 p-3.5 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-lg flex items-center justify-between gap-3 flex-wrap shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-purple-700 dark:text-purple-300 shrink-0">
+                <Wand2 className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-purple-950 dark:text-purple-100 flex items-center gap-2">
+                  <span>Connected Draft for Fixing:</span>
+                  <span className="font-normal font-serif text-sm">"{headline}"</span>
+                </div>
+                <div className="text-[11px] text-purple-700 dark:text-purple-300">
+                  Inspect forensic signals, apply Fact-Locked rewrites, and sync fixes directly back to the Draft Editor.
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSaveAndReturnToDraft}
+                className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs font-semibold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Apply Fix & Return to Draft</span>
+              </button>
+              <Link
+                to={`/newsroom/draft/${originDraftId}`}
+                className="px-2.5 py-1.5 text-xs text-purple-700 dark:text-purple-300 hover:underline flex items-center gap-1"
+              >
+                <ArrowLeft className="w-3 h-3" />
+                <span>Back to Editor</span>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Primary Newsroom Module Tabs (styled matching Discover.tsx / DraftsList.tsx) */}
         <div className="flex gap-1 mb-6 border-b border-border flex-wrap">
@@ -845,12 +985,57 @@ export default function AiDetectorStudio() {
             </div>
           </div>
 
-          <DialogFooter className="pt-2 border-t border-border">
+          <DialogFooter className="pt-2 border-t border-border flex items-center justify-between sm:justify-between w-full">
+            {availableDrafts.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowDeleteAllConfirm(true)}
+                className="px-2.5 py-1.5 rounded text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 hover:bg-rose-100 flex items-center gap-1.5 transition cursor-pointer"
+                title="Delete all drafts permanently"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete All Drafts</span>
+              </button>
+            ) : <div />}
             <button
               onClick={() => setRetrieveDialogOpen(false)}
               className="px-3 py-1.5 rounded text-xs border border-border text-ink-mid hover:text-foreground cursor-pointer"
             >
               Close
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete All Drafts Confirmation Dialog */}
+      <Dialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+        <DialogContent className="max-w-md bg-card border-border text-foreground shadow-elevated">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-rose-600 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+              Delete All Newsroom Drafts?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-ink-mid mt-2">
+              Are you sure you want to permanently delete all drafts? This will purge all working stories from both local newsroom storage and the remote database. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-3 border-t border-border flex justify-end gap-2">
+            <button
+              type="button"
+              disabled={isDeletingDrafts}
+              onClick={() => setShowDeleteAllConfirm(false)}
+              className="px-3 py-1.5 rounded text-xs border border-border text-ink-mid hover:text-foreground cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isDeletingDrafts}
+              onClick={handleDeleteAllDrafts}
+              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {isDeletingDrafts ? "Deleting all..." : "Yes, Delete All Drafts"}
             </button>
           </DialogFooter>
         </DialogContent>
