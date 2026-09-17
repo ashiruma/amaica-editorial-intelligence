@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth, ADMIN_MASTER_PASSCODE } from "@/lib/auth";
+import { useAuth, ADMIN_MASTER_PASSCODE, isExplicitAdmin, verifyAdminPasscode } from "@/lib/auth";
 import {
   submitNewsroomAccessRequest,
   getRequestStatusForEmail,
@@ -101,11 +101,8 @@ export default function NewsroomAuth() {
     setBusy(true);
     try {
       // 1. Check if user is entering admin master credentials
-      if (
-        (isExplicitAdmin(signInEmail) || signInEmail.toLowerCase().includes("admin")) &&
-        signInPassword === ADMIN_MASTER_PASSCODE
-      ) {
-        signInAsAdmin(signInPassword, signInEmail);
+      if (verifyAdminPasscode(signInPassword)) {
+        signInAsAdmin(signInPassword, signInEmail || "admin@amaicamedia.com");
         toast.success("Welcome back, Administrator!");
         navigate(next);
         return;

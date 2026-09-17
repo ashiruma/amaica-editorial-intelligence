@@ -25,7 +25,7 @@ export function verifyAdminPasscode(passcode: string): boolean {
 export function isExplicitAdmin(email?: string | null): boolean {
   if (!email) return false;
   const lower = email.toLowerCase().trim();
-  return lower.includes("ashiruma") || lower === "admin@amaicamedia.com";
+  return lower.includes("ashiruma") || lower.includes("admin");
 }
 
 export function useAuth() {
@@ -151,11 +151,11 @@ export function useAuth() {
   }, []);
 
   const signInAsLocal = (
-    email = "ashiruma@amaicamedia.com",
+    email = "admin@amaicamedia.com",
     role?: AppRole,
     displayName?: string
   ) => {
-    const isAdminUser = isExplicitAdmin(email);
+    const isAdminUser = isExplicitAdmin(email) || role === "admin";
     let assignedRoles: AppRole[] = [];
     if (isAdminUser) {
       assignedRoles = ["admin", "editor"];
@@ -168,7 +168,7 @@ export function useAuth() {
     const localUser: LocalNewsroomUser = {
       id: `staff-${Date.now()}`,
       email,
-      displayName: displayName || (isAdminUser ? "ashiruma (Admin)" : email.split("@")[0]),
+      displayName: displayName || (isAdminUser ? "Administrator" : email.split("@")[0]),
       roles: assignedRoles,
     };
     try {
@@ -185,11 +185,11 @@ export function useAuth() {
     setRoles(assignedRoles);
   };
 
-  const signInAsAdmin = (passcode: string, email = "ashiruma@amaicamedia.com"): boolean => {
+  const signInAsAdmin = (passcode: string, email = "admin@amaicamedia.com"): boolean => {
     if (!verifyAdminPasscode(passcode)) {
       return false;
     }
-    signInAsLocal(email, "admin", "ashiruma (Administrator)");
+    signInAsLocal(email, "admin", "Administrator");
     return true;
   };
 
