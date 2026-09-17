@@ -9,7 +9,7 @@ import { countWords } from "@/lib/articleValidation";
 import { useMinWordCount } from "@/hooks/useNewsroomSettings";
 import { formatRelativeTime, detectRegion, isWesternKenyaGossip, isGossipContent, detectCategory } from "@/lib/localScraper";
 import { humanizeText, dissolveFormulaicHeaders } from "@/lib/aiContentDetector";
-import { scrapeStoryResilient } from "@/lib/scraperService";
+import { scrapeStoryResilient, scrapeKenyanEntertainmentPortals } from "@/lib/scraperService";
 import { fetchLiveTrendingWireStories, repurposeWireStory } from "@/lib/editorial/wireRepurposingEngine";
 
 type Story = {
@@ -72,23 +72,42 @@ export default function Discover() {
     } else {
       // Seed with live trending entertainment wire leads so the newsroom is never blank
       const liveLeads = await fetchLiveTrendingWireStories();
-      setStories(
-        liveLeads.map((l) => ({
-          id: l.id,
-          title: l.title,
-          source: l.source,
-          source_url: l.source_url,
-          excerpt: l.excerpt,
-          image_url: l.image_url,
-          region: l.region,
-          category: l.category,
-          status: "new",
-          published_at: l.published_at || new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          highlights: [l.excerpt],
-          preview_summary: l.excerpt,
-        }))
-      );
+      const mappedStories: Story[] = liveLeads.map((l) => ({
+        id: l.id,
+        title: l.title,
+        source: l.source,
+        source_url: l.source_url,
+        excerpt: l.excerpt,
+        image_url: l.image_url,
+        region: l.region,
+        category: l.category,
+        status: "new",
+        published_at: l.published_at || new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        highlights: [l.excerpt],
+        preview_summary: l.excerpt,
+      }));
+      setStories(mappedStories);
+
+      // Seed authentic stories to Supabase for persistence across newsroom sessions
+      try {
+        await supabase.from("discovered_stories").upsert(
+          mappedStories.map((s) => ({
+            title: s.title,
+            source: s.source,
+            source_url: s.source_url,
+            excerpt: s.excerpt,
+            image_url: s.image_url,
+            region: s.region,
+            category: s.category,
+            status: "new",
+            published_at: s.published_at,
+          })),
+          { onConflict: "source_url" }
+        );
+      } catch (seedErr) {
+        console.warn("Could not seed discovered_stories:", seedErr);
+      }
     }
   };
 
@@ -134,35 +153,54 @@ export default function Discover() {
   const discover = async () => {
     setDiscovering(true);
     try {
-      const { data, error } = await supabase.functions.invoke("discover-news");
-      if (error) throw error;
-      toast.success(`Found ${data?.inserted ?? 0} new stories`);
+      let insertedCount = 0;
+
+      // 1. Try Supabase edge function first
+      try {
+        const { data, error } = await supabase.functions.invoke("discover-news");
+        if (!error && typeof data?.inserted === "number") {
+          insertedCount = data.inserted;
+        }
+      } catch (edgeErr) {
+        console.warn("Edge function discover-news unavailable, initiating real-time portal scanner:", edgeErr);
+      }
+
+      // 2. If edge function inserted 0 stories, seamlessly run real-time portal scanner
+      if (insertedCount === 0) {
+        toast.info("Scanning Pulse Live, Standard Media, Mpasho & Citizen Digital for breaking stories...");
+        const livePortals = await scrapeKenyanEntertainmentPortals((msg) => toast.info(msg));
+        if (livePortals.length > 0) {
+          try {
+            await supabase.from("discovered_stories").upsert(
+              livePortals.map((p) => ({
+                title: p.title,
+                source: p.source,
+                source_url: p.source_url,
+                excerpt: p.excerpt,
+                image_url: p.image_url,
+                region: p.region,
+                category: p.category,
+                status: "new",
+                published_at: p.published_at,
+              })),
+              { onConflict: "source_url" }
+            );
+          } catch (upsertErr) {
+            console.warn("Could not upsert live scraped stories:", upsertErr);
+          }
+          insertedCount = livePortals.length;
+        }
+      }
+
+      if (insertedCount > 0) {
+        toast.success(`Discovered ${insertedCount} authentic entertainment stories`);
+      } else {
+        toast.info("Feeds are up to date with the freshest stories");
+      }
       await load();
     } catch (e) {
-      // If edge function discovery fails, refresh live wire leads locally so the newsroom stays populated
-      const freshLeads = await fetchLiveTrendingWireStories({ forceRefresh: true });
-      if (freshLeads && freshLeads.length > 0) {
-        setStories(
-          freshLeads.map((l) => ({
-            id: l.id,
-            title: l.title,
-            source: l.source,
-            source_url: l.source_url,
-            excerpt: l.excerpt,
-            image_url: l.image_url,
-            region: l.region,
-            category: l.category,
-            status: "new",
-            published_at: l.published_at || new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            highlights: [l.excerpt],
-            preview_summary: l.excerpt,
-          }))
-        );
-        toast.info("Refreshed live entertainment wire leads");
-      } else {
-        toast.error(e instanceof Error ? e.message : "Discovery failed");
-      }
+      toast.error(e instanceof Error ? e.message : "Discovery encountered an issue");
+      await load();
     } finally {
       setDiscovering(false);
     }

@@ -118,6 +118,18 @@ The sold-out showcase highlights a resurgence in East Africa's commercial live m
   });
 
   describe("3. Wire Repurposing Pipeline", () => {
+    it("ensures all curated trending leads have valid URLs from legitimate Kenyan publications", () => {
+      expect(CURATED_TRENDING_LEADS.length).toBeGreaterThanOrEqual(10);
+      const allowedDomains = ["pulse.co.ke", "standardmedia.co.ke", "mpasho.co.ke", "citizen.digital"];
+      for (const lead of CURATED_TRENDING_LEADS) {
+        expect(lead.source_url).toMatch(/^https:\/\//);
+        expect(lead.title.length).toBeGreaterThan(15);
+        expect(lead.excerpt.length).toBeGreaterThan(30);
+        const hasValidDomain = allowedDomains.some((d) => lead.source_url.includes(d));
+        expect(hasValidDomain).toBe(true);
+      }
+    });
+
     it("loads trending wire leads from database or curated fallback", async () => {
       const leads = await fetchLiveTrendingWireStories();
       expect(leads.length).toBeGreaterThanOrEqual(4);
