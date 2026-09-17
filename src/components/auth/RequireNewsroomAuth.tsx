@@ -141,13 +141,13 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
                 <KeyRound className="w-7 h-7" />
               </div>
               <div className="text-[11px] font-mono uppercase tracking-widest text-primary font-bold">
-                Proprietary Newsroom Clearance Required
+                Newsroom Clearance Required
               </div>
               <h1 className="font-display text-2xl font-bold text-foreground">
-                Confidential Artifact Protection Gate
+                Newsroom Permission Portal
               </h1>
               <p className="text-xs text-ink-light max-w-md mx-auto">
-                Amaica Editorial Intelligence contains private drafts, proprietary Turnitin-grade AI models, and real-time wire pipelines. Access is strictly guarded to protect these artifacts. Anyone seeking access must request clearance from Administrator (<strong>ashiruma</strong>).
+                Access to the Amaica Newsroom is restricted. Anyone seeking access must request permission from the Administrator (<strong>ashiruma</strong>).
               </p>
             </div>
 

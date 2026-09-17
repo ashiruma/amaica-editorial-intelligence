@@ -249,22 +249,6 @@ export default function NewsroomAuth() {
       {/* Main Authentication Card */}
       <main id="main-content" className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-lg space-y-5">
-          {/* Security & Confidential Artifacts Banner */}
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3.5 text-amber-900 dark:text-amber-300 shadow-xs">
-            <div className="p-2 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
-              <ShieldAlert className="w-5 h-5" />
-            </div>
-            <div className="text-xs space-y-1">
-              <div className="font-bold uppercase tracking-wider text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                <span>Confidential Editorial Artifacts</span>
-                <span className="text-[10px] bg-amber-500/20 px-1.5 py-0.2 rounded font-mono">Strictly Guarded</span>
-              </div>
-              <p className="leading-relaxed text-amber-900/90 dark:text-amber-200/90">
-                The Amaica Newsroom contains proprietary Turnitin-grade AI forensics, real-time wire repurposing pipelines, and unreleased story drafts. Only vetted staff and the Administrator (<strong>ashiruma</strong>) may enter.
-              </p>
-            </div>
-          </div>
-
           {/* If Pending Approval State */}
           {pendingApproval ? (
             <div className="bg-card border border-border rounded-xl shadow-card p-6 text-center space-y-4">
