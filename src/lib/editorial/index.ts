@@ -27,6 +27,7 @@ export * from "./styleGuideEngine";
 export * from "./editorialRewriteEngine";
 export * from "./batchForensicsEngine";
 export * from "./wireRepurposingEngine";
+export * from "./editorialComplianceEngine";
 export * from "@/types/editorialIntelligence";
 
 /**

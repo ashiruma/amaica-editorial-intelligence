@@ -21,6 +21,7 @@ import {
   analyzeAiContent,
   type AiDetectionResult,
 } from "@/lib/aiContentDetector";
+import { ensureEditorialCompliance } from "./editorialComplianceEngine";
 import { detectCategory, detectRegion } from "@/lib/localScraper";
 
 export interface TrendingWireLead {
@@ -280,17 +281,26 @@ function synthesizeNaturalAmaicaStory(
   let lede = rawSentences[0] || `${title}.`;
   if (!lede.endsWith(".")) lede += ".";
 
-  // 5. Gather quotes if available
-  const quoteRegex = /["“]([^"”]{20,260})["”]\s*(?:said|told|stated|confirmed|added|explained)?\s*([^.,;\n]+)?/gi;
+  // 5. Gather quotes if available with strict attribution validation
+  const quoteRegex = /["“]([^"”]{20,260})["”]\s*(?:said|told|stated|confirmed|added|explained|clarified|denied|revealed)?\s*([^.,;\n]+)?/gi;
   const quotes: string[] = [];
   let qMatch: RegExpExecArray | null;
   while ((qMatch = quoteRegex.exec(cleanSource)) !== null) {
     const quoteBody = qMatch[1].trim();
+    // Discard malformed quote fragments starting with lowercase attribution
+    if (/^(he said|she said|said|they said|adding that|the singer went on to)\b/i.test(quoteBody)) {
+      continue;
+    }
+    const cleanQuoteText = quoteBody.replace(/^[.,;:\s]+|[.,;:\s]+$/g, "");
+    if (cleanQuoteText.split(/\s+/).length < 4) continue;
+
     const speaker = (qMatch[2] || "").trim();
-    if (speaker) {
-      quotes.push(`"${quoteBody}," ${speaker}.`);
+    if (speaker && /\b(said|told|stated|confirmed|added|explained|clarified|denied|revealed)\b/i.test(speaker)) {
+      quotes.push(`"${cleanQuoteText}," ${speaker}.`);
+    } else if (speaker) {
+      quotes.push(`"${cleanQuoteText}," said ${speaker}.`);
     } else {
-      quotes.push(`"${quoteBody}," officials confirmed in an exclusive statement to Amaica Media.`);
+      quotes.push(`"${cleanQuoteText}," officials confirmed in an exclusive statement to Amaica Media.`);
     }
   }
 
@@ -422,25 +432,46 @@ export async function repurposeWireStory(options: {
   const humanizedLede = humanizeText(dissolvedLede, "ultra").humanizedText;
   const humanizedBody = humanizeText(dissolvedBody, "ultra").humanizedText;
 
-  const fullText = `${synthesized.headline}\n\n${humanizedLede}\n\n${humanizedBody}`;
+  onProgress?.("Ensuring 100% editorial compliance with newsroom standards...");
+
+  // Step 4.5: Ensure 100% compliance with all newsroom requirements (700+ words, 6+ paras, 2 attributed quotes)
+  let storyId = crypto.randomUUID();
+
+  const compliance = ensureEditorialCompliance({
+    headline: synthesized.headline,
+    lede: humanizedLede,
+    body: humanizedBody,
+    region,
+    category,
+    sources: [{
+      url: sourceUrl || `https://amaica.media/wire/${storyId}`,
+      title: domain,
+      notes: [{ text: `Original reporting from ${domain}`, section: "Key Details" }]
+    }]
+  });
+
+  const finalHeadline = compliance.headline;
+  const finalLede = compliance.lede;
+  const finalBody = compliance.body;
+
+  const fullText = `${finalHeadline}\n\n${finalLede}\n\n${finalBody}`;
 
   onProgress?.("Running calibrated Turnitin-grade AI Forensics...");
 
   // Step 5: Run AI Forensics Analysis
-  const aiReport = analyzeAiContent(humanizedBody, synthesized.headline, humanizedLede);
-  const wordsCount = fullText.split(/\s+/).filter(Boolean).length;
+  const aiReport = analyzeAiContent(finalBody, finalHeadline, finalLede);
+  const wordsCount = compliance.wordCount;
 
   // Step 6: Persist lead into discovered_stories table for authentic tracking
-  let storyId = crypto.randomUUID();
   try {
     const { data: savedLead } = await supabase
       .from("discovered_stories")
       .upsert(
         {
-          title: synthesized.headline,
+          title: finalHeadline,
           source: domain,
           source_url: sourceUrl || `https://amaica.media/wire/${storyId}`,
-          excerpt: humanizedLede.slice(0, 350),
+          excerpt: finalLede.slice(0, 350),
           image_url: scrapedImage,
           region,
           category,
@@ -462,9 +493,9 @@ export async function repurposeWireStory(options: {
 
   return {
     success: true,
-    headline: synthesized.headline,
-    lede: humanizedLede,
-    body: humanizedBody,
+    headline: finalHeadline,
+    lede: finalLede,
+    body: finalBody,
     fullArticleText: fullText,
     sourceUrl: sourceUrl || `https://amaica.media/wire/${storyId}`,
     domain,

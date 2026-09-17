@@ -127,9 +127,12 @@ export function validateArticle(input: ArticleCheckInput): Issue[] {
   }
 
   // Word count (admin override wins)
+  const templateKey = (input.template_type && MIN_WORDS_BY_TEMPLATE[input.template_type])
+    ? input.template_type
+    : "breaking";
   const minWords = input.min_word_count && input.min_word_count > 0
     ? input.min_word_count
-    : (MIN_WORDS_BY_TEMPLATE[input.template_type || "breaking"] ?? 1600);
+    : (MIN_WORDS_BY_TEMPLATE[templateKey] ?? 700);
   const words = countWords(body);
   if (words < minWords) {
     issues.push({

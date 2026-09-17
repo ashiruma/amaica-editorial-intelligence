@@ -12,6 +12,7 @@ import { humanizeText, dissolveFormulaicHeaders } from "@/lib/aiContentDetector"
 import { scrapeStoryResilient, scrapeKenyanEntertainmentPortals } from "@/lib/scraperService";
 import { fetchLiveTrendingWireStories, repurposeWireStory } from "@/lib/editorial/wireRepurposingEngine";
 import { saveNewDraft, ensureValidAuthorUUID, isValidUUID } from "@/lib/editorial/draftStorage";
+import { ensureEditorialCompliance } from "@/lib/editorial/editorialComplianceEngine";
 
 type Story = {
   id: string;
@@ -386,11 +387,22 @@ export default function Discover() {
           sources: [{ url: story.source_url, title: story.source, notes: [story.excerpt || story.title] }],
         };
       }
-      // Automatically dissolve formulaic headers and humanize to 0% AI using ultra mode before storing
-      const cleanBody = a.body ? dissolveFormulaicHeaders(a.body) : "";
-      const cleanLede = a.lede ? dissolveFormulaicHeaders(a.lede) : "";
-      const humanizedBody = cleanBody ? humanizeText(cleanBody, "ultra").humanizedText : a.body;
-      const humanizedLede = cleanLede ? humanizeText(cleanLede, "ultra").humanizedText : a.lede;
+      // Run deterministic Editorial Compliance guarantee before storing to review queue
+      const rawSources = (a.sources && a.sources.length > 0)
+        ? a.sources
+        : [{ url: story.source_url, title: story.source, notes: story.excerpt ? [{ text: story.excerpt.slice(0, 300), section: "Key Details" }] : [] }];
+
+      const compliance = ensureEditorialCompliance({
+        headline: a.headline,
+        lede: a.lede,
+        body: a.body,
+        template_type: a.template_used || "breaking",
+        min_word_count: minWordCount || 700,
+        region: story.region,
+        category: a.category || story.category || "celebrity",
+        sources: rawSources,
+      });
+
       const draftCategory = a.category || detectCategory(`${story.title} ${story.excerpt || ""}`, story.category || "celebrity");
       const authorId = ensureValidAuthorUUID(user.id);
       const byline = user.user_metadata?.display_name || user.email?.split("@")[0] || "Amaica Newsroom";
@@ -399,9 +411,9 @@ export default function Discover() {
         author_id: authorId,
         source_story_id: validStoryUUID ? story.id : null,
         template_type: a.template_used || "breaking",
-        headline: a.headline,
-        lede: humanizedLede,
-        body: humanizedBody,
+        headline: compliance.headline,
+        lede: compliance.lede,
+        body: compliance.body,
         category: draftCategory,
         region: story.region,
         hero_image_url: heroImage,
@@ -412,9 +424,7 @@ export default function Discover() {
         facebook_post: a.facebook_post,
         status: "review",
         idempotency_key,
-        sources: (a.sources && a.sources.length > 0)
-          ? a.sources
-          : [{ url: story.source_url, title: story.source, notes: story.excerpt ? [story.excerpt.slice(0, 300)] : [] }],
+        sources: compliance.sources,
       });
 
       // Record initial audit log entry for the review queue (safe try-catch with valid author UUID)

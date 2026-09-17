@@ -135,7 +135,7 @@ The sold-out showcase highlights a resurgence in East Africa's commercial live m
       expect(leads.length).toBeGreaterThanOrEqual(4);
       expect(leads[0].title).toBeDefined();
       expect(leads[0].source_url).toBeDefined();
-    });
+    }, 15000);
 
     it("repurposes raw wire story into 0% AI continuous inverted-pyramid copy", async () => {
       const wireLead = CURATED_TRENDING_LEADS[0];

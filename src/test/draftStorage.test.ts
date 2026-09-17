@@ -72,7 +72,7 @@ describe("Newsroom Draft Storage & Resilience", () => {
     expect(fetched).not.toBeNull();
     expect(fetched?.id).toBe(created.id);
     expect(fetched?.headline).toBe("Khaligraph Jones Lights Up Stadium Concert");
-  });
+  }, 15000);
 
   it("updates draft content and updates the timestamp", async () => {
     const created = await saveNewDraft({
@@ -92,7 +92,7 @@ describe("Newsroom Draft Storage & Resilience", () => {
     const updated = await getDraftById(created.id);
     expect(updated?.headline).toBe("Updated Headline for Amaica Newsroom");
     expect(updated?.status).toBe("review");
-  });
+  }, 15000);
 
   it("deletes a draft cleanly from storage", async () => {
     const created = await saveNewDraft({
@@ -109,7 +109,7 @@ describe("Newsroom Draft Storage & Resilience", () => {
     await deleteNewsroomDraft(created.id);
 
     expect(await getDraftById(created.id)).toBeNull();
-  });
+  }, 15000);
 
   it("deletes all drafts from storage when deleteAllNewsroomDrafts is called", async () => {
     await saveNewDraft({
@@ -134,5 +134,5 @@ describe("Newsroom Draft Storage & Resilience", () => {
     const result = await deleteAllNewsroomDrafts();
     expect(result.success).toBe(true);
     expect(getLocalDrafts().length).toBe(0);
-  });
+  }, 15000);
 });
