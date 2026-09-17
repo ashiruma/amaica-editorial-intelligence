@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { FileText, Bot, Flame } from "lucide-react";
 import { analyzeAiContent } from "@/lib/aiContentDetector";
 import { isWesternKenyaGossip, isGossipContent } from "@/lib/localScraper";
+import { fetchAllNewsroomDrafts } from "@/lib/editorial/draftStorage";
 
 type Draft = {
   id: string;
@@ -27,12 +28,9 @@ export default function DraftsList() {
 
   useEffect(() => {
     if (!user) return;
-    let q = supabase
-      .from("drafts")
-      .select("id, headline, lede, body, category, region, status, template_type, updated_at")
-      .order("updated_at", { ascending: false });
-    if (!showPublished) q = q.neq("status", "published");
-    q.then(({ data }) => setDrafts((data || []) as unknown as Draft[]));
+    fetchAllNewsroomDrafts({ showPublished }).then((all) => {
+      setDrafts(all as unknown as Draft[]);
+    });
   }, [user, showPublished]);
 
   const filteredDrafts = drafts.filter((d) => {
@@ -52,7 +50,7 @@ export default function DraftsList() {
   });
 
   if (loading) return <div className="min-h-screen bg-background" />;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/newsroom/auth" replace />;
 
   return (
     <div className="min-h-screen bg-background">
@@ -143,7 +141,7 @@ export default function DraftsList() {
                     </span>
                   </div>
                 <h2 className="font-display text-lg leading-snug">{d.headline}</h2>
-                <div className="text-[11px] text-ink-light mt-1">Updated {new Date(d.updated_at).toLocaleString()}</div>
+                <div className="text-[11px] text-ink-light mt-1">Updated {d.updated_at ? new Date(d.updated_at).toLocaleString() : "Recently"}</div>
                 </Link>
               );
             })}

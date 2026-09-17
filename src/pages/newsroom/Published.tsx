@@ -5,6 +5,7 @@ import { Masthead } from "@/components/Masthead";
 import { useAuth } from "@/lib/auth";
 import { Flame } from "lucide-react";
 import { isWesternKenyaGossip, isGossipContent } from "@/lib/localScraper";
+import { fetchAllNewsroomDrafts } from "@/lib/editorial/draftStorage";
 
 type Item = { id: string; headline: string; category: string | null; region: string; published_at: string | null; hero_image_url: string | null };
 
@@ -15,9 +16,10 @@ export default function Published() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("drafts").select("id, headline, category, region, published_at, hero_image_url")
-      .eq("status", "published").order("published_at", { ascending: false })
-      .then(({ data }) => setItems((data as Item[]) || []));
+    fetchAllNewsroomDrafts({ showPublished: true }).then((all) => {
+      const pub = all.filter((d) => d.status === "published");
+      setItems(pub as Item[]);
+    });
   }, [user]);
 
   const filteredItems = items.filter((d) => {
@@ -34,7 +36,7 @@ export default function Published() {
   });
 
   if (loading) return <div className="min-h-screen bg-background" />;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/newsroom/auth" replace />;
 
   return (
     <div className="min-h-screen bg-background">

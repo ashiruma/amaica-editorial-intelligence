@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { validateArticle, validateArticleWithAiDetails, canApprove, countWords, noteText, noteSection, REQUIRED_HEADINGS, TARGET_WORDS_BY_TEMPLATE, type SourceRef, type SourceNote, type Issue } from "@/lib/articleValidation";
 import { cleanAiClichesLocally, humanizeText, convertToPlainText, generateCertifiedCopy, dissolveFormulaicHeaders, analyzeAiContent, type AiDetectionResult } from "@/lib/aiContentDetector";
 import { useMinWordCount } from "@/hooks/useNewsroomSettings";
+import { getDraftById, updateDraftContent, deleteNewsroomDraft, ensureValidAuthorUUID, isValidUUID } from "@/lib/editorial/draftStorage";
 import {
   Bot,
   ChevronUp,
@@ -85,9 +86,9 @@ export default function DraftEditor() {
 
   useEffect(() => {
     if (!id || !user) return;
-    supabase.from("drafts").select("*").eq("id", id).single().then(({ data, error }) => {
-      if (error) toast.error(error.message);
-      else setDraft(data as unknown as Draft);
+    getDraftById(id).then((d) => {
+      if (d) setDraft(d as unknown as Draft);
+      else toast.error("Draft not found");
     });
   }, [id, user]);
 
@@ -176,7 +177,7 @@ export default function DraftEditor() {
   }, [draft?.headline, draft?.lede, draft?.body, draft?.template_type, draft?.sources, minWordCount]);
 
   if (loading) return <div className="min-h-screen bg-background" />;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/newsroom/auth" replace />;
   if (!draft) return <div className="min-h-screen bg-background"><Masthead variant="newsroom" /><div className="p-8 text-ink-light">Loading…</div></div>;
 
   const update = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
@@ -213,21 +214,28 @@ export default function DraftEditor() {
 
   const recordAudit = async (action: string, fromStatus: string | null, toStatus: string | null, notes?: string) => {
     if (!user || !draft) return;
-    const display = user.user_metadata?.display_name || user.email || null;
-    await supabase.from("approval_audit_log").insert({
-      draft_id: draft.id,
-      actor_user_id: user.id,
-      actor_display_name: display,
-      action,
-      from_status: fromStatus,
-      to_status: toStatus,
-      validation_errors: errors as unknown as never,
-      validation_warnings: warnings as unknown as never,
-      error_count: errors.length,
-      warning_count: warnings.length,
-      notes: notes || null,
-    });
-    loadAudit(draft.id);
+    try {
+      const display = user.user_metadata?.display_name || user.email || null;
+      const validActorId = ensureValidAuthorUUID(user.id);
+      if (isValidUUID(draft.id)) {
+        await supabase.from("approval_audit_log").insert({
+          draft_id: draft.id,
+          actor_user_id: validActorId,
+          actor_display_name: display,
+          action,
+          from_status: fromStatus,
+          to_status: toStatus,
+          validation_errors: errors as unknown as never,
+          validation_warnings: warnings as unknown as never,
+          error_count: errors.length,
+          warning_count: warnings.length,
+          notes: notes || null,
+        });
+        loadAudit(draft.id);
+      }
+    } catch (auditErr) {
+      console.warn("Could not record audit log:", auditErr);
+    }
   };
 
   const save = async (newStatus?: string) => {
@@ -241,7 +249,7 @@ export default function DraftEditor() {
       const finalBody = draft.body ? humanizeText(draft.body, "ultra").humanizedText : draft.body;
       const finalLede = draft.lede ? humanizeText(draft.lede, "ultra").humanizedText : draft.lede;
 
-      const { error } = await supabase.from("drafts").update({
+      const updates: any = {
         headline: draft.headline,
         lede: finalLede,
         body: finalBody,
@@ -258,8 +266,10 @@ export default function DraftEditor() {
         auto_publish_at: draft.auto_publish_at || null,
         sources: sources,
         ...(newStatus ? { status: newStatus, ...(newStatus === "published" ? { published_at: new Date().toISOString() } : {}) } : {}),
-      } as any).eq("id", draft.id);
-      if (error) throw error;
+      };
+
+      await updateDraftContent(draft.id, updates);
+      setDraft((prev) => (prev ? { ...prev, ...updates } : null));
 
       // Auto-copy clean plain text to clipboard upon Publish or Send for Review
       if (newStatus === "published" || newStatus === "review") {
@@ -348,13 +358,12 @@ export default function DraftEditor() {
         },
       });
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "WordPress publish failed");
-      await supabase.from("drafts").update({
+      await updateDraftContent(draft.id, {
         wordpress_post_url: data.post_url,
         wordpress_post_id: String(data.post_id),
         wordpress_published_at: new Date().toISOString(),
-      }).eq("id", draft.id);
-      setDraft({ ...draft, wordpress_post_url: data.post_url });
+      } as any);
+      setDraft((prev) => prev ? { ...prev, wordpress_post_url: data.post_url } : null);
       toast.success("Published to WordPress");
       await recordAudit("wordpress_push", draft.status, draft.status, `Pushed to WordPress (pending review): ${data.post_url}`);
     } catch (e) {
@@ -419,9 +428,13 @@ export default function DraftEditor() {
 
   const remove = async () => {
     if (!confirm("Delete this draft permanently?")) return;
-    await supabase.from("drafts").delete().eq("id", draft.id);
-    toast.success("Deleted");
-    navigate("/newsroom/drafts");
+    try {
+      await deleteNewsroomDraft(draft.id);
+      toast.success("Deleted");
+      navigate("/newsroom/drafts");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete draft");
+    }
   };
 
   return (

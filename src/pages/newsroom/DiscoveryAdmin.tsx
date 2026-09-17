@@ -132,7 +132,7 @@ export default function DiscoveryAdmin() {
   }, [attempts]);
 
   if (loading) return <div className="min-h-screen bg-background" />;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/newsroom/auth" replace />;
   if (!isEditor) return <Navigate to="/newsroom" replace />;
 
   const saveSettings = async () => {

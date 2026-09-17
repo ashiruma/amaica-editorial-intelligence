@@ -16,6 +16,7 @@ export interface LocalNewsroomUser {
 const LOCAL_STORAGE_KEY = "amaica_newsroom_user";
 
 export const ADMIN_MASTER_PASSCODE = "Admin2026@Amaica";
+export const DEFAULT_ADMIN_AUTHOR_UUID = "2d623b06-aaca-414a-a0f8-fd7f12e372c6";
 
 export function verifyAdminPasscode(passcode: string): boolean {
   if (!passcode) return false;
@@ -40,7 +41,16 @@ export function useAuth() {
       const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed?.id && parsed?.email) return parsed;
+        if (parsed?.id && parsed?.email) {
+          // If stored ID is an old non-UUID "staff-..." format, auto-migrate to valid RFC4122 UUID
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parsed.id)) {
+            parsed.id = DEFAULT_ADMIN_AUTHOR_UUID;
+            try {
+              localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(parsed));
+            } catch {}
+          }
+          return parsed;
+        }
       }
       return null;
     } catch {
@@ -166,7 +176,7 @@ export function useAuth() {
     }
 
     const localUser: LocalNewsroomUser = {
-      id: `staff-${Date.now()}`,
+      id: DEFAULT_ADMIN_AUTHOR_UUID,
       email,
       displayName: displayName || (isAdminUser ? "Administrator" : email.split("@")[0]),
       roles: assignedRoles,

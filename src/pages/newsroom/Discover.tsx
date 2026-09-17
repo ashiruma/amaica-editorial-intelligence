@@ -11,6 +11,7 @@ import { formatRelativeTime, detectRegion, isWesternKenyaGossip, isGossipContent
 import { humanizeText, dissolveFormulaicHeaders } from "@/lib/aiContentDetector";
 import { scrapeStoryResilient, scrapeKenyanEntertainmentPortals } from "@/lib/scraperService";
 import { fetchLiveTrendingWireStories, repurposeWireStory } from "@/lib/editorial/wireRepurposingEngine";
+import { saveNewDraft, ensureValidAuthorUUID, isValidUUID } from "@/lib/editorial/draftStorage";
 
 type Story = {
   id: string;
@@ -148,7 +149,7 @@ export default function Discover() {
   }, [writingId]);
 
   if (loading) return <div className="min-h-screen bg-background" />;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/newsroom/auth" replace />;
 
   const discover = async () => {
     setDiscovering(true);
@@ -385,21 +386,19 @@ export default function Discover() {
           sources: [{ url: story.source_url, title: story.source, notes: [story.excerpt || story.title] }],
         };
       }
-      // Idempotent insert: if a draft already exists for this key, reuse it instead of duplicating.
-      const { data: existing } = await supabase.from("drafts")
-        .select("id").eq("idempotency_key", idempotency_key).maybeSingle();
-      let draft = existing as { id: string } | null;
-      if (!draft) {
-        // Automatically dissolve formulaic headers and humanize to 0% AI using ultra mode before storing
-        const cleanBody = a.body ? dissolveFormulaicHeaders(a.body) : "";
-        const cleanLede = a.lede ? dissolveFormulaicHeaders(a.lede) : "";
-        const humanizedBody = cleanBody ? humanizeText(cleanBody, "ultra").humanizedText : a.body;
-        const humanizedLede = cleanLede ? humanizeText(cleanLede, "ultra").humanizedText : a.lede;
-        const draftCategory = a.category || detectCategory(`${story.title} ${story.excerpt || ""}`, story.category || "celebrity");
-        const { data: inserted, error: dErr } = await supabase.from("drafts").insert({
-        author_id: user.id,
+      // Automatically dissolve formulaic headers and humanize to 0% AI using ultra mode before storing
+      const cleanBody = a.body ? dissolveFormulaicHeaders(a.body) : "";
+      const cleanLede = a.lede ? dissolveFormulaicHeaders(a.lede) : "";
+      const humanizedBody = cleanBody ? humanizeText(cleanBody, "ultra").humanizedText : a.body;
+      const humanizedLede = cleanLede ? humanizeText(cleanLede, "ultra").humanizedText : a.lede;
+      const draftCategory = a.category || detectCategory(`${story.title} ${story.excerpt || ""}`, story.category || "celebrity");
+      const authorId = ensureValidAuthorUUID(user.id);
+      const byline = user.user_metadata?.display_name || user.email?.split("@")[0] || "Amaica Newsroom";
+
+      const draft = await saveNewDraft({
+        author_id: authorId,
         source_story_id: validStoryUUID ? story.id : null,
-        template_type: a.template_used,
+        template_type: a.template_used || "breaking",
         headline: a.headline,
         lede: humanizedLede,
         body: humanizedBody,
@@ -407,7 +406,7 @@ export default function Discover() {
         region: story.region,
         hero_image_url: heroImage,
         social_image_url: heroImage,
-        byline: user.user_metadata?.display_name || user.email?.split("@")[0] || "Amaica Newsroom",
+        byline,
         twitter_post: a.twitter_post,
         instagram_post: a.instagram_post,
         facebook_post: a.facebook_post,
@@ -416,27 +415,15 @@ export default function Discover() {
         sources: (a.sources && a.sources.length > 0)
           ? a.sources
           : [{ url: story.source_url, title: story.source, notes: story.excerpt ? [story.excerpt.slice(0, 300)] : [] }],
-        }).select().single();
-        if (dErr) {
-          // Conflict on idempotency_key → fetch existing draft
-          if ((dErr as { code?: string }).code === "23505") {
-            const { data: dup } = await supabase.from("drafts")
-              .select("id").eq("idempotency_key", idempotency_key).maybeSingle();
-            if (!dup) throw dErr;
-            draft = dup as { id: string };
-          } else {
-            throw dErr;
-          }
-        } else {
-          draft = inserted as { id: string };
-        }
+      });
 
-        // Record initial audit log entry for the review queue
-        try {
+      // Record initial audit log entry for the review queue (safe try-catch with valid author UUID)
+      try {
+        if (isValidUUID(draft.id)) {
           await supabase.from("approval_audit_log").insert({
             draft_id: draft.id,
-            actor_user_id: user.id,
-            actor_display_name: user.user_metadata?.display_name || user.email?.split("@")[0] || "Amaica Newsroom",
+            actor_user_id: authorId,
+            actor_display_name: byline,
             action: "ingest_to_review",
             from_status: null,
             to_status: "review",
@@ -444,12 +431,17 @@ export default function Discover() {
             warning_count: 0,
             notes: `Auto-drafted and certified 0% AI from ${story.source || "wire"} directly into Review Queue`,
           });
-        } catch (auditErr) {
-          console.warn("Could not log ingest audit entry:", auditErr);
         }
+      } catch (auditErr) {
+        console.warn("Could not log ingest audit entry:", auditErr);
       }
+
       if (validStoryUUID) {
-        await supabase.from("discovered_stories").update({ status: "used" }).eq("id", story.id);
+        try {
+          await supabase.from("discovered_stories").update({ status: "used" }).eq("id", story.id);
+        } catch (storyErr) {
+          console.warn("Could not mark story as used:", storyErr);
+        }
       }
       setStories((prev) => prev.filter((x) => x.id !== story.id));
       setRetryStatus((prev) => ({
@@ -458,7 +450,7 @@ export default function Discover() {
       }));
       if (!opts?.skipNavigate) {
         toast.success("Draft queued to Review Desk (0% AI Certified)");
-        navigate(`/newsroom/draft/${draft!.id}`);
+        navigate(`/newsroom/draft/${draft.id}`);
       }
     } catch (e) {
       const errMsg =

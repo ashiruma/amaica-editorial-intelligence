@@ -27,7 +27,7 @@ export default function NewsroomLegends() {
 
   useEffect(() => { if (user) load(); }, [user]);
   if (loading) return <div className="min-h-screen bg-background" />;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/newsroom/auth" replace />;
 
   const runDaily = async () => {
     setRunning(true);

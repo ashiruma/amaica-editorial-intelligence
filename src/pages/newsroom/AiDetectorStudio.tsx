@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { fetchAllNewsroomDrafts } from "@/lib/editorial/draftStorage";
 import {
   Dialog,
   DialogContent,
@@ -469,19 +470,14 @@ export default function AiDetectorStudio() {
     reader.readAsText(file);
   };
 
-  // 10. Load from Supabase Drafts
+  // 10. Load from Newsroom Drafts (Remote + Local)
   const handleOpenRetrieveDrafts = async () => {
     setRetrieveDialogOpen(true);
     setLoadingDrafts(true);
     try {
-      const { data, error } = await supabase
-        .from("drafts")
-        .select("id, headline, lede, body, category, region, updated_at, status")
-        .order("updated_at", { ascending: false })
-        .limit(100);
-
-      if (!error && data && data.length > 0) {
-        setAvailableDrafts(data);
+      const all = await fetchAllNewsroomDrafts({ showPublished: true });
+      if (all && all.length > 0) {
+        setAvailableDrafts(all);
       }
     } catch {
       // Fallback already available

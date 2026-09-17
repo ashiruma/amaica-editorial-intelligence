@@ -12,6 +12,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { saveNewDraft, ensureValidAuthorUUID } from "./draftStorage";
 import { scrapeStoryResilient, type ScrapedStoryResult, normalizeUrl, getHostname } from "@/lib/scraperService";
 import {
   dissolveFormulaicHeaders,
@@ -510,41 +511,36 @@ export async function saveRepurposedDraft(params: {
   } = params;
 
   const idempotencyKey = `repurpose:${storyId || crypto.randomUUID()}`;
+  const validAuthorId = ensureValidAuthorUUID(userId);
 
-  const { data: inserted, error } = await supabase
-    .from("drafts")
-    .insert({
-      author_id: userId,
-      source_story_id: storyId && /^[0-9a-f-]{36}$/i.test(storyId) ? storyId : null,
-      headline,
-      lede,
-      body,
-      category,
-      region,
-      hero_image_url: imageUrl || null,
-      social_image_url: imageUrl || null,
-      byline: userDisplayName || "Amaica Newsroom",
-      status: "review",
-      template_type: "breaking",
-      idempotency_key: idempotencyKey,
-      sources: [
-        {
-          url: sourceUrl || "https://amaica.media",
-          title: sourceDomain || "News Wire",
-          notes: [lede.slice(0, 250)],
-        },
-      ],
-    })
-    .select("id")
-    .single();
+  const draft = await saveNewDraft({
+    author_id: validAuthorId,
+    source_story_id: storyId && /^[0-9a-f-]{36}$/i.test(storyId) ? storyId : null,
+    headline,
+    lede,
+    body,
+    category,
+    region,
+    hero_image_url: imageUrl || null,
+    social_image_url: imageUrl || null,
+    byline: userDisplayName || "Amaica Newsroom",
+    status: "review",
+    template_type: "breaking",
+    idempotency_key: idempotencyKey,
+    sources: [
+      {
+        url: sourceUrl || "https://amaica.media",
+        title: sourceDomain || "News Wire",
+        notes: [lede.slice(0, 250)],
+      },
+    ],
+  });
 
-  if (error) throw error;
-
-  // Insert review queue audit log
+  // Insert review queue audit log if possible
   try {
     await supabase.from("approval_audit_log").insert({
-      draft_id: inserted.id,
-      actor_user_id: userId,
+      draft_id: draft.id,
+      actor_user_id: validAuthorId,
       actor_display_name: userDisplayName || "Amaica Newsroom",
       action: "ingest_to_review",
       from_status: null,
@@ -557,5 +553,5 @@ export async function saveRepurposedDraft(params: {
     console.warn("Could not insert audit log:", auditErr);
   }
 
-  return { draftId: inserted.id };
+  return { draftId: draft.id };
 }
