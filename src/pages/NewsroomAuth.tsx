@@ -238,7 +238,7 @@ export default function NewsroomAuth() {
       {/* Top Newsroom Masthead */}
       <header className="bg-primary text-primary-foreground border-b-[3px] border-accent py-3 px-6 flex items-center justify-between shadow-sm">
         <Link to="/" className="font-display font-bold text-xl tracking-tight flex items-center gap-2">
-          Amaica <span className="text-accent">NEWSROOM</span>
+          Amaica <span className="text-accent">ENTERTAINMENT</span>
         </Link>
         <div className="flex items-center gap-2 text-xs text-primary-foreground/80 font-mono">
           <ShieldAlert size={14} className="text-accent" />
@@ -628,7 +628,7 @@ export default function NewsroomAuth() {
           {/* Footer Security Notice */}
           <div className="text-center text-[11px] text-ink-light flex items-center justify-center gap-2">
             <Lock size={12} />
-            <span>End-to-end guarded newsroom workspace · Amaica Media 2026</span>
+            <span>Internal Newsroom Workspace · Amaica Entertainment 2026</span>
           </div>
         </div>
       </main>

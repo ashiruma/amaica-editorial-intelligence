@@ -44,7 +44,7 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
           <Loader2 className="w-6 h-6 animate-spin" />
         </div>
         <div className="font-display font-bold text-lg text-foreground">Verifying Newsroom Credentials</div>
-        <p className="text-xs text-muted-foreground mt-1">Securing Amaica Editorial Intelligence workspace...</p>
+        <p className="text-xs text-muted-foreground mt-1">Securing Amaica Entertainment workspace...</p>
       </div>
     );
   }
@@ -119,7 +119,7 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
       <div className="min-h-screen bg-background flex flex-col justify-between">
         <header className="bg-primary text-primary-foreground border-b-[3px] border-accent py-3 px-6 flex items-center justify-between">
           <div className="font-display font-bold text-lg tracking-tight flex items-center gap-2">
-            Amaica <span className="text-accent">NEWSROOM</span>
+            Amaica <span className="text-accent">ENTERTAINMENT</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-primary-foreground/80 font-mono hidden sm:inline">
@@ -249,18 +249,18 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
               <button
                 onClick={() => {
                   signOut();
-                  window.location.href = "/auth";
+                  window.location.href = "/newsroom/auth?mode=admin";
                 }}
                 className="text-primary font-semibold hover:underline cursor-pointer"
               >
-                Sign in as Admin (ashiruma)
+                Administrator Clearance Gate
               </button>
             </div>
           </div>
         </main>
 
         <footer className="py-4 text-center text-xs text-ink-light border-t border-border">
-          Amaica Editorial Intelligence · Strictly Guarded Newsroom
+          Amaica Entertainment · Internal Workspace
         </footer>
       </div>
     );

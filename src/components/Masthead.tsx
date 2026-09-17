@@ -31,7 +31,7 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
               {mobileOpen ? <CloseIcon size={20} /> : <Menu size={20} />}
             </button>
             <Link to="/" className="font-display text-xl font-bold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded">
-              Amaica <span className="text-accent">MEDIA</span>
+              Amaica <span className="text-accent">ENTERTAINMENT</span>
             </Link>
           </div>
 
