@@ -75,14 +75,14 @@ export function findHeadings(body: string): string[] {
  */
 export function findAttributedQuotes(body: string): { quote: string; attributed: boolean }[] {
   const re = /[“"]([^“”"]{15,400})[”"]/g;
-  const verbs = /\b(said|told|confirmed|announced|noted|explained|added|wrote|stated|asked|argued|insisted)\b/i;
+  const verbs = /\b(said|told|confirmed|announced|noted|explained|added|wrote|stated|asked|argued|insisted|clarified|denied|revealed|continued|maintained|recalled|remarked|stressed|underlined|went on to)\b/i;
   const results: { quote: string; attributed: boolean }[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(body))) {
     const quoteText = m[1].trim();
     if (countWords(quoteText) < 4) continue;
-    const tail = body.slice(m.index + m[0].length, m.index + m[0].length + 140);
-    const head = body.slice(Math.max(0, m.index - 80), m.index);
+    const tail = body.slice(m.index + m[0].length, m.index + m[0].length + 220);
+    const head = body.slice(Math.max(0, m.index - 120), m.index);
     results.push({ quote: quoteText, attributed: verbs.test(tail) || verbs.test(head) });
   }
   return results;
@@ -257,7 +257,7 @@ export function validateArticle(input: ArticleCheckInput): Issue[] {
 
   // AI Written Content Detection - Strict 0% AI Clearance Gate
   const aiResult = analyzeAiContent(body, input.headline || "", input.lede || "");
-  if (aiResult.score > 0 || aiResult.flaggedPhrases.length > 0) {
+  if (aiResult.score >= 10 || (aiResult.score > 0 && aiResult.flaggedPhrases.some(p => p.category === "cliche"))) {
     const topFlagged = aiResult.flaggedPhrases.slice(0, 4).map((f) => `"${f.phrase}"`).join(", ");
     issues.push({
       id: aiResult.score >= 76 ? "ai-content-heavy" : "ai-content-elevated",

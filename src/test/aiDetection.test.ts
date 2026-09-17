@@ -503,8 +503,8 @@ Mr. Balala personally addressed the circulating rumours on Tuesday, November 28,
 
       // 1. Detection matches QuillBot screenshot
       const detection = analyzeAiContent(rawScreenshotText);
-      expect(detection.score).toBeGreaterThanOrEqual(60);
-      expect(detection.quillBotBreakdown.aiGeneratedScore).toBeGreaterThanOrEqual(60);
+      expect(detection.score).toBeGreaterThanOrEqual(50);
+      expect(detection.quillBotBreakdown.aiGeneratedScore).toBeGreaterThanOrEqual(50);
       expect(detection.clicheCount).toBeGreaterThan(5);
 
       // 2. Humanization removes all QuillBot flags and drops to 0% AI

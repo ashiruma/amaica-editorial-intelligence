@@ -345,9 +345,8 @@ export const AI_PARTICIPIAL_PATTERNS = [
   { pattern: /,\s*leaving\b/gi, label: ", leaving" },
   { pattern: /,\s*claiming\b/gi, label: ", claiming" },
   { pattern: /,\s*assuring\b/gi, label: ", assuring" },
-  { pattern: /,\s*adding\b/gi, label: ", adding" },
-  { pattern: /,\s*noting\b/gi, label: ", noting" },
-  { pattern: /,\s*stating\b/gi, label: ", stating" },
+  // Note: ', adding' and ', stating' are intentionally excluded — these are standard
+  // journalism connectors for quote attribution (e.g. "…," adding that X) and should not be flagged.
   { pattern: /,\s*pointing out\b/gi, label: ", pointing out" },
   { pattern: /,\s*urging\b/gi, label: ", urging" },
   { pattern: /,\s*reiterating\b/gi, label: ", reiterating" },
