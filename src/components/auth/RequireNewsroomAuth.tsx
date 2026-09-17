@@ -50,8 +50,8 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
   }
 
   if (!user) {
-    // Redirect unauthenticated visitor to the staff authentication portal
-    return <Navigate to={`/auth?next=${encodeURIComponent(location.pathname)}`} replace />;
+    // Redirect unauthenticated visitor to the dedicated newsroom authentication portal
+    return <Navigate to={`/newsroom/auth?next=${encodeURIComponent(location.pathname)}`} replace />;
   }
 
   if (requireAdmin && !isAdmin) {
@@ -141,13 +141,13 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
                 <KeyRound className="w-7 h-7" />
               </div>
               <div className="text-[11px] font-mono uppercase tracking-widest text-primary font-bold">
-                Access Clearance Required
+                Proprietary Newsroom Clearance Required
               </div>
               <h1 className="font-display text-2xl font-bold text-foreground">
-                Newsroom Permission Portal
+                Confidential Artifact Protection Gate
               </h1>
               <p className="text-xs text-ink-light max-w-md mx-auto">
-                Amaica Editorial Intelligence is restricted. To protect platform security, anyone seeking access must request permission from the Administrator (<strong>ashiruma</strong>).
+                Amaica Editorial Intelligence contains private drafts, proprietary Turnitin-grade AI models, and real-time wire pipelines. Access is strictly guarded to protect these artifacts. Anyone seeking access must request clearance from Administrator (<strong>ashiruma</strong>).
               </p>
             </div>
 

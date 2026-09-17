@@ -15,6 +15,13 @@ export interface LocalNewsroomUser {
 
 const LOCAL_STORAGE_KEY = "amaica_newsroom_user";
 
+export const ADMIN_MASTER_PASSCODE = "Admin2026@Amaica";
+
+export function verifyAdminPasscode(passcode: string): boolean {
+  if (!passcode) return false;
+  return passcode.trim() === ADMIN_MASTER_PASSCODE;
+}
+
 export function isExplicitAdmin(email?: string | null): boolean {
   if (!email) return false;
   const lower = email.toLowerCase().trim();
@@ -178,6 +185,14 @@ export function useAuth() {
     setRoles(assignedRoles);
   };
 
+  const signInAsAdmin = (passcode: string, email = "ashiruma@amaicamedia.com"): boolean => {
+    if (!verifyAdminPasscode(passcode)) {
+      return false;
+    }
+    signInAsLocal(email, "admin", "ashiruma (Administrator)");
+    return true;
+  };
+
   const signOut = async () => {
     try {
       localStorage.removeItem(LOCAL_STORAGE_KEY);
@@ -204,6 +219,7 @@ export function useAuth() {
     isAdmin,
     isWriter,
     signInAsLocal,
+    signInAsAdmin,
     signOut,
   };
 }

@@ -9,6 +9,14 @@ import {
   detectCategory,
 } from "@/lib/localScraper";
 import { validateArticle, MIN_WORDS_BY_TEMPLATE, TARGET_WORDS_BY_TEMPLATE } from "@/lib/articleValidation";
+import { verifyAdminPasscode, isExplicitAdmin, ADMIN_MASTER_PASSCODE } from "@/lib/auth";
+import {
+  isUserApprovedByAdmin,
+  addApprovedEmail,
+  removeApprovedEmail,
+  submitNewsroomAccessRequest,
+  getRequestStatusForEmail,
+} from "@/lib/accessRequests";
 
 describe("Amaica Media Utilities", () => {
   describe("detectRegion", () => {
@@ -124,4 +132,54 @@ ${"Forward looking closing statements about upcoming tours and regional dates sc
       expect(detectCategory("Lifestyle interview with top radio presenter")).toBe("celebrity");
     });
   });
+
+  describe("Newsroom Artifact Security & Clearance Gate", () => {
+    it("strictly verifies administrator master passcode and rejects invalid entries", () => {
+      expect(verifyAdminPasscode(ADMIN_MASTER_PASSCODE)).toBe(true);
+      expect(verifyAdminPasscode("wrong-passcode")).toBe(false);
+      expect(verifyAdminPasscode("")).toBe(false);
+    });
+
+    it("identifies ashiruma as explicit administrator", () => {
+      expect(isExplicitAdmin("ashiruma@amaicamedia.com")).toBe(true);
+      expect(isExplicitAdmin("ashiruma")).toBe(true);
+      expect(isExplicitAdmin("admin@amaicamedia.com")).toBe(true);
+      expect(isExplicitAdmin("stranger@unknown.com")).toBe(false);
+      expect(isExplicitAdmin(null)).toBe(false);
+    });
+
+    it("restricts newsroom access to unapproved users and unlocks when approved by admin", async () => {
+      const testEmail = "reporter_test@amaicamedia.com";
+      removeApprovedEmail(testEmail);
+
+      // Initially unapproved
+      expect(isUserApprovedByAdmin(testEmail)).toBe(false);
+
+      // Once approved by admin
+      addApprovedEmail(testEmail);
+      expect(isUserApprovedByAdmin(testEmail)).toBe(true);
+
+      // Clean up
+      removeApprovedEmail(testEmail);
+      expect(isUserApprovedByAdmin(testEmail)).toBe(false);
+    });
+
+    it("submits and tracks access request with pending status", async () => {
+      const email = "applicant_beta@amaicamedia.com";
+      const req = await submitNewsroomAccessRequest({
+        email,
+        displayName: "Beta Contributor",
+        requestedRole: "contributor",
+        beatReason: "Covering Ohangla festivals and western arts scene",
+      });
+
+      expect(req.status).toBe("pending");
+      expect(req.email).toBe(email);
+
+      const statusInfo = getRequestStatusForEmail(email);
+      expect(statusInfo.status).toBe("pending");
+      expect(statusInfo.request?.displayName).toBe("Beta Contributor");
+    });
+  });
 });
+

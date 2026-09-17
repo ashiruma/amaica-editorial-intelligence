@@ -76,8 +76,8 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
                 </button>
               </>
             ) : (
-              <Link to="/auth" className="flex items-center gap-1.5 text-[12px] text-primary-foreground/80 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded">
-                <UserIcon size={14} /> Sign in
+              <Link to="/newsroom/auth" className="flex items-center gap-1.5 text-[12px] text-primary-foreground/80 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded font-medium">
+                <UserIcon size={14} /> Newsroom Access
               </Link>
             )}
           </div>

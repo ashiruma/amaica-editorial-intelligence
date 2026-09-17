@@ -18,6 +18,7 @@ import ScrapeHealth from "./pages/newsroom/ScrapeHealth";
 import NewsroomLegends from "./pages/newsroom/Legends";
 import DiscoveryAdmin from "./pages/newsroom/DiscoveryAdmin";
 import AiDetectorStudio from "./pages/newsroom/AiDetectorStudio";
+import NewsroomAuth from "./pages/NewsroomAuth";
 import { RequireNewsroomAuth } from "@/components/auth/RequireNewsroomAuth";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -36,6 +37,9 @@ const App = () => (
           <Route path="/legends/:id" element={<LegendPage />} />
           <Route path="/style-guide" element={<StyleGuide />} />
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/newsroom/auth" element={<NewsroomAuth />} />
+          <Route path="/newsroom/login" element={<NewsroomAuth />} />
+          <Route path="/newsroom/signup" element={<NewsroomAuth />} />
           <Route path="/~oauth/initiate" element={<Navigate to="/auth" replace />} />
           <Route path="/oauth/consent" element={<OAuthConsent />} />
           <Route path="/newsroom" element={<RequireNewsroomAuth><Discover /></RequireNewsroomAuth>} />
