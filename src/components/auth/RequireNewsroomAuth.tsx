@@ -62,7 +62,7 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
         </div>
         <h1 className="font-display font-bold text-2xl text-foreground">Admin Clearance Required</h1>
         <p className="text-sm text-muted-foreground mt-2 max-w-md">
-          This newsroom section is restricted exclusively to Administrator (ashiruma).
+          This newsroom section is restricted exclusively to Administrators.
         </p>
         <a
           href="/newsroom"
@@ -92,7 +92,7 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
           beatReason,
         });
         setRequestInfo({ status: "pending", request: req });
-        toast.success("Permission request submitted to Admin (ashiruma)!");
+        toast.success("Permission request submitted to the Administrator!");
       } catch (err) {
         toast.error("Failed to submit request");
       } finally {
@@ -107,7 +107,7 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
         toast.success("Access approved! Reloading newsroom workspace...");
         window.location.reload();
       } else if (status.status === "pending") {
-        toast.info("Your request is still pending review by Admin (ashiruma).");
+        toast.info("Your request is still pending review by the Administrator.");
       } else if (status.status === "rejected") {
         toast.error("Your access request was not approved by the Administrator.");
       } else {
@@ -147,7 +147,7 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
                 Newsroom Permission Portal
               </h1>
               <p className="text-xs text-ink-light max-w-md mx-auto">
-                Access to the Amaica Newsroom is restricted. Anyone seeking access must request permission from the Administrator (<strong>ashiruma</strong>).
+                Access to the Amaica Newsroom is restricted. Anyone seeking access must request permission from the Administrator.
               </p>
             </div>
 
@@ -158,7 +158,7 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
                   <Clock size={14} className="animate-spin" /> Permission Request Pending Review
                 </div>
                 <p className="text-xs text-amber-900/80 dark:text-amber-200/80 leading-relaxed">
-                  Your request to access the newsroom as a <strong>{requestInfo.request?.requestedRole || "contributor"}</strong> is currently awaiting approval from Administrator (<strong>ashiruma</strong>).
+                  Your request to access the newsroom as a <strong>{requestInfo.request?.requestedRole || "contributor"}</strong> is currently awaiting approval from the Administrator.
                 </p>
                 {requestInfo.request?.createdAt && (
                   <div className="text-[11px] text-amber-700/70 dark:text-amber-300/60 font-mono">
@@ -239,7 +239,7 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
                   className="w-full bg-primary hover:bg-primary-mid text-primary-foreground font-semibold px-4 py-2.5 rounded text-xs transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-sm"
                 >
                   {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                  Submit Permission Request to Admin (ashiruma)
+                  Submit Permission Request to the Administrator
                 </button>
               </form>
             )}

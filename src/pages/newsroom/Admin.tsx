@@ -150,7 +150,7 @@ export default function Admin() {
           <div className="label-eyebrow text-primary mb-1">Newsroom Administration</div>
           <h1 className="font-display text-3xl mb-1">Access Clearances &amp; Roles</h1>
           <p className="text-sm text-ink-light">
-            You are signed in as Administrator (<strong>ashiruma</strong>). Manage permissions and approve contributor access.
+            You are signed in as Administrator. Manage permissions and approve contributor access.
           </p>
         </div>
 

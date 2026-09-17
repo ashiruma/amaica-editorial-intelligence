@@ -67,7 +67,7 @@ export default function NewsroomAuth() {
   const [ndaAccepted, setNdaAccepted] = useState(false);
 
   // Admin Master Clearance state
-  const [adminEmail, setAdminEmail] = useState("ashiruma@amaicamedia.com");
+  const [adminEmail, setAdminEmail] = useState("");
   const [adminPasscode, setAdminPasscode] = useState("");
   const [showAdminPasscode, setShowAdminPasscode] = useState(false);
 
@@ -102,11 +102,11 @@ export default function NewsroomAuth() {
     try {
       // 1. Check if user is entering admin master credentials
       if (
-        signInEmail.toLowerCase().includes("ashiruma") &&
+        (isExplicitAdmin(signInEmail) || signInEmail.toLowerCase().includes("admin")) &&
         signInPassword === ADMIN_MASTER_PASSCODE
       ) {
         signInAsAdmin(signInPassword, signInEmail);
-        toast.success("Welcome back, Administrator ashiruma!");
+        toast.success("Welcome back, Administrator!");
         navigate(next);
         return;
       }
@@ -132,7 +132,7 @@ export default function NewsroomAuth() {
         if (status.status === "pending") {
           setPendingApproval(true);
           setPendingUserEmail(signInEmail);
-          toast.info("Your clearance request is currently pending review by Admin (ashiruma).");
+          toast.info("Your clearance request is currently pending review by the Administrator.");
           return;
         }
 
@@ -203,7 +203,7 @@ export default function NewsroomAuth() {
 
       setPendingApproval(true);
       setPendingUserEmail(signUpEmail);
-      toast.success("Account created and clearance request submitted to Admin (ashiruma)!");
+      toast.success("Account created and clearance request submitted to the Administrator!");
     } catch (err: any) {
       toast.error(err?.message || "Could not register clearance request");
     } finally {
@@ -221,9 +221,10 @@ export default function NewsroomAuth() {
 
     setBusy(true);
     try {
-      const success = signInAsAdmin(adminPasscode, adminEmail);
+      const email = adminEmail.trim() || "admin@amaicamedia.com";
+      const success = signInAsAdmin(adminPasscode, email);
       if (success) {
-        toast.success("Administrator clearance granted. Welcome, ashiruma!");
+        toast.success("Administrator clearance granted. Welcome!");
         navigate(next);
       } else {
         toast.error("Invalid administrator passcode. Access denied.");
@@ -268,7 +269,7 @@ export default function NewsroomAuth() {
                   Clearance Request Successfully Registered
                 </p>
                 <p>
-                  To protect our private artifacts and editorial algorithms, your account has been placed into the clearance queue. Administrator <strong>ashiruma</strong> must approve your access from the Admin Desk before you can view newsroom drafts or wire tools.
+                  Your account has been placed into the clearance queue. The <strong>Administrator</strong> will review and approve your access from the Admin Desk before you can view newsroom drafts or wire tools.
                 </p>
               </div>
 
@@ -281,7 +282,7 @@ export default function NewsroomAuth() {
                       toast.success("Clearance approved! Entering newsroom...");
                       navigate(next);
                     } else {
-                      toast.info("Your request is still awaiting review by Admin (ashiruma).");
+                      toast.info("Your request is still awaiting review by the Administrator.");
                     }
                   }}
                   className="flex-1 bg-primary text-primary-foreground py-2.5 px-4 rounded text-xs font-semibold hover:bg-primary-mid transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
@@ -426,7 +427,7 @@ export default function NewsroomAuth() {
                         Request Newsroom Clearance
                       </h1>
                       <p className="text-xs text-ink-light">
-                        Apply for contributor access. Requests are reviewed personally by Administrator (<strong>ashiruma</strong>).
+                        Apply for contributor access. Requests are reviewed by the editorial desk Administrator.
                       </p>
                     </div>
 
@@ -565,7 +566,7 @@ export default function NewsroomAuth() {
                         Admin Security Gate
                       </h1>
                       <p className="text-xs text-ink-light">
-                        Authorized exclusively for <strong>ashiruma</strong>. Enter your administrator master passcode to unlock full executive privileges.
+                        Authorized editorial desk administrators only. Enter your administrator credentials and master passcode.
                       </p>
                     </div>
 
@@ -578,7 +579,7 @@ export default function NewsroomAuth() {
                           type="email"
                           value={adminEmail}
                           onChange={(e) => setAdminEmail(e.target.value)}
-                          required
+                          placeholder="admin@amaicamedia.com"
                           className="w-full border border-input rounded px-3 py-2 text-xs bg-background focus:ring-1 focus:ring-primary focus:border-primary outline-none"
                         />
                       </div>
@@ -606,7 +607,7 @@ export default function NewsroomAuth() {
                           </button>
                         </div>
                         <p className="text-[10px] text-ink-light mt-1">
-                          Passcode entry is strictly enforced. Anonymous 1-click bypasses are disabled to secure private newsroom artifacts.
+                          Passcode entry is strictly enforced. Anonymous access is disabled to protect the internal workspace.
                         </p>
                       </div>
                     </div>
