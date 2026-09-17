@@ -5,8 +5,35 @@ import { Masthead } from "@/components/Masthead";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { validateArticle, validateArticleWithAiDetails, canApprove, countWords, noteText, noteSection, REQUIRED_HEADINGS, TARGET_WORDS_BY_TEMPLATE, type SourceRef, type SourceNote, type Issue } from "@/lib/articleValidation";
-import { cleanAiClichesLocally, humanizeText, convertToPlainText, generateCertifiedCopy, dissolveFormulaicHeaders, type AiDetectionResult } from "@/lib/aiContentDetector";
+import { cleanAiClichesLocally, humanizeText, convertToPlainText, generateCertifiedCopy, dissolveFormulaicHeaders, analyzeAiContent, type AiDetectionResult } from "@/lib/aiContentDetector";
 import { useMinWordCount } from "@/hooks/useNewsroomSettings";
+import {
+  Bot,
+  ChevronUp,
+  ChevronDown,
+  Sparkles,
+  Check,
+  Copy,
+  ShieldCheck,
+  ExternalLink,
+  CheckCircle2,
+  AlertTriangle,
+  Wand2,
+  Link as LinkIcon,
+  Plus,
+  X,
+  History,
+  Save,
+  Send,
+  Globe,
+  Trash2,
+  Image as ImageIcon,
+  RefreshCw,
+  MessageCircle,
+  Twitter,
+  Instagram,
+  Facebook,
+} from "lucide-react";
 
 type AuditEntry = {
   id: string;
@@ -231,7 +258,7 @@ export default function DraftEditor() {
         auto_publish_at: draft.auto_publish_at || null,
         sources: sources,
         ...(newStatus ? { status: newStatus, ...(newStatus === "published" ? { published_at: new Date().toISOString() } : {}) } : {}),
-      }).eq("id", draft.id);
+      } as any).eq("id", draft.id);
       if (error) throw error;
 
       // Auto-copy clean plain text to clipboard upon Publish or Send for Review

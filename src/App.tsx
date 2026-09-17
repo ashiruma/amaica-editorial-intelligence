@@ -17,6 +17,7 @@ import Admin from "./pages/newsroom/Admin";
 import ScrapeHealth from "./pages/newsroom/ScrapeHealth";
 import NewsroomLegends from "./pages/newsroom/Legends";
 import DiscoveryAdmin from "./pages/newsroom/DiscoveryAdmin";
+import AiDetectorStudio from "./pages/newsroom/AiDetectorStudio";
 import { RequireNewsroomAuth } from "@/components/auth/RequireNewsroomAuth";
 import NotFound from "./pages/NotFound.tsx";
 

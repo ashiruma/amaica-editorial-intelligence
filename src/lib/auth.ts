@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
+import { isUserApprovedByAdmin } from "@/lib/accessRequests";
+
 export type AppRole = "admin" | "editor" | "writer";
 
 export interface LocalNewsroomUser {
@@ -12,6 +14,12 @@ export interface LocalNewsroomUser {
 }
 
 const LOCAL_STORAGE_KEY = "amaica_newsroom_user";
+
+export function isExplicitAdmin(email?: string | null): boolean {
+  if (!email) return false;
+  const lower = email.toLowerCase().trim();
+  return lower.includes("ashiruma") || lower === "admin@amaicamedia.com";
+}
 
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
@@ -33,10 +41,23 @@ export function useAuth() {
     }
   };
 
+  const resolveRoles = (email?: string | null, dbRoles: AppRole[] = []): AppRole[] => {
+    if (!email) return [];
+    if (isExplicitAdmin(email)) {
+      return ["admin", "editor"];
+    }
+    if (dbRoles.length > 0) return dbRoles;
+    if (isUserApprovedByAdmin(email)) {
+      return ["editor"];
+    }
+    return [];
+  };
+
   useEffect(() => {
     // 1. Check if an existing local session exists
     const local = checkLocalUser();
     if (local) {
+      const activeRoles = resolveRoles(local.email, local.roles);
       setUser({
         id: local.id,
         email: local.email,
@@ -45,7 +66,7 @@ export function useAuth() {
         aud: "authenticated",
         created_at: new Date().toISOString(),
       } as unknown as User);
-      setRoles(local.roles);
+      setRoles(activeRoles);
     } else {
       setUser(null);
       setRoles([]);
@@ -62,12 +83,12 @@ export function useAuth() {
           .eq("user_id", sess.user.id)
           .then(({ data }) => {
             const fetchedRoles = (data || []).map((r: { role: AppRole }) => r.role);
-            // Default at least editor role for authenticated Supabase newsroom staff
-            setRoles(fetchedRoles.length > 0 ? fetchedRoles : ["editor"]);
+            setRoles(resolveRoles(sess.user.email, fetchedRoles));
           });
       } else {
         const fallback = checkLocalUser();
         if (fallback) {
+          const activeRoles = resolveRoles(fallback.email, fallback.roles);
           setUser({
             id: fallback.id,
             email: fallback.email,
@@ -76,7 +97,7 @@ export function useAuth() {
             aud: "authenticated",
             created_at: new Date().toISOString(),
           } as unknown as User);
-          setRoles(fallback.roles);
+          setRoles(activeRoles);
         } else {
           setSession(null);
           setUser(null);
@@ -96,11 +117,12 @@ export function useAuth() {
           .eq("user_id", data.session.user.id)
           .then(({ data: rData }) => {
             const fetchedRoles = (rData || []).map((r: { role: AppRole }) => r.role);
-            setRoles(fetchedRoles.length > 0 ? fetchedRoles : ["editor"]);
+            setRoles(resolveRoles(data.session.user.email, fetchedRoles));
           });
       } else {
         const fallback = checkLocalUser();
         if (fallback) {
+          const activeRoles = resolveRoles(fallback.email, fallback.roles);
           setUser({
             id: fallback.id,
             email: fallback.email,
@@ -109,7 +131,7 @@ export function useAuth() {
             aud: "authenticated",
             created_at: new Date().toISOString(),
           } as unknown as User);
-          setRoles(fallback.roles);
+          setRoles(activeRoles);
         } else {
           setUser(null);
           setRoles([]);
@@ -122,15 +144,24 @@ export function useAuth() {
   }, []);
 
   const signInAsLocal = (
-    email = "editor@amaicamedia.com",
-    role: AppRole = "editor",
-    displayName = "Amaica Newsroom Editor"
+    email = "ashiruma@amaicamedia.com",
+    role?: AppRole,
+    displayName?: string
   ) => {
-    const assignedRoles: AppRole[] = role === "admin" ? ["admin", "editor"] : [role];
+    const isAdminUser = isExplicitAdmin(email);
+    let assignedRoles: AppRole[] = [];
+    if (isAdminUser) {
+      assignedRoles = ["admin", "editor"];
+    } else if (isUserApprovedByAdmin(email)) {
+      assignedRoles = [role || "editor"];
+    } else {
+      assignedRoles = role === "admin" ? ["admin", "editor"] : [];
+    }
+
     const localUser: LocalNewsroomUser = {
       id: `staff-${Date.now()}`,
       email,
-      displayName: displayName || (email.split("@")[0]),
+      displayName: displayName || (isAdminUser ? "ashiruma (Admin)" : email.split("@")[0]),
       roles: assignedRoles,
     };
     try {
@@ -159,9 +190,9 @@ export function useAuth() {
     } catch {}
   };
 
-  const isEditor = Boolean(user && (roles.includes("editor") || roles.includes("admin")));
-  const isAdmin = Boolean(user && roles.includes("admin"));
-  const isWriter = Boolean(user && (roles.includes("writer") || roles.includes("editor") || roles.includes("admin")));
+  const isAdmin = Boolean(user && (roles.includes("admin") || isExplicitAdmin(user.email)));
+  const isEditor = Boolean(user && (isAdmin || roles.includes("editor") || isUserApprovedByAdmin(user.email)));
+  const isWriter = Boolean(user && (isEditor || roles.includes("writer")));
 
   return {
     session,

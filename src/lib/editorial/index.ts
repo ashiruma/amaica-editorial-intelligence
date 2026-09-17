@@ -27,6 +27,7 @@ export * from "./styleGuideEngine";
 export * from "./editorialRewriteEngine";
 export * from "./batchForensicsEngine";
 export * from "./wireRepurposingEngine";
+export * from "@/types/editorialIntelligence";
 
 /**
  * Executes full asynchronous Editorial Intelligence Analysis across all 9 engines.

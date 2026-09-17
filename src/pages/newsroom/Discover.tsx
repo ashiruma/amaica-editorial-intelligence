@@ -416,7 +416,7 @@ export default function Discover() {
       setStories((prev) => prev.filter((x) => x.id !== story.id));
       setRetryStatus((prev) => ({
         ...prev,
-        [story.id]: { state: "done", attempts: retry?.attempts ?? 1 },
+        [story.id]: { state: "done", attempts: 1 },
       }));
       if (!opts?.skipNavigate) {
         toast.success("Draft queued to Review Desk (0% AI Certified)");
