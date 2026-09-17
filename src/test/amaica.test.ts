@@ -61,26 +61,26 @@ describe("Amaica Media Utilities", () => {
   });
 
   describe("Article Validation Bands", () => {
-    it("uses realistic breaking news minimum (350 words) instead of 1600", () => {
-      expect(MIN_WORDS_BY_TEMPLATE.breaking).toBe(350);
-      expect(TARGET_WORDS_BY_TEMPLATE.breaking.ideal).toBe(500);
+    it("uses mandatory substantive breaking news minimum (700 words) instead of 1600", () => {
+      expect(MIN_WORDS_BY_TEMPLATE.breaking).toBe(700);
+      expect(TARGET_WORDS_BY_TEMPLATE.breaking.ideal).toBe(850);
 
-      // Verify an article over 350 words does not trigger wordcount error for breaking news
+      // Verify an article over 700 words does not trigger wordcount error for breaking news
       const sampleBody = `Opening statement about the event.
 ## Background
-${"Background context sentence explaining the history and cultural depth. ".repeat(15)}
+${"Background context sentence explaining the history and cultural depth of the Western Kenya music and arts scene. ".repeat(15)}
 
 ## Key Details
-${"Key details about who, what, when, where, ticket prices and organizers. ".repeat(15)}
+${"Key details about who, what, when, where, ticket prices and organizers for the event in Kakamega. ".repeat(15)}
 
 ## Quotes
-"This is an incredible development," said Jane Mwangi, festival director. "We are thrilled," confirmed John Doe.
+"This is an important development for the scene," said Jane Mwangi, festival director. "We are thrilled with ticket sales," confirmed John Doe.
 
 ## Why it matters
-${"Impact on the Western Kenya creative scene and local economic ecosystem. ".repeat(15)}
+${"Impact on the Western Kenya creative scene and local economic ecosystem across the lake region counties. ".repeat(15)}
 
 ## Outlook
-${"Forward looking closing statements about upcoming tours and regional dates. ".repeat(15)}`;
+${"Forward looking closing statements about upcoming tours and regional dates scheduled across East Africa. ".repeat(15)}`;
 
       const issues = validateArticle({
         headline: "Historic festival returns to Kakamega this weekend",

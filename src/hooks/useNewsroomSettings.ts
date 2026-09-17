@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export const DEFAULT_MIN_WORD_COUNT = 400;
+export const DEFAULT_MIN_WORD_COUNT = 700;
 
 export function useMinWordCount(): { minWordCount: number; loading: boolean; refresh: () => Promise<void> } {
   const [minWordCount, setMinWordCount] = useState<number>(DEFAULT_MIN_WORD_COUNT);

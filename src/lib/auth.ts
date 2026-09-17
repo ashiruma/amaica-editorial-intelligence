@@ -19,64 +19,52 @@ export function useAuth() {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Default Newsroom Lead Editor profile so editorial staff are never locked out
-  const DEFAULT_NEWSROOM_USER: LocalNewsroomUser = {
-    id: "lead-editor-amaica",
-    email: "editor@amaicamedia.com",
-    displayName: "Amaica Lead Editor",
-    roles: ["admin", "editor"],
-  };
-
-  // Check for local newsroom user, defaulting to Lead Editor if not present
-  const checkLocalUser = (): LocalNewsroomUser => {
+  // Check for an explicitly signed-in newsroom user (never auto-generate for anonymous public readers)
+  const checkLocalUser = (): LocalNewsroomUser | null => {
     try {
       const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (stored) return JSON.parse(stored);
-      // Auto-initialize persistent local newsroom user
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(DEFAULT_NEWSROOM_USER));
-      return DEFAULT_NEWSROOM_USER;
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.id && parsed?.email) return parsed;
+      }
+      return null;
     } catch {
-      return DEFAULT_NEWSROOM_USER;
+      return null;
     }
   };
 
   useEffect(() => {
+    // 1. Check if an existing local session exists
     const local = checkLocalUser();
-    setUser({
-      id: local.id,
-      email: local.email,
-      user_metadata: { display_name: local.displayName },
-      app_metadata: {},
-      aud: "authenticated",
-      created_at: new Date().toISOString(),
-    } as unknown as User);
-    setRoles(local.roles);
+    if (local) {
+      setUser({
+        id: local.id,
+        email: local.email,
+        user_metadata: { display_name: local.displayName },
+        app_metadata: {},
+        aud: "authenticated",
+        created_at: new Date().toISOString(),
+      } as unknown as User);
+      setRoles(local.roles);
+    } else {
+      setUser(null);
+      setRoles([]);
+    }
 
+    // 2. Supabase auth listener
     const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
       if (sess?.user) {
         setSession(sess);
         setUser(sess.user);
-        setTimeout(() => {
-          supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", sess.user.id)
-            .then(({ data }) => setRoles((data || []).map((r: { role: AppRole }) => r.role)));
-        }, 0);
-      } else {
-        const fallback = checkLocalUser();
-        if (!fallback) {
-          setSession(null);
-          setUser(null);
-          setRoles([]);
-        }
-      }
-    });
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) {
-        setSession(data.session);
-        setUser(data.session.user);
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", sess.user.id)
+          .then(({ data }) => {
+            const fetchedRoles = (data || []).map((r: { role: AppRole }) => r.role);
+            // Default at least editor role for authenticated Supabase newsroom staff
+            setRoles(fetchedRoles.length > 0 ? fetchedRoles : ["editor"]);
+          });
       } else {
         const fallback = checkLocalUser();
         if (fallback) {
@@ -89,6 +77,42 @@ export function useAuth() {
             created_at: new Date().toISOString(),
           } as unknown as User);
           setRoles(fallback.roles);
+        } else {
+          setSession(null);
+          setUser(null);
+          setRoles([]);
+        }
+      }
+    });
+
+    // 3. Initial session retrieval
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) {
+        setSession(data.session);
+        setUser(data.session.user);
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.session.user.id)
+          .then(({ data: rData }) => {
+            const fetchedRoles = (rData || []).map((r: { role: AppRole }) => r.role);
+            setRoles(fetchedRoles.length > 0 ? fetchedRoles : ["editor"]);
+          });
+      } else {
+        const fallback = checkLocalUser();
+        if (fallback) {
+          setUser({
+            id: fallback.id,
+            email: fallback.email,
+            user_metadata: { display_name: fallback.displayName },
+            app_metadata: {},
+            aud: "authenticated",
+            created_at: new Date().toISOString(),
+          } as unknown as User);
+          setRoles(fallback.roles);
+        } else {
+          setUser(null);
+          setRoles([]);
         }
       }
       setLoading(false);
@@ -97,12 +121,17 @@ export function useAuth() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const signInAsLocal = (email = "editor@amaicamedia.com", role: AppRole = "editor") => {
+  const signInAsLocal = (
+    email = "editor@amaicamedia.com",
+    role: AppRole = "editor",
+    displayName = "Amaica Newsroom Editor"
+  ) => {
+    const assignedRoles: AppRole[] = role === "admin" ? ["admin", "editor"] : [role];
     const localUser: LocalNewsroomUser = {
-      id: `editor-${Date.now()}`,
+      id: `staff-${Date.now()}`,
       email,
-      displayName: "Amaica Newsroom Editor",
-      roles: ["admin", "editor"],
+      displayName: displayName || (email.split("@")[0]),
+      roles: assignedRoles,
     };
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localUser));
@@ -115,7 +144,7 @@ export function useAuth() {
       aud: "authenticated",
       created_at: new Date().toISOString(),
     } as unknown as User);
-    setRoles(["admin", "editor"]);
+    setRoles(assignedRoles);
   };
 
   const signOut = async () => {
@@ -125,16 +154,24 @@ export function useAuth() {
     setUser(null);
     setSession(null);
     setRoles([]);
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {}
   };
+
+  const isEditor = Boolean(user && (roles.includes("editor") || roles.includes("admin")));
+  const isAdmin = Boolean(user && roles.includes("admin"));
+  const isWriter = Boolean(user && (roles.includes("writer") || roles.includes("editor") || roles.includes("admin")));
 
   return {
     session,
     user,
     roles,
     loading,
-    isEditor: roles.includes("editor") || roles.includes("admin") || true, // Default editor access for newsroom studio
-    isAdmin: roles.includes("admin") || true,
+    isAuthenticated: Boolean(user),
+    isEditor,
+    isAdmin,
+    isWriter,
     signInAsLocal,
     signOut,
   };

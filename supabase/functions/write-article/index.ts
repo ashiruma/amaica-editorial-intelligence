@@ -42,28 +42,31 @@ ABSOLUTE BANS:
 - NO opinions presented as facts. NO vague time ("recently"). Be specific.
 - NO unattributed quotes.
 
-TEMPLATES & TARGET LENGTHS:
-- breaking (350–550 words): [Artist/group] has [released/been announced/signed/performed] [what], [organization/spokesperson] confirmed [day]. Follow with immediate context, quote, background, reaction, what-it-means for fans, forward close.
-- event_preview (500–800 words): [Event] returns to [location] on [date], featuring [headline act]. Lineup details, organizer quotes, ticket/venue logistics in KSh, local context, CTA close.
-- profile (900–1400 words): Scene-setting lede, the angle (why now), artist backstory, recent milestones, direct quotes from subject and peers, cultural significance for Western Kenya / Kenyan entertainment scene, what's next.
-- review (700–1100 words): Verdict-first lede, standout tracks or performances, production appraisal, highs and lows, comparative scene context, recommendation.
+TEMPLATES & TARGET LENGTHS (AT LEAST 700 WORDS MANDATORY):
+- breaking (700–900 words): Fact-first lede, immediate verified details, ticket/venue logistics, primary artist quotes, counter-reactions, scene history, cultural/economic impact for Western Kenya / Kenyan showbiz, and forward schedule.
+- event_preview (700–1000 words): Event date/venue announcement, full performer lineup, ticket tier breakdown in KSh, organizer statements, historical background, transport logistics, regional economic impact, and ticket CTA.
+- profile (900–1500 words): Scene-setting narrative lede, the angle (why now), artist backstory, discography/filmography milestones, exclusive attributed quotes, cultural legacy for Western Kenya / Kenyan entertainment, industry challenges, and future projects.
+- review (750–1200 words): Verdict-first lede, track-by-track / scene appraisal, production analysis, standout highs and flaws, comparative scene context, audio engineering critique, and final rating/recommendation.
 
 DEPTH REQUIREMENTS:
-- Minimum 5–6 body paragraphs across the structured sections.
-- Include at least TWO direct quotes with attribution ("…," said Jane Mwangi) where source supports them; otherwise paraphrase with attribution.
-- Name specific venues (e.g. Carnivore, Alchemist, Kisumu Mega City, Kakamega Golf Club, Bukhungu), dates, ticket prices (KSh), and artists.
+- Minimum 6–8 well-developed body paragraphs across the continuous story.
+- Total length MUST be AT LEAST 700 words. Never output short summaries.
+- Include at least TWO direct quotes with attribution ("…," said [Speaker]) where source supports them; otherwise paraphrase with clear attribution.
+- Name specific venues (e.g. Carnivore, Alchemist, Kisumu Mega City, Kakamega Golf Club, Bukhungu, Quiver, KICC), dates, ticket prices (KSh), and artists.
 - NO filler or hallucinations. Expand on verified context, scene history, and audience impact.
 
 STRUCTURE & FLOW (CONTINUOUS JOURNALISM — INVERTED PYRAMID):
 - Do NOT use formulaic outline headings like "## Background", "## Key Details", "## Quotes", "## Why it matters", or "## Outlook". 
 - Modern inverted-pyramid newsrooms weave background, official reactions, and broader significance naturally into continuous paragraphs.
-- Paragraph 1 (Lede): Sharp, fact-first opening sentence answering who, what, where, when.
-- Paragraph 2 (Immediate Context & Details): Developing facts, logistics, venues, figures, and dates.
-- Paragraph 3 (Attributed Quotes & Reaction): At least two direct attributed quotes or public statements ("...," said Jane Mwangi) woven smoothly into the narrative.
-- Paragraph 4 (Background & History): Historical context and scene background woven naturally without any "## Background" heading.
-- Paragraph 5 (Regional Significance & Next Steps): Broader cultural/economic impact on Western Kenya / Kenyan entertainment industry and forward-looking outlook, concluding the piece smoothly.
+- Paragraph 1 (Lede): Sharp, fact-first opening sentence answering who, what, where, when (18–25 words).
+- Paragraph 2 (Immediate Context & Logistics): Developing facts, logistics, venues, ticket tiers in KSh, dates, and organizers.
+- Paragraph 3 (Primary Attributed Quotes): Direct attributed quotes or public statements ("...," said [Speaker]) capturing emotion and intent.
+- Paragraph 4 (Secondary Reactions & Industry Commentary): Follow-up reactions from collaborators, fans, or venue management.
+- Paragraph 5 (Deep Scene Background & History): Historical context, artist trajectory, and past precedents woven naturally without any "## Background" heading.
+- Paragraph 6 (Regional Significance & Cultural Impact): Broader cultural/economic impact on Western Kenya / Kenyan entertainment industry.
+- Paragraph 7 (Forward Outlook & Timeline): Upcoming dates, tour stops, single releases, ticketing deadlines, and forward close.
 
-The body field MUST be continuous journalistic prose across 5–6 well-developed paragraphs. Absolute ban on explicit markdown section headings ("## ").
+The body field MUST be continuous journalistic prose across 6–8 well-developed paragraphs totaling AT LEAST 700 words. Absolute ban on explicit markdown section headings ("## ").
 
 COVERAGE PRIORITY: Western Kenya (Kakamega, Kisumu, Bungoma, Vihiga, Busia, Siaya, Homa Bay, Migori, Kisii, Eldoret) first, then national Kenyan, then East African / Pan-African.
 
@@ -151,15 +154,15 @@ ORIGINAL EXCERPT: ${source_excerpt || "(none)"}
 FULL ARTICLE CONTENT:
 ${(source_content || source_excerpt || "").slice(0, 6000)}
 
-Write a fresh, original Amaica Media article. Do NOT copy phrases from the source. Use only the FACTS to write a new piece following the Amaica style rules and inverted pyramid. Hit the target word range for the chosen template (e.g. 350-550 words for breaking news; 500-800 for event preview; 900-1400 for profiles). Include two attributed quotes where supported, background context, a "why it matters" section, and a forward-looking close.
-
+Write a fresh, original Amaica Media article. Do NOT copy phrases from the source. Use only the FACTS to write a new piece following the Amaica style rules and inverted pyramid. Hit the target word range for the chosen template: AT LEAST 700 WORDS MANDATORY (700-900 words for breaking news; 700-1000 for event preview; 900-1500 for profiles). Include two attributed quotes where supported, deep background context, industry implications, and a forward-looking close across 6-8 well-developed paragraphs.
+ 
 Also produce social posts:
 - WhatsApp Broadcast: 3-4 lines with bold headline (*Headline*), bulleted highlights, and CTA to read on amaicamedia.com
 - Twitter/X: max 270 chars, punchy, 1-2 hashtags max
 - Instagram: 3-4 short lines + 5 hashtags
 - Facebook: 2-3 sentences, conversational, no hashtags
-
-Return STRICT JSON only via the provided tool. The body MUST include the five mandatory headings (## Background, ## Key Details, ## Quotes, ## Why it matters, ## Outlook) in that exact order. Include sources[] with the wire URL and extracted notes used.`;
+ 
+Return STRICT JSON only via the provided tool. The body MUST be continuous inverted-pyramid prose across 6-8 rich paragraphs totaling AT LEAST 700 words, with NO explicit markdown outline headings (no '## Background', '## Quotes', etc.). Include sources[] with the wire URL and extracted notes used.`;
 
     const requestBody = JSON.stringify({
         model: modelName,
@@ -176,8 +179,8 @@ Return STRICT JSON only via the provided tool. The body MUST include the five ma
               type: "object",
               properties: {
                 headline: { type: "string", description: "Sharp headline, max 80 chars, no clickbait" },
-                lede: { type: "string", description: "First sentence answering 'what happened?'" },
-                body: { type: "string", description: "Full article body in markdown. Starts with the lede as the opening paragraph, then MUST contain these five H2 headings in this exact order: '## Background', '## Key Details', '## Quotes', '## Why it matters', '## Outlook'. Each section has 1–3 paragraphs. Two attributed direct quotes in the Quotes section where the source supports them. Target the template word range." },
+                lede: { type: "string", description: "First sentence answering 'what happened?' (18-25 words)" },
+                body: { type: "string", description: "Full article body in continuous markdown prose totaling AT LEAST 700 words. Starts with the lede as the opening paragraph, followed by 6–8 well-developed paragraphs covering event logistics, attributed quotes, counter-reactions, deep scene context, cultural impact, and forward outlook. Do NOT use outline headings like '## Background'. Two attributed direct quotes woven into the prose." },
                 category: { type: "string", enum: ["music", "film", "tv", "events", "celebrity", "culture", "gossip"] },
                 template_used: { type: "string", enum: ["breaking", "event_preview", "profile", "review"] },
                 whatsapp_post: { type: "string", description: "WhatsApp broadcast text with *bold* headlines and bullet points" },

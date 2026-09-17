@@ -35,17 +35,17 @@ export const REQUIRED_HEADINGS = [
 ] as const;
 
 export const MIN_WORDS_BY_TEMPLATE: Record<string, number> = {
-  breaking: 350,
-  event_preview: 450,
-  review: 600,
-  profile: 800,
+  breaking: 700,
+  event_preview: 700,
+  review: 750,
+  profile: 850,
 };
 
 export const TARGET_WORDS_BY_TEMPLATE: Record<string, { min: number; ideal: number; max: number }> = {
-  breaking: { min: 350, ideal: 500, max: 800 },
-  event_preview: { min: 450, ideal: 650, max: 1000 },
-  review: { min: 600, ideal: 850, max: 1200 },
-  profile: { min: 800, ideal: 1100, max: 1600 },
+  breaking: { min: 700, ideal: 850, max: 1200 },
+  event_preview: { min: 700, ideal: 900, max: 1300 },
+  review: { min: 750, ideal: 950, max: 1400 },
+  profile: { min: 850, ideal: 1200, max: 1800 },
 };
 
 const MIN_PARAGRAPHS = 6;

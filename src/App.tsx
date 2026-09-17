@@ -17,7 +17,7 @@ import Admin from "./pages/newsroom/Admin";
 import ScrapeHealth from "./pages/newsroom/ScrapeHealth";
 import NewsroomLegends from "./pages/newsroom/Legends";
 import DiscoveryAdmin from "./pages/newsroom/DiscoveryAdmin";
-import AiDetectorStudio from "./pages/newsroom/AiDetectorStudio";
+import { RequireNewsroomAuth } from "@/components/auth/RequireNewsroomAuth";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -37,16 +37,16 @@ const App = () => (
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/~oauth/initiate" element={<Navigate to="/auth" replace />} />
           <Route path="/oauth/consent" element={<OAuthConsent />} />
-          <Route path="/newsroom" element={<Discover />} />
-          <Route path="/newsroom/drafts" element={<DraftsList />} />
-          <Route path="/newsroom/draft/:id" element={<DraftEditor />} />
-          <Route path="/newsroom/published" element={<Published />} />
-          <Route path="/newsroom/admin" element={<Admin />} />
-          <Route path="/newsroom/health" element={<ScrapeHealth />} />
-          <Route path="/newsroom/legends" element={<NewsroomLegends />} />
-          <Route path="/newsroom/discovery" element={<DiscoveryAdmin />} />
-          <Route path="/newsroom/detector" element={<AiDetectorStudio />} />
-          <Route path="/newsroom/ai-detector" element={<AiDetectorStudio />} />
+          <Route path="/newsroom" element={<RequireNewsroomAuth><Discover /></RequireNewsroomAuth>} />
+          <Route path="/newsroom/drafts" element={<RequireNewsroomAuth><DraftsList /></RequireNewsroomAuth>} />
+          <Route path="/newsroom/draft/:id" element={<RequireNewsroomAuth><DraftEditor /></RequireNewsroomAuth>} />
+          <Route path="/newsroom/published" element={<RequireNewsroomAuth><Published /></RequireNewsroomAuth>} />
+          <Route path="/newsroom/admin" element={<RequireNewsroomAuth requireAdmin><Admin /></RequireNewsroomAuth>} />
+          <Route path="/newsroom/health" element={<RequireNewsroomAuth><ScrapeHealth /></RequireNewsroomAuth>} />
+          <Route path="/newsroom/legends" element={<RequireNewsroomAuth><NewsroomLegends /></RequireNewsroomAuth>} />
+          <Route path="/newsroom/discovery" element={<RequireNewsroomAuth><DiscoveryAdmin /></RequireNewsroomAuth>} />
+          <Route path="/newsroom/detector" element={<RequireNewsroomAuth><AiDetectorStudio /></RequireNewsroomAuth>} />
+          <Route path="/newsroom/ai-detector" element={<RequireNewsroomAuth><AiDetectorStudio /></RequireNewsroomAuth>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
