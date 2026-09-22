@@ -1141,8 +1141,10 @@ export function cleanAiClichesLocally(text: string): { cleaned: string; replacem
     [/\b(taken the world by storm|taking the world by storm)\b/gi, "gained widespread popularity"],
     [/\b(transcends boundaries|transcending boundaries)\b/gi, "reaches diverse audiences"],
     [/\b(leaves an indelible mark|left an indelible mark)\b/gi, "makes a lasting impact"],
-    [/\b(resonates deeply with)\b/gi, "connects with"],
-    [/\b(captivating audiences)\b/gi, "drawing crowds"],
+    [/\bresonates? deeply(?:\s+(?:with|because|when|as|for|to|across|among|in|within))?\b/gi, "connects strongly"],
+    [/\bresonated deeply(?:\s+(?:with|because|when|as|for|to|across|among|in|within))?\b/gi, "connected strongly"],
+    [/\bcaptivat(?:ing|ed)\s+audiences?\b/gi, "drawing audiences"],
+    [/\bsolidif(?:ies|ied)\s+(?:his|her|their|its)\s+(?:role|status|position)\s+as\b/gi, "establishes his reputation as"],
     [/\b(redefining the landscape of)\b/gi, "transforming"],
     [/\b(without a shadow of a doubt)\b/gi, "clearly"],
     [/\b(embark on a journey)\b/gi, "begin"],
@@ -1370,6 +1372,11 @@ export function cleanAiClichesLocally(text: string): { cleaned: string; replacem
     [/,\s*saying that\s+/gi, ". He said that "],
     [/,\s*promising that\s+/gi, ". He promised that "],
     [/,\s*explaining that\s+/gi, ". He explained that "],
+    [/,\s*leaving\s+/gi, ". This left "],
+    [/,\s*capturing\s+/gi, ". This captured "],
+    [/,\s*shaping\s+/gi, ". This shaped "],
+    [/,\s*inspiring\s+/gi, ". This inspired "],
+    [/,\s*defining\s+/gi, ". This defined "],
     [/;\s*/g, ". "],
   ];
 
@@ -1404,6 +1411,49 @@ export function cleanAiClichesLocally(text: string): { cleaned: string; replacem
     .replace(/[ \t]{2,}/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+  // ── Universal Safeguard ────────────────────────────────────────────────────
+  // After all targeted replacements, sweep BANNED_AI_CLICHES to catch any
+  // phrase that survived. Each match is replaced with a short neutral synonym
+  // derived from the phrase itself (drop adverbials, keep core verb/noun).
+  // This is the final kill-gate: no cliché from BANNED_AI_CLICHES can leave
+  // this function intact.
+  const CLICHE_FALLBACK_MAP: Record<string, string> = {
+    "resonate deeply": "connect strongly",
+    "resonates deeply": "connects strongly",
+    "resonated deeply": "connected strongly",
+    "captivating audiences": "drawing audiences",
+    "captivated audiences": "drew audiences",
+    "captivated the audience": "drew the audience",
+    "solidified his status as": "established his reputation as",
+    "solidified her status as": "established her reputation as",
+    "solidified their status as": "established their reputation as",
+    "solidifies his role as": "establishes his reputation as",
+    "solidifies her role as": "establishes her reputation as",
+    "solidifies their role as": "establishes their reputation as",
+    "leaving": "which left", // participial fallback for any surviving ", leaving"
+  };
+
+  for (const cliche of BANNED_AI_CLICHES) {
+    // Build a case-insensitive word-boundary regex from the cliche string
+    const escaped = cliche.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`\\b${escaped}\\b`, "gi");
+    if (re.test(cleaned)) {
+      const fallback = CLICHE_FALLBACK_MAP[cliche.toLowerCase()] ?? "";
+      if (fallback) {
+        cleaned = cleaned.replace(re, fallback);
+      } else {
+        // No known fallback: just strip the phrase silently
+        cleaned = cleaned.replace(re, "");
+        // Clean up double spaces left by removal
+        cleaned = cleaned.replace(/[ \t]{2,}/g, " ");
+      }
+      replacementsMade++;
+    }
+  }
+
+  // Re-capitalize after universal sweep
+  cleaned = cleaned.replace(/\.\s+([a-z])/g, (_, letter) => `. ${letter.toUpperCase()}`);
 
   return { cleaned, replacementsMade };
 }

@@ -180,4 +180,52 @@ Fans welcomed the clarification across digital message boards.`,
     expect(errorIssues.length).toBe(0);
     expect(canApprove(finalIssues)).toBe(true);
   });
+
+  it("regression: purges 'resonate deeply', 'captivated audiences', and ', leaving' from Crazy Kennar excerpt", () => {
+    // Exact phrases from the user screenshot that were surviving Auto-Fix
+    const kennarDraft = {
+      headline: "Crazy Kennar: How Kenya's Comedy King Built a Digital Empire",
+      lede: "Comedian Crazy Kennar has captivated audiences across Kenya with his viral social satire and relatable humor.",
+      body: `Crazy Kennar, born Kennedy Odhiambo, rose from humble beginnings in Western Kenya to become one of the country's most recognized comedic voices. His talent for transforming everyday experiences into relatable, humorous content solidifies his role as a significant cultural commentator. His skits resonate deeply because they capture shared frustrations and realities. It offered a comedic lens through which audiences can process challenges.
+
+By investing in quality video production and authentic storytelling, he built a loyal following across YouTube, TikTok, and Instagram, captivated audiences numbering in the millions. The result was a comedic universe that audiences found impossible to ignore, leaving fans hungry for more original content week after week.
+
+"I just want to show that ordinary Kenyan life has layers of humor in it," Crazy Kennar said in a recent interview. "Every frustration is a punchline if you look at it right."
+
+His collective now employs over 20 creatives, giving employment to writers, camera operators, and editors.
+
+"He is the blueprint for how to build a sustainable comedy brand in Kenya," said media analyst Paul Mwangi. "Others are now following his model."
+
+Brand partnerships and digital advertising contracts generate millions of shillings annually for his studio.`,
+      template_type: "breaking",
+      min_word_count: 700,
+      sources: [{ url: "https://standardmedia.co.ke/article/crazy-kennar", title: "Standard Media", notes: [{ text: "Interview details verified", section: "Key Details" }] }],
+    };
+
+    const result = ensureEditorialCompliance(kennarDraft);
+
+    // The three specific flagged phrases must NOT appear in output
+    expect(result.body).not.toMatch(/\bresonates?\s+deeply\b/i);
+    expect(result.lede).not.toMatch(/\bresonates?\s+deeply\b/i);
+    expect(result.body).not.toMatch(/\bcaptivat(?:ing|ed)\s+audiences?\b/i);
+    expect(result.lede).not.toMatch(/\bcaptivat(?:ing|ed)\s+audiences?\b/i);
+    expect(result.body).not.toMatch(/,\s*leaving\s+fans/i);
+    expect(result.body).not.toMatch(/\bsolidif(?:ies|ied)\s+his\s+role\s+as\b/i);
+
+    // Must still be fully approvable
+    expect(result.approvable).toBe(true);
+    expect(result.wordCount).toBeGreaterThanOrEqual(700);
+
+    const finalIssues = validateArticle({
+      headline: result.headline,
+      lede: result.lede,
+      body: result.body,
+      sources: result.sources,
+      template_type: "breaking",
+      min_word_count: 700,
+    });
+    const errors = finalIssues.filter((i) => i.severity === "error");
+    expect(errors.length).toBe(0);
+    expect(canApprove(finalIssues)).toBe(true);
+  });
 });

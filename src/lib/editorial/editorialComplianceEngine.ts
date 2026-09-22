@@ -29,6 +29,8 @@ import {
 import {
   dissolveFormulaicHeaders,
   humanizeText,
+  analyzeAiContent,
+  BANNED_AI_CLICHES,
 } from "@/lib/aiContentDetector";
 
 export interface ComplianceInput extends ArticleCheckInput {
@@ -361,10 +363,62 @@ export function ensureEditorialCompliance(input: ComplianceInput): ComplianceRes
   }
 
   // 9. Strict 0% AI Humanization
-  const humanizedBody = humanizeText(body, "ultra").humanizedText;
-  const humanizedLede = humanizeText(lede, "ultra").humanizedText;
-  body = humanizedBody;
-  lede = humanizedLede;
+  body = humanizeText(body, "ultra").humanizedText;
+  lede = humanizeText(lede, "ultra").humanizedText;
+
+  // 9b. First-pass AI phrase purge — eliminate any clichés still alive after humanization
+  {
+    const aiSweepSynonyms: Record<string, string> = {
+      "resonate deeply": "connect strongly",
+      "resonates deeply": "connects strongly",
+      "resonated deeply": "connected strongly",
+      "captivating audiences": "drawing audiences",
+      "captivated audiences": "drew audiences",
+      "captivated the audience": "drew the audience",
+      "solidified his status as": "established his reputation as",
+      "solidified her status as": "established her reputation as",
+      "solidified their status as": "established their reputation as",
+      "solidifies his role as": "establishes his reputation as",
+      "solidifies her role as": "establishes her reputation as",
+      "solidifies their role as": "establishes their reputation as",
+      "resonates with": "connects with",
+      "resonated with": "connected with",
+    };
+    // Explicit replacement of all flagged phrases
+    const aiCheckResult = analyzeAiContent(body, headline, lede);
+    for (const flagged of aiCheckResult.flaggedPhrases) {
+      const phrase = flagged.phrase || "";
+      if (!phrase) continue;
+      const synKey = phrase.toLowerCase();
+      const synonym = aiSweepSynonyms[synKey];
+      const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(`\\b${escaped}\\b`, "gi");
+      if (synonym) {
+        body = body.replace(re, synonym);
+        lede = lede.replace(re, synonym);
+      } else if (flagged.type === "participial") {
+        const core = phrase.replace(/^,\s*/, "").replace(/ing$/, "");
+        const reP = new RegExp(`,\\s*${core.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}ing\\s+`, "gi");
+        body = body.replace(reP, `. This ${core}ed `);
+      } else {
+        body = body.replace(re, "").replace(/[ \t]{2,}/g, " ");
+        lede = lede.replace(re, "").replace(/[ \t]{2,}/g, " ");
+      }
+    }
+    // Universal BANNED_AI_CLICHES sweep
+    for (const cliche of BANNED_AI_CLICHES) {
+      const escaped = cliche.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(`\\b${escaped}\\b`, "gi");
+      if (re.test(body) || re.test(lede)) {
+        const synonym = aiSweepSynonyms[cliche.toLowerCase()] ?? "";
+        body = body.replace(re, synonym || "").replace(/[ \t]{2,}/g, " ");
+        lede = lede.replace(re, synonym || "").replace(/[ \t]{2,}/g, " ");
+      }
+    }
+    if (aiCheckResult.flaggedPhrases.length > 0) {
+      fixedIssues.push(`Purged ${aiCheckResult.flaggedPhrases.length} AI-flagged phrase(s) from first-pass humanization.`);
+    }
+  }
 
   // 10. Secondary Verification & Polish Loop
   let issues = validateArticle({
@@ -399,10 +453,74 @@ export function ensureEditorialCompliance(input: ComplianceInput): ComplianceRes
     }
     body = ensureMinimumParagraphs(body);
 
-    // Patch any residual AI flags
+    // Patch any residual AI flags — explicit phrase-by-phrase purge
     if (issues.some((i) => i.id.startsWith("ai-content-"))) {
+      // Build a fallback synonym map for common clichés
+      const fallbackSynonyms: Record<string, string> = {
+        "resonate deeply": "connect strongly",
+        "resonates deeply": "connects strongly",
+        "resonated deeply": "connected strongly",
+        "captivating audiences": "drawing audiences",
+        "captivated audiences": "drew audiences",
+        "captivated the audience": "drew the audience",
+        "solidified his status as": "established his reputation as",
+        "solidified her status as": "established her reputation as",
+        "solidified their status as": "established their reputation as",
+        "solidifies his role as": "establishes his reputation as",
+        "solidifies her role as": "establishes her reputation as",
+        "solidifies their role as": "establishes their reputation as",
+        "resonates with": "connects with",
+        "resonated with": "connected with",
+        "transcends genres": "spans many genres",
+        "transcending genres": "spanning many genres",
+      };
+
+      // Step A: Explicit pass over every phrase the detector actually flagged
+      const aiCheck = analyzeAiContent(body, headline, lede);
+      for (const flagged of aiCheck.flaggedPhrases) {
+        const phrase = flagged.phrase || "";
+        if (!phrase) continue;
+
+        // Try the synonym map first
+        const synKey = phrase.toLowerCase();
+        const synonym = fallbackSynonyms[synKey];
+        if (synonym) {
+          const re = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
+          body = body.replace(re, synonym);
+          lede = lede.replace(re, synonym);
+        } else if (flagged.type === "participial" && /^,\s*\w+ing/i.test(phrase)) {
+          // Participial: ", leaving" → ". This left"
+          const core = phrase.replace(/^,\s*/, "").replace(/ing$/, "");
+          const re = new RegExp(`,\\s*${core.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}ing\\s+`, "gi");
+          body = body.replace(re, `. This ${core}ed `);
+        } else {
+          // Generic cliché with no mapping: remove the phrase and trim whitespace
+          const re = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
+          body = body.replace(re, "");
+          lede = lede.replace(re, "");
+          body = body.replace(/[ \t]{2,}/g, " ");
+          lede = lede.replace(/[ \t]{2,}/g, " ");
+        }
+      }
+
+      // Step B: Universal safeguard — sweep remaining BANNED_AI_CLICHES
+      for (const cliche of BANNED_AI_CLICHES) {
+        const escaped = cliche.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const re = new RegExp(`\\b${escaped}\\b`, "gi");
+        if (re.test(body) || re.test(lede)) {
+          const synonym = fallbackSynonyms[cliche.toLowerCase()] ?? "";
+          body = body.replace(re, synonym || "");
+          lede = lede.replace(re, synonym || "");
+          body = body.replace(/[ \t]{2,}/g, " ");
+          lede = lede.replace(/[ \t]{2,}/g, " ");
+        }
+      }
+
+      // Step C: One final ultra-humanize pass on what's left
       body = humanizeText(body, "ultra").humanizedText;
       lede = humanizeText(lede, "ultra").humanizedText;
+
+      fixedIssues.push("Purged all detected AI clichés and participials via explicit phrase-by-phrase replacement.");
     }
 
     // Re-validate
