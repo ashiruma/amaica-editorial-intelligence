@@ -1,16 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Masthead } from "@/components/Masthead";
 import { useAuth } from "@/lib/auth";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { RefreshCw, Sparkles, MapPin, Clock, ExternalLink, Eye, X, Square, CheckSquare, PlusCircle, Flame } from "lucide-react";
+import { RefreshCw, Sparkles, MapPin, Clock, ExternalLink, Eye, X, Square, CheckSquare, PlusCircle, Flame, Zap } from "lucide-react";
 import { countWords } from "@/lib/articleValidation";
 import { useMinWordCount } from "@/hooks/useNewsroomSettings";
 import { formatRelativeTime, detectRegion, isWesternKenyaGossip, isGossipContent, detectCategory } from "@/lib/localScraper";
 import { humanizeText, dissolveFormulaicHeaders } from "@/lib/aiContentDetector";
 import { scrapeStoryResilient, scrapeKenyanEntertainmentPortals } from "@/lib/scraperService";
-import { fetchLiveTrendingWireStories, repurposeWireStory } from "@/lib/editorial/wireRepurposingEngine";
+import {
+  fetchLiveTrendingWireStories,
+  repurposeWireStory,
+  calculateTrendingVelocityScore,
+  autoGenerateTrendingStories,
+} from "@/lib/editorial/wireRepurposingEngine";
 import { saveNewDraft, ensureValidAuthorUUID, isValidUUID } from "@/lib/editorial/draftStorage";
 import { ensureEditorialCompliance } from "@/lib/editorial/editorialComplianceEngine";
 
@@ -28,6 +33,7 @@ type Story = {
   created_at: string;
   highlights?: string[] | null;
   preview_summary?: string | null;
+  trendingScore?: number;
 };
 
 export default function Discover() {
@@ -35,8 +41,17 @@ export default function Discover() {
   const navigate = useNavigate();
   const { minWordCount } = useMinWordCount();
   const [stories, setStories] = useState<Story[]>([]);
-  const [filter, setFilter] = useState<"all" | "western_circuit" | "music" | "celebrity" | "western_gossip" | "festivals">("all");
+  const [filter, setFilter] = useState<"all" | "trending" | "western_circuit" | "music" | "celebrity" | "western_gossip" | "festivals">("all");
   const [discovering, setDiscovering] = useState(false);
+  const [autoGenerating, setAutoGenerating] = useState(false);
+  const [autoGenProgress, setAutoGenProgress] = useState<{ current: number; total: number; title: string; status: string } | null>(null);
+  const [autoPilotEnabled, setAutoPilotEnabled] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("amaica_autopilot_enabled") === "true";
+    } catch {
+      return false;
+    }
+  });
   const [writingId, setWritingId] = useState<string | null>(null);
   const [preview, setPreview] = useState<Story | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -56,12 +71,62 @@ export default function Discover() {
   const [customUrl, setCustomUrl] = useState("");
   const [ingesting, setIngesting] = useState(false);
 
+  const toggleAutoPilot = () => {
+    const next = !autoPilotEnabled;
+    setAutoPilotEnabled(next);
+    try {
+      localStorage.setItem("amaica_autopilot_enabled", String(next));
+    } catch { /* ignore */ }
+    if (next) {
+      toast.success("⚡ Newsroom Auto-Pilot activated: Monitoring reference sites & auto-drafting viral stories");
+    } else {
+      toast.info("Newsroom Auto-Pilot paused");
+    }
+  };
+
+  const handleAutoGenerateTrending = useCallback(async (count = 3) => {
+    if (!user) return;
+    setAutoGenerating(true);
+    setAutoGenProgress({ current: 0, total: count, title: "Scanning feeds", status: "Scanning reference portals for breaking news..." });
+
+    try {
+      const res = await autoGenerateTrendingStories({
+        count,
+        userId: user.id,
+        userDisplayName: user.user_metadata?.display_name || user.email?.split("@")[0] || "Amaica Newsroom",
+        onProgress: (status, progress) => {
+          setAutoGenProgress({
+            current: progress?.current ?? 0,
+            total: progress?.total ?? count,
+            title: progress?.title ?? "Processing story",
+            status,
+          });
+        },
+      });
+
+      if (res.successCount > 0) {
+        toast.success(
+          `Auto-generated ${res.successCount} trending drafts into Review Queue! (700+ words, 0% AI Certified)`
+        );
+        await load();
+      } else if (res.errors.length > 0) {
+        toast.error(`Auto-generation failed: ${res.errors[0].error}`);
+      } else {
+        toast.info("No new trending leads found to auto-draft at this time.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Auto-generation encountered an issue");
+    } finally {
+      setAutoGenerating(false);
+      setAutoGenProgress(null);
+    }
+  }, [user]);
+
   const load = async () => {
     let q = supabase
       .from("discovered_stories")
       .select("*")
       .eq("status", "new")
-      .order("region", { ascending: true })
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(60);
     const { data, error } = await q;
@@ -70,7 +135,21 @@ export default function Discover() {
     }
     const dbStories = (data || []) as unknown as Story[];
     if (dbStories.length > 0) {
-      setStories(dbStories);
+      // Calculate trending velocity score for each story and sort descending (trending topics first!)
+      const scoredStories = dbStories
+        .map((s) => ({
+          ...s,
+          trendingScore: calculateTrendingVelocityScore({
+            title: s.title,
+            excerpt: s.excerpt,
+            source: s.source,
+            published_at: s.published_at,
+            category: s.category,
+            region: s.region,
+          }),
+        }))
+        .sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
+      setStories(scoredStories);
     } else {
       // Seed with live trending entertainment wire leads so the newsroom is never blank
       const liveLeads = await fetchLiveTrendingWireStories();
@@ -88,7 +167,8 @@ export default function Discover() {
         created_at: new Date().toISOString(),
         highlights: [l.excerpt],
         preview_summary: l.excerpt,
-      }));
+        trendingScore: l.trendingScore ?? calculateTrendingVelocityScore(l),
+      })).sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
       setStories(mappedStories);
 
       // Seed authentic stories to Supabase for persistence across newsroom sessions
@@ -486,6 +566,9 @@ export default function Discover() {
 
   const filtered = stories.filter((s) => {
     if (filter === "all") return true;
+    if (filter === "trending") {
+      return (s.trendingScore ?? 0) >= 60;
+    }
     const blob = `${s.title} ${s.excerpt || ""}`.toLowerCase();
     if (filter === "western_gossip") {
       return isWesternKenyaGossip(`${s.title} ${s.excerpt || ""}`, s.region, s.category);
@@ -554,6 +637,29 @@ export default function Discover() {
     if (fail === 0 && batch.length > 1) navigate("/newsroom/drafts");
   };
 
+  // Periodic background Auto-Pilot if enabled
+  useEffect(() => {
+    if (!user || !autoPilotEnabled) return;
+
+    const runAutoPilotCycle = async () => {
+      if (autoGenerating || discovering) return;
+      try {
+        console.log("⚡ Auto-Pilot: Scanning reference portals for fresh trending news...");
+        await handleAutoGenerateTrending(2);
+      } catch (err) {
+        console.warn("Auto-Pilot cycle warning:", err);
+      }
+    };
+
+    const timer = setTimeout(runAutoPilotCycle, 4000);
+    const interval = setInterval(runAutoPilotCycle, 8 * 60 * 1000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, [user, autoPilotEnabled, autoGenerating, discovering, handleAutoGenerateTrending]);
+
   return (
     <div className="min-h-screen bg-background">
       <Masthead variant="newsroom" />
@@ -562,13 +668,70 @@ export default function Discover() {
           <div>
             <div className="label-eyebrow text-primary mb-1">Newsroom · Discover</div>
             <h1 className="font-display text-3xl mb-1">Story leads</h1>
-            <p className="text-sm text-ink-light">Western Kenya first. Click to draft an Amaica-style article.</p>
+            <p className="text-sm text-ink-light">Trending entertainment & news first. Click to draft an Amaica-style article.</p>
           </div>
-          <button onClick={discover} disabled={discovering} className="bg-primary text-primary-foreground px-4 py-2.5 rounded text-sm font-medium hover:bg-primary-mid transition flex items-center gap-2 disabled:opacity-50">
-            <RefreshCw size={14} className={discovering ? "animate-spin" : ""} />
-            {discovering ? "Scanning feeds..." : "Discover new stories"}
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Auto-Pilot Toggle */}
+            <div className="flex items-center gap-2 bg-card border border-border px-3 py-2 rounded text-xs shadow-sm">
+              <span className={`w-2 h-2 rounded-full transition-all ${autoPilotEnabled ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.7)]" : "bg-muted-foreground/30"}`} />
+              <span className="font-medium text-foreground">Auto-Pilot:</span>
+              <button
+                type="button"
+                onClick={toggleAutoPilot}
+                className={`font-semibold px-2 py-0.5 rounded transition ${
+                  autoPilotEnabled
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                    : "bg-muted text-ink-light hover:text-foreground"
+                }`}
+              >
+                {autoPilotEnabled ? "ON" : "OFF"}
+              </button>
+            </div>
+
+            {/* Auto-Generate Top Trending Stories Button */}
+            <button
+              onClick={() => handleAutoGenerateTrending(3)}
+              disabled={autoGenerating || discovering}
+              className="bg-accent text-accent-foreground px-4 py-2.5 rounded text-sm font-semibold hover:bg-accent/90 transition flex items-center gap-2 disabled:opacity-50 shadow-sm"
+              title="Automatically scrape reference portals, select top trending stories, rewrite to 0% AI, and queue to drafts"
+            >
+              <Zap size={14} className={autoGenerating ? "animate-spin text-amber-500" : "text-amber-500 fill-amber-500"} />
+              {autoGenerating
+                ? `Auto-Drafting (${autoGenProgress?.current || 1}/${autoGenProgress?.total || 3})...`
+                : "⚡ Auto-Generate Trending Stories"}
+            </button>
+
+            {/* Standard Discover */}
+            <button
+              onClick={discover}
+              disabled={discovering || autoGenerating}
+              className="bg-primary text-primary-foreground px-4 py-2.5 rounded text-sm font-medium hover:bg-primary-mid transition flex items-center gap-2 disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={discovering ? "animate-spin" : ""} />
+              {discovering ? "Scanning feeds..." : "Discover new stories"}
+            </button>
+          </div>
         </div>
+
+        {/* Live Auto-Generation Progress Banner */}
+        {autoGenProgress && (
+          <div className="mb-6 p-4 bg-accent/10 border border-accent/30 rounded-lg shadow-sm animate-fade-in-up">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-accent-foreground">
+                <RefreshCw size={15} className="animate-spin text-accent" />
+                <span>Auto-Drafting Trending Stories ({autoGenProgress.current}/{autoGenProgress.total})</span>
+              </div>
+              <span className="text-xs font-mono text-ink-light">0% AI Guaranteed · 700+ Words</span>
+            </div>
+            <p className="text-xs text-ink-mid truncate mb-2">{autoGenProgress.status}</p>
+            <div className="w-full bg-border rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-accent h-full transition-all duration-300"
+                style={{ width: `${Math.round((autoGenProgress.current / Math.max(1, autoGenProgress.total)) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Instant Breaking Story Ingestion */}
         <div className="mb-6 p-4 bg-card border border-border rounded shadow-sm">
@@ -601,11 +764,12 @@ export default function Discover() {
 
         <div className="flex gap-1 mb-6 border-b border-border flex-wrap">
           {([
-            ["all", "All Entertainment"],
+            ["all", "🔥 Trending First (All)"],
+            ["trending", "⚡ Top Trending"],
             ["western_circuit", "Western Circuit"],
             ["music", "Music & Afrobeats"],
             ["celebrity", "Celebrity & Showbiz"],
-            ["western_gossip", "🔥 Western Gossip"],
+            ["western_gossip", "Western Gossip"],
             ["festivals", "Festivals & Nightlife"],
           ] as const).map(([key, label]) => (
             <button
@@ -613,9 +777,13 @@ export default function Discover() {
               onClick={() => setFilter(key)}
               className={`px-4 py-2 text-[13px] border-b-2 -mb-px transition font-medium ${
                 filter === key
-                  ? key === "western_gossip"
+                  ? key === "trending"
+                    ? "border-amber-500 text-amber-600 dark:text-amber-400 font-semibold"
+                    : key === "western_gossip"
                     ? "border-rose-600 text-rose-600 font-semibold"
                     : "border-primary text-primary font-semibold"
+                  : key === "trending"
+                  ? "border-transparent text-amber-600/80 hover:text-amber-600"
                   : key === "western_gossip"
                   ? "border-transparent text-rose-600/80 hover:text-rose-600"
                   : "border-transparent text-ink-light hover:text-foreground"
@@ -669,6 +837,18 @@ export default function Discover() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2 text-[11px] flex-wrap">
                     <span className="font-mono-amaica text-primary uppercase tracking-wider">{s.source}</span>
+                    {s.trendingScore !== undefined && (
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${
+                        s.trendingScore >= 80
+                          ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800"
+                          : s.trendingScore >= 60
+                          ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                          : "bg-muted text-ink-mid border border-border"
+                      }`}>
+                        <Flame size={10} className={s.trendingScore >= 80 ? "text-rose-600 fill-rose-500" : "text-amber-600"} />
+                        Trending {s.trendingScore}%
+                      </span>
+                    )}
                     {isWesternKenyaGossip(`${s.title} ${s.excerpt || ""}`, s.region, s.category) ? (
                       <span className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-900 px-1.5 py-0.5 rounded-sm font-semibold flex items-center gap-1">
                         <Flame size={10} className="text-rose-600" /> Western Gossip

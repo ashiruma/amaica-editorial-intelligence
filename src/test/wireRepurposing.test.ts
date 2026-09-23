@@ -10,6 +10,8 @@ import {
   repurposeWireStory,
   fetchLiveTrendingWireStories,
   CURATED_TRENDING_LEADS,
+  calculateTrendingVelocityScore,
+  autoGenerateTrendingStories,
 } from "../lib/editorial/wireRepurposingEngine";
 
 describe("Wire Repurposing & Natural Journalistic Storytelling", () => {
@@ -163,5 +165,64 @@ The sold-out showcase highlights a resurgence in East Africa's commercial live m
       expect(result.fullArticleText).toContain("Fally Ipupa");
       expect(result.fullArticleText).toContain("15,000");
     });
+
+    it("calculates trending velocity scores giving highest priority to breaking viral entertainment news", () => {
+      const breakingLead = {
+        title: "Mags reveals why she left relationship with Alma, says she feared ending up in a body bag",
+        excerpt: "Creator breaks silence on dramatic split and domestic altercation.",
+        source: "Mpasho",
+        published_at: new Date(Date.now() - 3600 * 1000).toISOString(),
+        category: "gossip",
+      };
+
+      const olderGenericLead = {
+        title: "County government discusses cultural festival arrangements for next year",
+        excerpt: "Officials met to discuss preliminary logistics for regional holiday showcases.",
+        source: "Local Wire",
+        published_at: new Date(Date.now() - 3600 * 1000 * 72).toISOString(),
+        category: "events",
+      };
+
+      const scoreBreaking = calculateTrendingVelocityScore(breakingLead);
+      const scoreGeneric = calculateTrendingVelocityScore(olderGenericLead);
+
+      expect(scoreBreaking).toBeGreaterThan(80);
+      expect(scoreBreaking).toBeGreaterThan(scoreGeneric);
+    });
+
+    it("ensures fetchLiveTrendingWireStories returns leads ordered with trending topics first", async () => {
+      const leads = await fetchLiveTrendingWireStories();
+      expect(leads.length).toBeGreaterThanOrEqual(2);
+      expect(leads[0].trendingScore).toBeDefined();
+
+      for (let i = 0; i < leads.length - 1; i++) {
+        expect(leads[i].trendingScore!).toBeGreaterThanOrEqual(leads[i + 1].trendingScore!);
+      }
+    }, 15000);
+
+    it("auto-generates trending stories with standardized 7-paragraph structure and 0% AI clearance", async () => {
+      const testUserId = "550e8400-e29b-41d4-a716-446655440000";
+      const progressMessages: string[] = [];
+
+      const result = await autoGenerateTrendingStories({
+        count: 2,
+        userId: testUserId,
+        userDisplayName: "Amaica Wire Auto-Pilot",
+        onProgress: (msg) => progressMessages.push(msg),
+      });
+
+      expect(result.totalProcessed).toBe(2);
+      expect(result.successCount).toBeGreaterThanOrEqual(1);
+      expect(result.drafts.length).toBeGreaterThanOrEqual(1);
+
+      const firstDraft = result.drafts[0];
+      expect(firstDraft.draftId).toBeDefined();
+      expect(firstDraft.headline.length).toBeGreaterThan(15);
+      expect(firstDraft.wordCount).toBeGreaterThanOrEqual(700);
+      expect(firstDraft.aiScore).toBe(0);
+      expect(firstDraft.trendingScore).toBeGreaterThan(50);
+      expect(progressMessages.length).toBeGreaterThan(0);
+    }, 30000);
   });
 });
+
