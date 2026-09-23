@@ -7,6 +7,7 @@ import PublicHome from "./pages/public/Home";
 import PublicArticle from "./pages/public/Article";
 import LegendPage from "./pages/public/Legend";
 import StyleGuide from "./pages/public/StyleGuide";
+import EditorialPolicy from "./pages/public/EditorialPolicy";
 import AuthPage from "./pages/Auth";
 import OAuthConsent from "./pages/OAuthConsent";
 import Discover from "./pages/newsroom/Discover";
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/article/:id" element={<PublicArticle />} />
           <Route path="/legends/:id" element={<LegendPage />} />
           <Route path="/style-guide" element={<StyleGuide />} />
+          <Route path="/editorial-policy" element={<EditorialPolicy />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/newsroom/auth" element={<NewsroomAuth />} />
           <Route path="/newsroom/login" element={<NewsroomAuth />} />

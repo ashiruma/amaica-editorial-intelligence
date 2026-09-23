@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Masthead } from "@/components/Masthead";
+import { Footer } from "@/components/Footer";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 
 type Example = {
@@ -67,30 +68,74 @@ const EXAMPLES: Example[] = [
 ];
 
 const CHECKLIST = [
-  "Lede answers ‘what happened?’ in one sentence (18–22 words).",
-  "All five mandatory headings present in order: Background · Key Details · Quotes · Why it matters · Outlook.",
-  "Minimum six paragraphs; word count hits the template target.",
-  "At least two attributed direct quotes — every quote ends with said/told/confirmed + a named person.",
-  "Specific places, dates, prices (KSh), and venues throughout.",
-  "Sources panel lists every link used, with 2–4 short extracted notes per source.",
-  "No hype words (amazing, incredible, stunning, slayed, shook, absolutely).",
-  "Forward-looking close: what's next, when, where.",
+  "Lede answers ‘what happened?’ in one crisp, fact-first sentence answering the 5 Ws (18–25 words).",
+  "Continuous inverted-pyramid prose across 6–7 comprehensive paragraphs (no robotic outline headings).",
+  "0% AI clearance gate: verified human journalistic tone with fact-locked entity preservation.",
+  "At least two attributed direct quotes — every quote carries verified attribution verbs (said, told, confirmed) + a named person.",
+  "Specific Kenyan places, dates, prices (KSh), and verified cultural context throughout.",
+  "Sources panel lists every link used, with 2–4 short extracted factual notes per source.",
+  "No hype words or speculative hyperbole (amazing, incredible, stunning, slayed, shook, absolutely).",
+  "Forward-looking close: ongoing monitoring and what's next for the story.",
+];
+
+export const EDITORIAL_APPROVAL_PRINCIPLES = [
+  "Is it accurate?",
+  "Has it been verified?",
+  "Is it fair and balanced?",
+  "Is there a public-interest justification?",
+  "Have the affected parties been given an opportunity to respond where appropriate?",
+  "Does it protect privacy, dignity and vulnerable persons?",
+  "Could it promote hate, violence or discrimination?",
+  "Is any commercial or personal interest properly disclosed?",
+  "Have photographs, videos, audio and user-generated content been authenticated?",
+  "Would we be able to defend the editorial decision if challenged?",
 ];
 
 export default function StyleGuide() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Masthead variant="public" />
-      <main id="main-content" tabIndex={-1} className="max-w-3xl mx-auto px-4 sm:px-6 py-10 outline-none">
-        <Link to="/" className="inline-flex items-center gap-1 text-xs text-ink-light hover:text-primary mb-6">
-          <ArrowLeft size={12} /> Back
-        </Link>
+      <main id="main-content" tabIndex={-1} className="flex-1 max-w-3xl mx-auto px-4 sm:px-6 py-10 outline-none w-full">
+        <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+          <Link to="/" className="inline-flex items-center gap-1 text-xs text-ink-light hover:text-primary transition font-medium">
+            <ArrowLeft size={12} /> Back
+          </Link>
+          <Link
+            to="/editorial-policy"
+            className="inline-flex items-center gap-1.5 text-xs bg-primary text-primary-foreground font-semibold px-3 py-1.5 rounded hover:bg-primary-mid transition shadow-xs"
+          >
+            Read Official Editorial Policy (15 Articles) &rarr;
+          </Link>
+        </div>
+
         <div className="label-eyebrow text-primary mb-3">Newsroom · Style guide</div>
         <h1 className="font-display text-4xl md:text-5xl leading-[1.1] mb-4">Amaica Media house style</h1>
         <p className="text-lg text-ink-mid leading-relaxed mb-8 font-light">
-          The structured template every story must follow, with three reference articles — a Kakamega event,
-          a Walt Mzengi profile-news piece, and a Bungoma film-festival review — that meet every requirement.
+          The continuous inverted-pyramid storytelling standards every Amaica Media story must follow, coupled with our binding 10 Editorial Approval Principles.
         </p>
+
+        {/* 10 Editorial Approval Principles Gatekeeper Box */}
+        <section className="bg-gradient-to-br from-primary/5 via-card to-accent/5 border border-primary/20 rounded-lg p-6 mb-8 shadow-sm">
+          <div className="label-eyebrow text-primary mb-1">Approved by Nelson Shitanda · Effective 21st Sept 2027</div>
+          <h2 className="font-display text-2xl font-bold mb-2">Editorial Approval Principles</h2>
+          <p className="text-sm text-ink-mid mb-4">
+            Before any online article, video or social-media publication is approved, our editorial team verifies these 10 golden principles:
+          </p>
+          <ol className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-ink-mid mb-4">
+            {EDITORIAL_APPROVAL_PRINCIPLES.map((p, i) => (
+              <li key={i} className="flex items-start gap-2 bg-background/80 p-2.5 rounded border border-border">
+                <span className="font-mono text-primary font-bold text-xs">{i + 1}.</span>
+                <span className="text-xs font-medium text-foreground">{p}</span>
+              </li>
+            ))}
+          </ol>
+          <div className="text-xs text-ink-light pt-2 border-t border-border flex items-center justify-between gap-2">
+            <span>Prepared by Titus Wekesa (Quality Assurance / Editorial)</span>
+            <Link to="/editorial-policy" className="text-primary hover:underline font-semibold">
+              View All 15 Policy Articles &rarr;
+            </Link>
+          </div>
+        </section>
 
         <section className="bg-card border border-border rounded p-5 mb-10 shadow-card">
           <h2 className="font-display text-2xl mb-3">The approval checklist</h2>
@@ -138,6 +183,7 @@ export default function StyleGuide() {
           </article>
         ))}
       </main>
+      <Footer />
     </div>
   );
 }

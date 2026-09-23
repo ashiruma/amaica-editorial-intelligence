@@ -32,6 +32,7 @@ export function Footer() {
               <li><Link to="/category/film" className="hover:text-accent transition">Film & TV</Link></li>
               <li><Link to="/category/celebrity" className="hover:text-accent transition">Celebrity & Culture</Link></li>
               <li><Link to="/newsroom/legends" className="hover:text-accent transition">Our Legends</Link></li>
+              <li><Link to="/editorial-policy" className="hover:text-accent transition font-medium text-accent">Editorial Policy (15 Articles)</Link></li>
               <li><Link to="/style-guide" className="hover:text-accent transition">Editorial House Style</Link></li>
             </ul>
           </div>
@@ -65,7 +66,9 @@ export function Footer() {
           <div className="flex items-center gap-4">
             <Link to="/newsroom" className="hover:text-accent transition">Newsroom Portal</Link>
             <span>&bull;</span>
-            <Link to="/style-guide" className="hover:text-accent transition">Ethics & Standards</Link>
+            <Link to="/editorial-policy" className="hover:text-accent transition">Editorial Policy</Link>
+            <span>&bull;</span>
+            <Link to="/style-guide" className="hover:text-accent transition">House Style Guide</Link>
           </div>
         </div>
       </div>

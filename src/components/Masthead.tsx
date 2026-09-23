@@ -42,6 +42,7 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
               <NavLink to="/newsroom/published" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Published</NavLink>
               <NavLink to="/newsroom/legends" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Legends</NavLink>
               <NavLink to="/newsroom/ai-detector" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>AI Intelligence</NavLink>
+              <NavLink to="/editorial-policy" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Editorial Policy</NavLink>
               <NavLink to="/style-guide" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Style guide</NavLink>
               {isEditor && (
                 <NavLink to="/newsroom/health" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Health</NavLink>
@@ -62,6 +63,7 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
               <NavLink to="/category/events" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Events</NavLink>
               <NavLink to="/category/film" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Film & TV</NavLink>
               <NavLink to="/category/celebrity" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Celebrity</NavLink>
+              <NavLink to="/editorial-policy" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Editorial Policy</NavLink>
             </nav>
           )}
 
@@ -93,6 +95,7 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/published" className="py-1.5 text-primary-foreground/90 hover:text-accent">Published</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/legends" className="py-1.5 text-primary-foreground/90 hover:text-accent">Legends</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/ai-detector" className="py-1.5 text-accent font-semibold">AI Intelligence</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/editorial-policy" className="py-1.5 text-primary-foreground/90 hover:text-accent font-medium">Editorial Policy</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/style-guide" className="py-1.5 text-primary-foreground/90 hover:text-accent">Style Guide</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/" className="py-1.5 text-accent font-medium">View Live Site →</NavLink>
               </div>
@@ -104,6 +107,7 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
                 <NavLink onClick={() => setMobileOpen(false)} to="/category/events" className="py-1 text-primary-foreground/90 hover:text-accent">Concerts & Events</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/category/film" className="py-1 text-primary-foreground/90 hover:text-accent">Film & TV</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/category/celebrity" className="py-1 text-primary-foreground/90 hover:text-accent">Celebrity & Culture</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/editorial-policy" className="py-1 text-accent font-semibold">Editorial Policy (15 Articles)</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom" className="py-1 text-accent font-semibold pt-2 border-t border-primary-foreground/15">Open Newsroom Desk</NavLink>
               </div>
             )}

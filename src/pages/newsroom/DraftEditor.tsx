@@ -811,6 +811,9 @@ export default function DraftEditor() {
             <div className="flex items-center gap-2 mb-2">
               {approvable ? <CheckCircle2 size={14} className="text-primary" /> : <AlertTriangle size={14} className="text-destructive" />}
               <div className="label-eyebrow">Editor checks</div>
+              <Link to="/editorial-policy" target="_blank" className="text-[11px] text-primary hover:underline ml-1 flex items-center gap-1 font-medium">
+                <ShieldCheck size={11} /> Editorial Policy
+              </Link>
               <span className="text-[11px] text-ink-light ml-auto">{errors.length} error{errors.length === 1 ? "" : "s"} · {warnings.length} warning{warnings.length === 1 ? "" : "s"}</span>
             </div>
             {issues.length === 0 ? (
