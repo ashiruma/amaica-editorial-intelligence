@@ -9,16 +9,25 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY |
 // import { supabase } from "@/integrations/supabase/client";
 
 const customFetch: typeof fetch = async (input, init) => {
-  if (typeof window !== "undefined" && typeof navigator !== "undefined" && !navigator.userAgent?.includes("jsdom")) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    try {
-      return await fetch(input, { ...init, signal: controller.signal });
-    } finally {
-      clearTimeout(timeoutId);
-    }
+  try {
+    return await fetch(input, init);
+  } catch (err) {
+    // If Supabase host is unresolvable or network is offline, return synthetic 503
+    // so Supabase client handles it as a normal { error } instead of an unhandled TypeError: Failed to fetch
+    return new Response(
+      JSON.stringify({
+        message: "Supabase host unreachable or network offline",
+        code: "503",
+        details: "Network connection failed",
+        hint: "Offline mode active",
+      }),
+      {
+        status: 503,
+        statusText: "Service Unavailable",
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
-  return fetch(input, init);
 };
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {

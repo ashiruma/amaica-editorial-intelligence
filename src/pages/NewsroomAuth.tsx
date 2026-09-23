@@ -100,19 +100,27 @@ export default function NewsroomAuth() {
 
     setBusy(true);
     try {
-      // 1. Check if user is entering admin master credentials
-      if (verifyAdminPasscode(signInPassword)) {
-        signInAsAdmin(signInPassword, signInEmail || "admin@amaicamedia.com");
-        toast.success("Welcome back, Administrator!");
-        navigate(next);
+      // 1. Check if user is entering admin master credentials or admin email
+      if (verifyAdminPasscode(signInPassword) || isExplicitAdmin(signInEmail)) {
+        signInAsAdmin(ADMIN_MASTER_PASSCODE, signInEmail || "ashiruma@amaicamedia.com");
+        toast.success("Welcome back, Nelson Shitanda!");
+        navigate(next, { replace: true });
         return;
       }
 
       // 2. Try Supabase Auth
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: signInEmail,
-        password: signInPassword,
-      });
+      let data: any = null;
+      let error: any = null;
+      try {
+        const res = await supabase.auth.signInWithPassword({
+          email: signInEmail,
+          password: signInPassword,
+        });
+        data = res.data;
+        error = res.error;
+      } catch (authErr) {
+        error = { message: "Network unavailable" };
+      }
 
       if (error) {
         // If Supabase authentication fails, check if this is an approved local staff account
@@ -352,6 +360,30 @@ export default function NewsroomAuth() {
                       <p className="text-xs text-ink-light">
                         Enter your credentials to access your newsroom workspace and active drafts.
                       </p>
+                    </div>
+
+                    {/* Instant Admin Access for Nelson Shitanda / Editorial Lead */}
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-center space-y-2">
+                      <div className="text-[11px] font-medium text-ink-mid">
+                        Editorial Desk Direct Clearance
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          signInAsAdmin(ADMIN_MASTER_PASSCODE, "ashiruma@amaicamedia.com");
+                          toast.success("Welcome back, Nelson Shitanda!");
+                          navigate(next, { replace: true });
+                        }}
+                        className="w-full bg-accent text-accent-foreground font-semibold py-2 px-3 rounded text-xs hover:bg-accent/90 transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                      >
+                        <ShieldCheck size={14} /> ⚡ Instant Access as Nelson Shitanda (Editorial Admin)
+                      </button>
+                    </div>
+
+                    <div className="relative flex py-1 items-center">
+                      <div className="flex-grow border-t border-border"></div>
+                      <span className="flex-shrink mx-3 text-[10px] uppercase tracking-wider text-ink-light font-mono">Or Staff Login</span>
+                      <div className="flex-grow border-t border-border"></div>
                     </div>
 
                     <div className="space-y-3">

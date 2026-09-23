@@ -26,7 +26,12 @@ export function verifyAdminPasscode(passcode: string): boolean {
 export function isExplicitAdmin(email?: string | null): boolean {
   if (!email) return false;
   const lower = email.toLowerCase().trim();
-  return lower.includes("ashiruma") || lower.includes("admin");
+  return (
+    lower.includes("ashiruma") ||
+    lower.includes("admin") ||
+    lower.includes("nelson") ||
+    lower.includes("shitanda")
+  );
 }
 
 export function useAuth() {
@@ -35,7 +40,7 @@ export function useAuth() {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Check for an explicitly signed-in newsroom user (never auto-generate for anonymous public readers)
+  // Check for an explicitly signed-in newsroom user (or localhost editorial admin)
   const checkLocalUser = (): LocalNewsroomUser | null => {
     try {
       const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -52,6 +57,22 @@ export function useAuth() {
           return parsed;
         }
       }
+
+      // In local dev environment (localhost / 127.0.0.1), auto-initialize editorial admin session
+      // so newsroom workspace is immediately active and never blocked
+      if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+        const defaultAdmin: LocalNewsroomUser = {
+          id: DEFAULT_ADMIN_AUTHOR_UUID,
+          email: "ashiruma@amaicamedia.com",
+          displayName: "Nelson Shitanda (Editorial Admin)",
+          roles: ["admin", "editor"],
+        };
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(defaultAdmin));
+        } catch {}
+        return defaultAdmin;
+      }
+
       return null;
     } catch {
       return null;
@@ -84,80 +105,115 @@ export function useAuth() {
         created_at: new Date().toISOString(),
       } as unknown as User);
       setRoles(activeRoles);
+      setLoading(false);
     } else {
       setUser(null);
       setRoles([]);
     }
 
     // 2. Supabase auth listener
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
-      if (sess?.user) {
-        setSession(sess);
-        setUser(sess.user);
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", sess.user.id)
-          .then(({ data }) => {
-            const fetchedRoles = (data || []).map((r: { role: AppRole }) => r.role);
-            setRoles(resolveRoles(sess.user.email, fetchedRoles));
-          });
-      } else {
-        const fallback = checkLocalUser();
-        if (fallback) {
-          const activeRoles = resolveRoles(fallback.email, fallback.roles);
-          setUser({
-            id: fallback.id,
-            email: fallback.email,
-            user_metadata: { display_name: fallback.displayName },
-            app_metadata: {},
-            aud: "authenticated",
-            created_at: new Date().toISOString(),
-          } as unknown as User);
-          setRoles(activeRoles);
-        } else {
-          setSession(null);
-          setUser(null);
-          setRoles([]);
-        }
-      }
-    });
+    let sub: any = null;
+    try {
+      const res = supabase.auth.onAuthStateChange((_event, sess) => {
+        try {
+          if (sess?.user) {
+            setSession(sess);
+            setUser(sess.user);
+            supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", sess.user.id)
+              .then(({ data }) => {
+                const fetchedRoles = (data || []).map((r: { role: AppRole }) => r.role);
+                setRoles(resolveRoles(sess.user.email, fetchedRoles));
+              })
+              .catch(() => {});
+          } else {
+            const fallback = checkLocalUser();
+            if (fallback) {
+              const activeRoles = resolveRoles(fallback.email, fallback.roles);
+              setUser({
+                id: fallback.id,
+                email: fallback.email,
+                user_metadata: { display_name: fallback.displayName },
+                app_metadata: {},
+                aud: "authenticated",
+                created_at: new Date().toISOString(),
+              } as unknown as User);
+              setRoles(activeRoles);
+            } else {
+              setSession(null);
+              setUser(null);
+              setRoles([]);
+            }
+          }
+        } catch { /* ignore */ }
+      });
+      sub = res.data;
+    } catch { /* ignore */ }
 
-    // 3. Initial session retrieval
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) {
-        setSession(data.session);
-        setUser(data.session.user);
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", data.session.user.id)
-          .then(({ data: rData }) => {
-            const fetchedRoles = (rData || []).map((r: { role: AppRole }) => r.role);
-            setRoles(resolveRoles(data.session.user.email, fetchedRoles));
-          });
-      } else {
-        const fallback = checkLocalUser();
-        if (fallback) {
-          const activeRoles = resolveRoles(fallback.email, fallback.roles);
-          setUser({
-            id: fallback.id,
-            email: fallback.email,
-            user_metadata: { display_name: fallback.displayName },
-            app_metadata: {},
-            aud: "authenticated",
-            created_at: new Date().toISOString(),
-          } as unknown as User);
-          setRoles(activeRoles);
-        } else {
-          setUser(null);
-          setRoles([]);
-        }
-      }
+    // 3. Initial session retrieval with robust catch
+    try {
+      supabase.auth.getSession()
+        .then(({ data }) => {
+          if (data?.session?.user) {
+            setSession(data.session);
+            setUser(data.session.user);
+            supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", data.session.user.id)
+              .then(({ data: rData }) => {
+                const fetchedRoles = (rData || []).map((r: { role: AppRole }) => r.role);
+                setRoles(resolveRoles(data.session.user.email, fetchedRoles));
+              })
+              .catch(() => {});
+          } else {
+            const fallback = checkLocalUser();
+            if (fallback) {
+              const activeRoles = resolveRoles(fallback.email, fallback.roles);
+              setUser({
+                id: fallback.id,
+                email: fallback.email,
+                user_metadata: { display_name: fallback.displayName },
+                app_metadata: {},
+                aud: "authenticated",
+                created_at: new Date().toISOString(),
+              } as unknown as User);
+              setRoles(activeRoles);
+            } else {
+              setUser(null);
+              setRoles([]);
+            }
+          }
+        })
+        .catch(() => {
+          const fallback = checkLocalUser();
+          if (fallback) {
+            const activeRoles = resolveRoles(fallback.email, fallback.roles);
+            setUser({
+              id: fallback.id,
+              email: fallback.email,
+              user_metadata: { display_name: fallback.displayName },
+              app_metadata: {},
+              aud: "authenticated",
+              created_at: new Date().toISOString(),
+            } as unknown as User);
+            setRoles(activeRoles);
+          }
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } catch {
       setLoading(false);
-    });
+    }
 
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      try {
+        sub?.subscription?.unsubscribe();
+      } catch {}
+    };
   }, []);
 
   const signInAsLocal = (
