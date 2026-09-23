@@ -17,12 +17,16 @@ export default function NewsroomLegends() {
   const [form, setForm] = useState({ name: "", country: "", era: "", field: "", short_bio: "", impact: "" });
 
   const load = async () => {
-    const [{ data: l }, { data: f }] = await Promise.all([
-      supabase.from("legends").select("*").order("name"),
-      supabase.from("legend_features").select("id, feature_date, headline, legends(name)").order("feature_date", { ascending: false }).limit(20),
-    ]);
-    setLegends((l as Legend[]) || []);
-    setFeatures((f as unknown as Feature[]) || []);
+    try {
+      const [{ data: l }, { data: f }] = await Promise.all([
+        supabase.from("legends").select("*").order("name"),
+        supabase.from("legend_features").select("id, feature_date, headline, legends(name)").order("feature_date", { ascending: false }).limit(20),
+      ]);
+      setLegends((l as Legend[]) || []);
+      setFeatures((f as unknown as Feature[]) || []);
+    } catch (err) {
+      console.warn("Could not query legends from Supabase:", err);
+    }
   };
 
   useEffect(() => { if (user) load(); }, [user]);

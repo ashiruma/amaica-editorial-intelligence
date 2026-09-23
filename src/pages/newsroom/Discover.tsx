@@ -123,17 +123,24 @@ export default function Discover() {
   }, [user]);
 
   const load = async () => {
-    let q = supabase
-      .from("discovered_stories")
-      .select("*")
-      .eq("status", "new")
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .limit(60);
-    const { data, error } = await q;
-    if (error) {
-      console.warn("Could not query discovered_stories:", error);
+    let dbStories: Story[] = [];
+    try {
+      let q = supabase
+        .from("discovered_stories")
+        .select("*")
+        .eq("status", "new")
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(60);
+      const { data, error } = await q;
+      if (error) {
+        console.warn("Could not query discovered_stories:", error);
+      } else if (data && data.length > 0) {
+        dbStories = data as unknown as Story[];
+      }
+    } catch (err) {
+      console.warn("Network or database unreachable when querying discovered_stories:", err);
     }
-    const dbStories = (data || []) as unknown as Story[];
+
     if (dbStories.length > 0) {
       // Calculate trending velocity score for each story and sort descending (trending topics first!)
       const scoredStories = dbStories
@@ -150,45 +157,67 @@ export default function Discover() {
         }))
         .sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
       setStories(scoredStories);
-    } else {
-      // Seed with live trending entertainment wire leads so the newsroom is never blank
-      const liveLeads = await fetchLiveTrendingWireStories();
-      const mappedStories: Story[] = liveLeads.map((l) => ({
-        id: l.id,
-        title: l.title,
-        source: l.source,
-        source_url: l.source_url,
-        excerpt: l.excerpt,
-        image_url: l.image_url,
-        region: l.region,
-        category: l.category,
-        status: "new",
-        published_at: l.published_at || new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        highlights: [l.excerpt],
-        preview_summary: l.excerpt,
-        trendingScore: l.trendingScore ?? calculateTrendingVelocityScore(l),
-      })).sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
-      setStories(mappedStories);
-
-      // Seed authentic stories to Supabase for persistence across newsroom sessions
       try {
-        await supabase.from("discovered_stories").upsert(
-          mappedStories.map((s) => ({
-            title: s.title,
-            source: s.source,
-            source_url: s.source_url,
-            excerpt: s.excerpt,
-            image_url: s.image_url,
-            region: s.region,
-            category: s.category,
-            status: "new",
-            published_at: s.published_at,
-          })),
-          { onConflict: "source_url" }
-        );
-      } catch (seedErr) {
-        console.warn("Could not seed discovered_stories:", seedErr);
+        localStorage.setItem("amaica_discovered_stories_cache", JSON.stringify(scoredStories));
+      } catch { /* ignore */ }
+    } else {
+      // 1. Try local cache first
+      try {
+        const cached = localStorage.getItem("amaica_discovered_stories_cache");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setStories(parsed);
+            return;
+          }
+        }
+      } catch { /* ignore */ }
+
+      // 2. Seed with live trending entertainment wire leads so the newsroom is never blank
+      try {
+        const liveLeads = await fetchLiveTrendingWireStories();
+        const mappedStories: Story[] = liveLeads.map((l) => ({
+          id: l.id,
+          title: l.title,
+          source: l.source,
+          source_url: l.source_url,
+          excerpt: l.excerpt,
+          image_url: l.image_url,
+          region: l.region,
+          category: l.category,
+          status: "new",
+          published_at: l.published_at || new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          highlights: [l.excerpt],
+          preview_summary: l.excerpt,
+          trendingScore: l.trendingScore ?? calculateTrendingVelocityScore(l),
+        })).sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
+        setStories(mappedStories);
+        try {
+          localStorage.setItem("amaica_discovered_stories_cache", JSON.stringify(mappedStories));
+        } catch { /* ignore */ }
+
+        // Seed authentic stories to Supabase for persistence across newsroom sessions if connected
+        try {
+          await supabase.from("discovered_stories").upsert(
+            mappedStories.map((s) => ({
+              title: s.title,
+              source: s.source,
+              source_url: s.source_url,
+              excerpt: s.excerpt,
+              image_url: s.image_url,
+              region: s.region,
+              category: s.category,
+              status: "new",
+              published_at: s.published_at,
+            })),
+            { onConflict: "source_url" }
+          );
+        } catch (seedErr) {
+          console.warn("Could not seed discovered_stories:", seedErr);
+        }
+      } catch (fallbackErr) {
+        console.warn("Could not load fallback trending wire stories:", fallbackErr);
       }
     }
   };
@@ -203,28 +232,32 @@ export default function Discover() {
     if (!writingId) return;
     const key = `wa:${writingId}`;
     const t = setInterval(async () => {
-      const { data } = await supabase
-        .from("write_article_attempts")
-        .select("attempt,status,http_code,error,next_retry_at,finished_at")
-        .eq("idempotency_key", key)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!data) return;
-      setRetryStatus((prev) => {
-        const cur = prev[writingId];
-        if (cur?.state === "done" || cur?.state === "failed") return prev;
-        return {
-          ...prev,
-          [writingId]: {
-            state: data.status === "rate_limited" || (data.status === "error" && !data.finished_at) ? "retrying" : (cur?.state ?? "writing"),
-            attempts: data.attempt,
-            nextRetryAt: data.next_retry_at,
-            finalStatus: data.http_code,
-            finalError: data.error,
-          },
-        };
-      });
+      try {
+        const { data } = await supabase
+          .from("write_article_attempts")
+          .select("attempt,status,http_code,error,next_retry_at,finished_at")
+          .eq("idempotency_key", key)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!data) return;
+        setRetryStatus((prev) => {
+          const cur = prev[writingId];
+          if (cur?.state === "done" || cur?.state === "failed") return prev;
+          return {
+            ...prev,
+            [writingId]: {
+              state: data.status === "rate_limited" || (data.status === "error" && !data.finished_at) ? "retrying" : (cur?.state ?? "writing"),
+              attempts: data.attempt,
+              nextRetryAt: data.next_retry_at,
+              finalStatus: data.http_code,
+              finalError: data.error,
+            },
+          };
+        });
+      } catch (err) {
+        // Silently catch network failures during attempt polling
+      }
     }, 1500);
     return () => clearInterval(t);
   }, [writingId]);
@@ -560,8 +593,12 @@ export default function Discover() {
   };
 
   const skip = async (id: string) => {
-    await supabase.from("discovered_stories").update({ status: "skipped" }).eq("id", id);
-    setStories(stories.filter((s) => s.id !== id));
+    try {
+      await supabase.from("discovered_stories").update({ status: "skipped" }).eq("id", id);
+    } catch (e) {
+      console.warn("Could not mark story as skipped:", e);
+    }
+    setStories((prev) => prev.filter((s) => s.id !== id));
   };
 
   const filtered = stories.filter((s) => {

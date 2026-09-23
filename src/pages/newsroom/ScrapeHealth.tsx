@@ -91,14 +91,18 @@ export default function ScrapeHealth() {
   }
 
   async function load() {
-    const [f, b, e] = await Promise.all([
-      supabase.from("scrape_failures").select("*").order("last_failed_at", { ascending: false, nullsFirst: false }).limit(200),
-      supabase.from("scrape_blocklist").select("*").order("created_at", { ascending: false }),
-      supabase.from("scrape_events").select("*").order("created_at", { ascending: false }).limit(2000),
-    ]);
-    setFailures((f.data as Failure[]) || []);
-    setBlocklist((b.data as BlockedDomain[]) || []);
-    setEvents((e.data as ScrapeEvent[]) || []);
+    try {
+      const [f, b, e] = await Promise.all([
+        supabase.from("scrape_failures").select("*").order("last_failed_at", { ascending: false, nullsFirst: false }).limit(200),
+        supabase.from("scrape_blocklist").select("*").order("created_at", { ascending: false }),
+        supabase.from("scrape_events").select("*").order("created_at", { ascending: false }).limit(2000),
+      ]);
+      setFailures((f.data as Failure[]) || []);
+      setBlocklist((b.data as BlockedDomain[]) || []);
+      setEvents((e.data as ScrapeEvent[]) || []);
+    } catch (err) {
+      console.warn("Could not query scrape health:", err);
+    }
   }
 
   async function addBlock() {

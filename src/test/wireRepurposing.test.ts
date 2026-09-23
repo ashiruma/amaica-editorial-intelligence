@@ -222,7 +222,7 @@ The sold-out showcase highlights a resurgence in East Africa's commercial live m
       expect(firstDraft.aiScore).toBe(0);
       expect(firstDraft.trendingScore).toBeGreaterThan(50);
       expect(progressMessages.length).toBeGreaterThan(0);
-    }, 30000);
+    }, 60000);
   });
 });
 

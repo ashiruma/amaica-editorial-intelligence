@@ -28,7 +28,8 @@ export function LegendOfDay() {
       .order("feature_date", { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(({ data }) => setFeature(data as unknown as Feature));
+      .then(({ data }) => setFeature(data as unknown as Feature))
+      .catch((err) => console.warn("Could not query legend_features:", err));
   }, []);
 
   if (!feature) return null;

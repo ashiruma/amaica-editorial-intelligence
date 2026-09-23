@@ -39,18 +39,22 @@ export default function DiscoveryAdmin() {
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
 
   const load = async () => {
-    const [f, r, s, st, at] = await Promise.all([
-      supabase.from("discovery_feeds").select("*").order("kind").order("name"),
-      supabase.from("discovery_runs").select("*").order("started_at", { ascending: false }).limit(20),
-      supabase.from("discovery_settings").select("*").maybeSingle(),
-      supabase.from("discovered_stories").select("region,status,rejection_reason,feed_id").limit(2000),
-      supabase.from("write_article_attempts").select("*").order("created_at", { ascending: false }).limit(500),
-    ]);
-    if (f.data) setFeeds(f.data as Feed[]);
-    if (r.data) setRuns(r.data as unknown as Run[]);
-    if (s.data) setSettings({ enabled: s.data.enabled, interval_minutes: s.data.interval_minutes });
-    if (st.data) setStories(st.data as Story[]);
-    if (at.data) setAttempts(at.data as Attempt[]);
+    try {
+      const [f, r, s, st, at] = await Promise.all([
+        supabase.from("discovery_feeds").select("*").order("kind").order("name"),
+        supabase.from("discovery_runs").select("*").order("started_at", { ascending: false }).limit(20),
+        supabase.from("discovery_settings").select("*").maybeSingle(),
+        supabase.from("discovered_stories").select("region,status,rejection_reason,feed_id").limit(2000),
+        supabase.from("write_article_attempts").select("*").order("created_at", { ascending: false }).limit(500),
+      ]);
+      if (f.data) setFeeds(f.data as Feed[]);
+      if (r.data) setRuns(r.data as unknown as Run[]);
+      if (s.data) setSettings({ enabled: s.data.enabled, interval_minutes: s.data.interval_minutes });
+      if (st.data) setStories(st.data as Story[]);
+      if (at.data) setAttempts(at.data as Attempt[]);
+    } catch (err) {
+      console.warn("Could not load discovery admin data:", err);
+    }
   };
   useEffect(() => { if (user && isEditor) load(); }, [user, isEditor]);
 
@@ -58,17 +62,21 @@ export default function DiscoveryAdmin() {
   useEffect(() => {
     if (!activeRunId) return;
     const t = setInterval(async () => {
-      const { data } = await supabase.from("discovery_runs").select("*").eq("id", activeRunId).maybeSingle();
-      if (data) {
-        setRuns((prev) => {
-          const others = prev.filter((r) => r.id !== data.id);
-          return [data as unknown as Run, ...others].slice(0, 20);
-        });
-        if (data.finished_at) {
-          setActiveRunId(null);
-          toast.success(`Run finished — accepted ${data.inserted_count}, rejected ${data.rejected_count}, dupes ${data.duplicate_count}`);
-          load();
+      try {
+        const { data } = await supabase.from("discovery_runs").select("*").eq("id", activeRunId).maybeSingle();
+        if (data) {
+          setRuns((prev) => {
+            const others = prev.filter((r) => r.id !== data.id);
+            return [data as unknown as Run, ...others].slice(0, 20);
+          });
+          if (data.finished_at) {
+            setActiveRunId(null);
+            toast.success(`Run finished — accepted ${data.inserted_count}, rejected ${data.rejected_count}, dupes ${data.duplicate_count}`);
+            load();
+          }
         }
+      } catch (err) {
+        // Silently catch active run poll errors
       }
     }, 2500);
     return () => clearInterval(t);

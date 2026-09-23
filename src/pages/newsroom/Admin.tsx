@@ -80,21 +80,25 @@ export default function Admin() {
   }
 
   const load = async () => {
-    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name");
-    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
-    const byUser = new Map<string, AppRole[]>();
-    (roles || []).forEach((r) => {
-      const arr = byUser.get(r.user_id) || [];
-      arr.push(r.role as AppRole);
-      byUser.set(r.user_id, arr);
-    });
-    setRows(
-      (profiles || []).map((p) => ({
-        user_id: p.user_id,
-        display_name: p.display_name,
-        roles: byUser.get(p.user_id) || [],
-      }))
-    );
+    try {
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name");
+      const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+      const byUser = new Map<string, AppRole[]>();
+      (roles || []).forEach((r) => {
+        const arr = byUser.get(r.user_id) || [];
+        arr.push(r.role as AppRole);
+        byUser.set(r.user_id, arr);
+      });
+      setRows(
+        (profiles || []).map((p) => ({
+          user_id: p.user_id,
+          display_name: p.display_name,
+          roles: byUser.get(p.user_id) || [],
+        }))
+      );
+    } catch (err) {
+      console.warn("Could not query profiles or user_roles:", err);
+    }
     loadRequests();
   };
 

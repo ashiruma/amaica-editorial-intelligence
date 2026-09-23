@@ -730,7 +730,7 @@ export async function autoGenerateTrendingStories(
   });
 
   // Step 1: Fetch freshest trending wire leads, automatically ordered with trending topics first
-  const leads = await fetchLiveTrendingWireStories({ forceRefresh: true });
+  const leads = await fetchLiveTrendingWireStories();
 
   // Filter out leads that are already marked as used in discovered_stories
   const targetLeads = leads.slice(0, count);

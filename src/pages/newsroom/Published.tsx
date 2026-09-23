@@ -19,6 +19,8 @@ export default function Published() {
     fetchAllNewsroomDrafts({ showPublished: true }).then((all) => {
       const pub = all.filter((d) => d.status === "published");
       setItems(pub as Item[]);
+    }).catch((err) => {
+      console.warn("Could not fetch published drafts:", err);
     });
   }, [user]);
 

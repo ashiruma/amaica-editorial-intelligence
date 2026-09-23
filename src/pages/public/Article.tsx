@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { ArrowLeft, ExternalLink, Link as LinkIcon, Share2, MessageCircle, Twitter, Facebook, Copy, Check, Clock, Calendar } from "lucide-react";
 import { noteText, noteSection, type SourceRef } from "@/lib/articleValidation";
 import { calculateReadTime, formatRelativeTime, getShareUrls } from "@/lib/localScraper";
+import { getLocalDrafts } from "@/lib/editorial/draftStorage";
 import { toast } from "sonner";
 
 type Article = {
@@ -31,39 +32,78 @@ export default function PublicArticle() {
   useEffect(() => {
     if (!id) return;
     window.scrollTo(0, 0);
-    supabase.from("drafts").select("id, headline, lede, body, category, region, hero_image_url, published_at, byline, sources")
-      .eq("id", id).eq("status", "published").maybeSingle()
-      .then(({ data }) => {
-        if (data) {
+
+    const loadArticle = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("drafts")
+          .select("id, headline, lede, body, category, region, hero_image_url, published_at, byline, sources")
+          .eq("id", id)
+          .eq("status", "published")
+          .maybeSingle();
+
+        if (!error && data) {
           const art = data as unknown as Article;
           setArticle(art);
 
           // Fetch related articles
-          let rq = supabase.from("drafts")
-            .select("id, headline, lede, body, category, region, hero_image_url, published_at, byline, sources")
-            .eq("status", "published")
-            .neq("id", id)
-            .order("published_at", { ascending: false })
-            .limit(3);
-          if (art.category) rq = rq.eq("category", art.category);
-          rq.then(({ data: relData }) => {
+          try {
+            let rq = supabase
+              .from("drafts")
+              .select("id, headline, lede, body, category, region, hero_image_url, published_at, byline, sources")
+              .eq("status", "published")
+              .neq("id", id)
+              .order("published_at", { ascending: false })
+              .limit(3);
+            if (art.category) rq = rq.eq("category", art.category);
+            const { data: relData } = await rq;
             if (relData && relData.length > 0) {
               setRelated(relData as unknown as Article[]);
-            } else {
-              // Fallback to latest 3
-              supabase.from("drafts")
-                .select("id, headline, lede, body, category, region, hero_image_url, published_at, byline, sources")
-                .eq("status", "published")
-                .neq("id", id)
-                .order("published_at", { ascending: false })
-                .limit(3)
-                .then(({ data: latestData }) => setRelated((latestData || []) as unknown as Article[]));
+              return;
             }
-          });
-        } else {
-          setNotFound(true);
+          } catch { /* ignore related error */ }
         }
-      });
+      } catch (err) {
+        console.warn("Could not query draft from Supabase:", err);
+      }
+
+      // Fallback to local drafts if Supabase fails or article not found in DB
+      const local = getLocalDrafts().find((d) => d.id === id);
+      if (local) {
+        setArticle({
+          id: local.id,
+          headline: local.headline,
+          lede: local.lede,
+          body: local.body,
+          category: local.category,
+          region: local.region,
+          hero_image_url: local.hero_image_url,
+          published_at: local.published_at || local.updated_at,
+          byline: local.byline,
+          sources: local.sources as SourceRef[],
+        });
+        const otherLocals = getLocalDrafts()
+          .filter((d) => d.id !== id && d.status === "published")
+          .map((d) => ({
+            id: d.id,
+            headline: d.headline,
+            lede: d.lede,
+            body: d.body,
+            category: d.category,
+            region: d.region,
+            hero_image_url: d.hero_image_url,
+            published_at: d.published_at || d.updated_at,
+            byline: d.byline,
+            sources: d.sources as SourceRef[],
+          }));
+        setRelated(otherLocals.slice(0, 3));
+        return;
+      }
+
+      setNotFound(true);
+    };
+
+    loadArticle();
   }, [id]);
 
   if (notFound) return (

@@ -113,16 +113,18 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
         )}
       </header>
 
-      <div className="bg-destructive overflow-hidden h-[30px] flex items-center" aria-hidden="true">
-        <div className="bg-foreground text-background text-[10px] font-medium tracking-[0.12em] uppercase px-3.5 h-full flex items-center flex-shrink-0">
+      <div className="bg-destructive overflow-hidden h-[30px] flex items-center relative" aria-hidden="true">
+        <div className="relative z-20 bg-foreground text-background text-[10px] font-medium tracking-[0.12em] uppercase px-3.5 h-full flex items-center flex-shrink-0 shadow-sm">
           {variant === "newsroom" ? "Newsroom" : "Live"}
         </div>
-        <div className="flex animate-ticker whitespace-nowrap">
-          {[0, 1].map((i) => (
-            <span key={i} className="text-destructive-foreground text-[12px] px-8 tracking-wide">
-              Western Kenya Entertainment &bull; Music &bull; Film &bull; Events &bull; Culture &nbsp;&nbsp;&bull;&nbsp;&nbsp; Lead with the fact. Attribute everything. One idea per sentence. &nbsp;&nbsp;&bull;&nbsp;&nbsp; Amaica Media — Newsroom of Western Kenya &nbsp;&nbsp;&bull;&nbsp;&nbsp;
-            </span>
-          ))}
+        <div className="flex-1 overflow-hidden relative h-full flex items-center">
+          <div className="flex animate-ticker whitespace-nowrap">
+            {[0, 1].map((i) => (
+              <span key={i} className="text-destructive-foreground text-[12px] px-8 tracking-wide">
+                Western Kenya Entertainment &bull; Music &bull; Film &bull; Events &bull; Culture &nbsp;&nbsp;&bull;&nbsp;&nbsp; Lead with the fact. Attribute everything. One idea per sentence. &nbsp;&nbsp;&bull;&nbsp;&nbsp; Amaica Media — Newsroom of Western Kenya &nbsp;&nbsp;&bull;&nbsp;&nbsp;
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </>

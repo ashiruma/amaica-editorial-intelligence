@@ -95,13 +95,17 @@ export default function DraftEditor() {
   }, [id, user]);
 
   const loadAudit = async (draftId: string) => {
-    const { data } = await supabase
-      .from("approval_audit_log")
-      .select("id, action, actor_display_name, from_status, to_status, error_count, warning_count, notes, created_at")
-      .eq("draft_id", draftId)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (data) setAudit(data as unknown as AuditEntry[]);
+    try {
+      const { data } = await supabase
+        .from("approval_audit_log")
+        .select("id, action, actor_display_name, from_status, to_status, error_count, warning_count, notes, created_at")
+        .eq("draft_id", draftId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (data) setAudit(data as unknown as AuditEntry[]);
+    } catch (err) {
+      console.warn("Could not query approval_audit_log:", err);
+    }
   };
   useEffect(() => { if (id && user) loadAudit(id); }, [id, user]);
 

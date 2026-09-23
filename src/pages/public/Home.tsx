@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { Search, Clock, Flame } from "lucide-react";
 import { LegendOfDay } from "@/components/LegendOfDay";
 import { formatRelativeTime, isWesternKenyaGossip, isGossipContent } from "@/lib/localScraper";
+import { getLocalDrafts } from "@/lib/editorial/draftStorage";
 
 type Article = {
   id: string;
@@ -25,14 +26,40 @@ export default function PublicHome() {
   const [query, setQuery] = useState("");
 
   useEffect(() => {
-    let q = supabase
-      .from("drafts")
-      .select("id, headline, lede, category, region, hero_image_url, published_at")
-      .eq("status", "published")
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .limit(30);
-    if (category) q = q.eq("category", category);
-    q.then(({ data }) => setArticles((data as Article[]) || []));
+    const fetchArticles = async () => {
+      try {
+        let q = supabase
+          .from("drafts")
+          .select("id, headline, lede, category, region, hero_image_url, published_at")
+          .eq("status", "published")
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .limit(30);
+        if (category) q = q.eq("category", category);
+        const { data, error } = await q;
+        if (!error && data && data.length > 0) {
+          setArticles(data as Article[]);
+          return;
+        }
+      } catch (err) {
+        console.warn("Could not query published drafts from Supabase:", err);
+      }
+
+      // Fallback to local published drafts if offline or empty
+      const local = getLocalDrafts()
+        .filter((d) => d.status === "published" && (!category || d.category === category))
+        .map((d) => ({
+          id: d.id,
+          headline: d.headline,
+          lede: d.lede,
+          category: d.category,
+          region: d.region,
+          hero_image_url: d.hero_image_url,
+          published_at: d.published_at || d.updated_at || d.created_at,
+        }));
+      setArticles(local);
+    };
+
+    fetchArticles();
   }, [category]);
 
   const filtered = useMemo(() => {
