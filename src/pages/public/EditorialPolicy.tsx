@@ -176,15 +176,15 @@ export default function EditorialPolicy() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Masthead variant="public" />
+      <Masthead variant="newsroom" />
       <main id="main-content" tabIndex={-1} className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 py-10 outline-none w-full">
         {/* Navigation & Header */}
         <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-ink-light hover:text-primary transition font-medium">
-            <ArrowLeft size={13} /> Return to Home
+          <Link to="/newsroom" className="inline-flex items-center gap-1.5 text-xs text-ink-light hover:text-primary transition font-medium">
+            <ArrowLeft size={13} /> Return to Newsroom Desk
           </Link>
           <div className="flex items-center gap-3 text-xs">
-            <Link to="/style-guide" className="text-primary hover:underline font-semibold flex items-center gap-1">
+            <Link to="/newsroom/style-guide" className="text-primary hover:underline font-semibold flex items-center gap-1">
               <BookOpen size={12} /> View House Style Guide
             </Link>
           </div>

@@ -32,8 +32,6 @@ export function Footer() {
               <li><Link to="/category/film" className="hover:text-accent transition">Film & TV</Link></li>
               <li><Link to="/category/celebrity" className="hover:text-accent transition">Celebrity & Culture</Link></li>
               <li><Link to="/newsroom/legends" className="hover:text-accent transition">Our Legends</Link></li>
-              <li><Link to="/editorial-policy" className="hover:text-accent transition font-medium text-accent">Editorial Policy (15 Articles)</Link></li>
-              <li><Link to="/style-guide" className="hover:text-accent transition">Editorial House Style</Link></li>
             </ul>
           </div>
 
@@ -64,11 +62,7 @@ export function Footer() {
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-primary-foreground/60 gap-4">
           <p>&copy; {new Date().getFullYear()} Amaica Media (amaicamedia.com). All rights reserved.</p>
           <div className="flex items-center gap-4">
-            <Link to="/newsroom" className="hover:text-accent transition">Newsroom Portal</Link>
-            <span>&bull;</span>
-            <Link to="/editorial-policy" className="hover:text-accent transition">Editorial Policy</Link>
-            <span>&bull;</span>
-            <Link to="/style-guide" className="hover:text-accent transition">House Style Guide</Link>
+            <Link to="/newsroom" className="hover:text-accent transition">Newsroom Desk</Link>
           </div>
         </div>
       </div>

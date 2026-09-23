@@ -258,6 +258,42 @@ export function validateArticle(input: ArticleCheckInput): Issue[] {
     });
   }
 
+  // Editorial Policy Article 1: Editorial Independence
+  if (/\b(?:buy now|exclusive promo code|discount link|order today)\b/i.test(body)) {
+    issues.push({
+      id: "policy-article-1-commercial",
+      severity: "error",
+      message: "Article 1 Error: Undisclosed commercial promotional copy detected",
+      suggestion: "Remove promotional buzzwords and commercial purchase calls to preserve editorial independence.",
+    });
+  }
+
+  // Editorial Policy Article 3: Fairness and Balance (Right of Reply)
+  if (
+    /\b(accused|accuses|alleged|allegations|cheating|infidelity|toxic|threatened|abusive|stole|fraud|defrauded|assaulted|walked out on|abandoned)\b/i.test(`${input.headline || ""} ${body}`) &&
+    !/\b(efforts to reach|reached out for comment|declined to comment|denied the claims|clarified in response|could not be reached)\b/i.test(body)
+  ) {
+    issues.push({
+      id: "policy-article-3-balance",
+      severity: "warning",
+      message: "Article 3 Warning: Allegations require right-of-reply balance",
+      suggestion: "Include the response of the accused party or state that efforts to reach them for comment are ongoing.",
+    });
+  }
+
+  // Editorial Policy Article 10: Sensitive and Graphic Content
+  if (
+    /\b(body\s*bag|domestic\s*violence|physical\s*assault|kill(?:ed|ing)?|murder|suicide|sexual\s*assault|trauma)\b/i.test(`${input.headline || ""} ${body}`) &&
+    !/\b(?:content advisory|editor'?s note|reader advisory)\b/i.test(body)
+  ) {
+    issues.push({
+      id: "policy-article-10-advisory",
+      severity: "warning",
+      message: "Article 10 Warning: Sensitive topic requires Content Advisory",
+      suggestion: "Add an Editor's Note & Content Advisory above the lede to warn readers of sensitive themes.",
+    });
+  }
+
   // AI Written Content Detection - Strict 0% AI Clearance Gate
   const aiResult = analyzeAiContent(body, input.headline || "", input.lede || "");
   if (aiResult.score >= 10 || (aiResult.score > 0 && aiResult.flaggedPhrases.some(p => p.category === "cliche"))) {

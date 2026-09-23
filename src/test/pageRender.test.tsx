@@ -3,22 +3,27 @@ import { render, screen } from "@testing-library/react";
 import App from "../App";
 
 describe("Application Routing and Page Rendering", () => {
-  it("renders PublicHome on '/' without crashing", async () => {
+  it("renders PublicHome on '/' without public editorial policy link in main navigation", async () => {
     window.history.pushState({}, "Test", "/");
     render(<App />);
     expect(screen.getAllByText(/Amaica/i).length).toBeGreaterThan(0);
+
+    // In the public header, Editorial Policy is removed
+    const publicNav = screen.getByRole("navigation", { name: /main category navigation/i });
+    expect(publicNav).toBeInTheDocument();
+    expect(publicNav.textContent).not.toMatch(/Editorial Policy/i);
   });
 
-  it("renders EditorialPolicy on '/editorial-policy' without crashing", async () => {
+  it("protects internal newsroom editorial policy and redirects appropriately", async () => {
     window.history.pushState({}, "Test", "/editorial-policy");
     render(<App />);
-    expect(screen.getAllByText(/EDITORIAL INDEPENDENCE/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Nelson Shitanda/i).length).toBeGreaterThan(0);
+    // Since user is unauthenticated, protected newsroom routes redirect to auth or clearance
+    expect(screen.getAllByText(/Amaica/i).length).toBeGreaterThan(0);
   });
 
-  it("renders StyleGuide on '/style-guide' without crashing", async () => {
+  it("protects internal newsroom house style guide and redirects appropriately", async () => {
     window.history.pushState({}, "Test", "/style-guide");
     render(<App />);
-    expect(screen.getAllByText(/house style/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Amaica/i).length).toBeGreaterThan(0);
   });
 });

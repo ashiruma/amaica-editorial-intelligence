@@ -9,6 +9,7 @@ import { cleanAiClichesLocally, humanizeText, convertToPlainText, generateCertif
 import { useMinWordCount } from "@/hooks/useNewsroomSettings";
 import { getDraftById, updateDraftContent, deleteNewsroomDraft, ensureValidAuthorUUID, isValidUUID } from "@/lib/editorial/draftStorage";
 import { ensureEditorialCompliance } from "@/lib/editorial/editorialComplianceEngine";
+import { auditEditorialPolicy, morphStoryWithPolicy, type PolicyAuditResult } from "@/lib/editorial/policyGovernanceEngine";
 import {
   Bot,
   ChevronUp,
@@ -105,6 +106,7 @@ export default function DraftEditor() {
   useEffect(() => { if (id && user) loadAudit(id); }, [id, user]);
 
   const [showAiInspector, setShowAiInspector] = useState(false);
+  const [showPrinciples, setShowPrinciples] = useState(false);
   const [copyFormat, setCopyFormat] = useState<"plain" | "markdown" | "whatsapp" | "certificate">("plain");
   const [copied, setCopied] = useState(false);
 
@@ -194,6 +196,45 @@ export default function DraftEditor() {
   };
   const addSource = () => update({ sources: [...sources, { url: "", title: "", notes: [] }] });
   const removeSource = (idx: number) => update({ sources: sources.filter((_, i) => i !== idx) });
+
+  const policyAudit: PolicyAuditResult | null = useMemo(() => {
+    if (!draft) return null;
+    return auditEditorialPolicy({
+      headline: draft.headline,
+      lede: draft.lede,
+      body: draft.body,
+      sources,
+      template_type: draft.template_type,
+      min_word_count: minWordCount || 700,
+    });
+  }, [draft?.headline, draft?.lede, draft?.body, sources, draft?.template_type, minWordCount]);
+
+  const morphDraftWithPolicy = () => {
+    if (!draft) return;
+    setFixBusy(true);
+    try {
+      const morphed = morphStoryWithPolicy({
+        headline: draft.headline,
+        lede: draft.lede,
+        body: draft.body,
+        sources,
+        template_type: draft.template_type,
+        min_word_count: minWordCount || 700,
+      });
+      update({
+        headline: morphed.headline,
+        lede: morphed.lede,
+        body: morphed.body,
+      });
+      toast.success(
+        `Story morphed to Editorial Policy! Applied ${morphed.appliedFixes.length} adjustments under 15 Articles & 10 Approval Principles.`
+      );
+    } catch (err) {
+      toast.error("Failed to morph story with policy");
+    } finally {
+      setFixBusy(false);
+    }
+  };
 
   const updateNote = (sIdx: number, nIdx: number, patch: Partial<{ text: string; section: string }>) => {
     const s = sources[sIdx];
@@ -811,8 +852,8 @@ export default function DraftEditor() {
             <div className="flex items-center gap-2 mb-2">
               {approvable ? <CheckCircle2 size={14} className="text-primary" /> : <AlertTriangle size={14} className="text-destructive" />}
               <div className="label-eyebrow">Editor checks</div>
-              <Link to="/editorial-policy" target="_blank" className="text-[11px] text-primary hover:underline ml-1 flex items-center gap-1 font-medium">
-                <ShieldCheck size={11} /> Editorial Policy
+              <Link to="/newsroom/editorial-policy" target="_blank" className="text-[11px] text-primary hover:underline ml-1 flex items-center gap-1 font-medium">
+                <ShieldCheck size={11} /> Editorial Policy (Internal)
               </Link>
               <span className="text-[11px] text-ink-light ml-auto">{errors.length} error{errors.length === 1 ? "" : "s"} · {warnings.length} warning{warnings.length === 1 ? "" : "s"}</span>
             </div>
@@ -836,15 +877,27 @@ export default function DraftEditor() {
                   <AlertTriangle size={13} />
                   <span>{errors.length} validation error{errors.length === 1 ? "" : "s"} blocking review and publishing</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={autoFix}
-                  disabled={fixBusy}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3.5 py-2.5 rounded font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
-                >
-                  <Wand2 size={13} className={fixBusy ? "animate-spin" : ""} />
-                  <span>{fixBusy ? "Guaranteeing compliance…" : "Auto-Fix to 100% Pass Minimum Requirements"}</span>
-                </button>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={autoFix}
+                    disabled={fixBusy}
+                    className="flex-1 inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2.5 rounded font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                  >
+                    <Wand2 size={13} className={fixBusy ? "animate-spin" : ""} />
+                    <span>{fixBusy ? "Guaranteeing compliance…" : "Auto-Fix Minimums"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={morphDraftWithPolicy}
+                    disabled={fixBusy}
+                    className="flex-1 inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-mid text-primary-foreground text-xs px-3 py-2.5 rounded font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                    title="Morph draft to 100% adherence to all 15 Editorial Policy Articles"
+                  >
+                    <ShieldCheck size={13} className={fixBusy ? "animate-spin" : ""} />
+                    <span>Morph to Policy</span>
+                  </button>
+                </div>
               </div>
             )}
             {issues.length > 0 && approvable && (
@@ -856,6 +909,15 @@ export default function DraftEditor() {
                 >
                   <Wand2 size={12} className={fixBusy ? "animate-pulse" : ""} />
                   {fixBusy ? "Regenerating…" : "Auto-fix weak sections & refresh sources"}
+                </button>
+                <button
+                  type="button"
+                  onClick={morphDraftWithPolicy}
+                  disabled={fixBusy}
+                  className="inline-flex items-center gap-1.5 bg-emerald-700 text-white text-xs px-3 py-1.5 rounded font-semibold hover:bg-emerald-800 disabled:opacity-50"
+                >
+                  <ShieldCheck size={12} />
+                  Morph to Policy
                 </button>
                 <button
                   type="button"
@@ -872,6 +934,89 @@ export default function DraftEditor() {
               </div>
             )}
           </div>
+
+          {/* Amaica Media Editorial Policy Governance Card */}
+          {policyAudit && (
+            <div className="bg-gradient-to-br from-primary/5 via-card to-accent/5 border border-primary/20 rounded p-4 shadow-card space-y-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-accent" />
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                      Editorial Policy Governance
+                    </h3>
+                    <p className="text-[10px] text-ink-light">Approved by Nelson Shitanda · Effective 21st Sept 2027</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${
+                    policyAudit.passed ? "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300"
+                  }`}>
+                    {policyAudit.score}% Policy Aligned
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPrinciples(!showPrinciples)}
+                    className="text-[11px] text-primary hover:underline font-medium flex items-center gap-1"
+                  >
+                    <span>10 Principles</span>
+                    {showPrinciples ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Warnings and Advisories */}
+              {(policyAudit.advisoryRequired || policyAudit.rightOfReplyRequired) && (
+                <div className="space-y-1.5 pt-1">
+                  {policyAudit.advisoryRequired && (
+                    <div className="text-[11px] p-2 rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                      <AlertTriangle size={13} className="shrink-0 text-amber-600" />
+                      <span>Article 10: Sensitive theme detected. Content Advisory required.</span>
+                    </div>
+                  )}
+                  {policyAudit.rightOfReplyRequired && (
+                    <div className="text-[11px] p-2 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+                      <ShieldCheck size={13} className="shrink-0 text-blue-600" />
+                      <span>Article 3: Allegations present. Right of reply balance clause required.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Morph Story Button */}
+              <button
+                type="button"
+                onClick={morphDraftWithPolicy}
+                disabled={fixBusy}
+                className="w-full inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-mid text-primary-foreground text-xs py-2 px-3 rounded font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                <Wand2 size={13} className={fixBusy ? "animate-spin" : ""} />
+                <span>Morph Draft to 100% Policy Compliance (15 Articles)</span>
+              </button>
+
+              {/* Collapsible 10 Editorial Approval Principles List */}
+              {showPrinciples && (
+                <div className="pt-2 border-t border-border space-y-1.5">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-ink-light mb-1">
+                    10 Editorial Approval Principles (Nelson Shitanda)
+                  </div>
+                  {policyAudit.principles.map((pr) => (
+                    <div key={pr.principleNumber} className="text-[11px] flex items-start gap-2 p-1.5 rounded bg-muted/40 border border-border/50">
+                      {pr.passed ? (
+                        <CheckCircle2 size={13} className="text-emerald-600 shrink-0 mt-0.5" />
+                      ) : (
+                        <AlertTriangle size={13} className="text-amber-600 shrink-0 mt-0.5" />
+                      )}
+                      <div className="flex-1">
+                        <div className="font-semibold text-foreground">{pr.question}</div>
+                        <div className="text-[10px] text-ink-light">{pr.evidence}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Sources panel */}
           <div className="bg-card border border-border rounded p-4 shadow-card space-y-3">

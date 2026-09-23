@@ -28,6 +28,7 @@ export * from "./editorialRewriteEngine";
 export * from "./batchForensicsEngine";
 export * from "./wireRepurposingEngine";
 export * from "./editorialComplianceEngine";
+export * from "./policyGovernanceEngine";
 export * from "@/types/editorialIntelligence";
 
 /**

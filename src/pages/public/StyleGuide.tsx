@@ -94,14 +94,14 @@ export const EDITORIAL_APPROVAL_PRINCIPLES = [
 export default function StyleGuide() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Masthead variant="public" />
+      <Masthead variant="newsroom" />
       <main id="main-content" tabIndex={-1} className="flex-1 max-w-3xl mx-auto px-4 sm:px-6 py-10 outline-none w-full">
         <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
-          <Link to="/" className="inline-flex items-center gap-1 text-xs text-ink-light hover:text-primary transition font-medium">
-            <ArrowLeft size={12} /> Back
+          <Link to="/newsroom" className="inline-flex items-center gap-1 text-xs text-ink-light hover:text-primary transition font-medium">
+            <ArrowLeft size={12} /> Return to Newsroom Desk
           </Link>
           <Link
-            to="/editorial-policy"
+            to="/newsroom/editorial-policy"
             className="inline-flex items-center gap-1.5 text-xs bg-primary text-primary-foreground font-semibold px-3 py-1.5 rounded hover:bg-primary-mid transition shadow-xs"
           >
             Read Official Editorial Policy (15 Articles) &rarr;

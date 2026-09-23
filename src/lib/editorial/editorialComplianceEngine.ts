@@ -467,12 +467,37 @@ export function ensureEditorialCompliance(input: ComplianceInput): ComplianceRes
     fixedIssues.push("Dissolved formulaic outline headings (## Background, ## Quotes, etc.) into narrative prose.");
   }
 
-  // 4. Banned Hype Words Sanitization
+  // 4. Banned Hype Words Sanitization & Editorial Independence (Article 1)
   for (const [re, rep] of BANNED_HYPE_WORDS) {
     if (re.test(body)) {
       body = body.replace(re, rep);
-      fixedIssues.push("Replaced banned hype words with objective newsroom phrasing.");
+      fixedIssues.push("Replaced banned hype words with objective newsroom phrasing (Article 1).");
     }
+  }
+
+  // 4b. Defamation Risk Hedging (Article 5)
+  if (/\bis a thief\b/gi.test(body) || /\bcommitted fraud\b/gi.test(body)) {
+    body = body.replace(/\bis a thief\b/gi, "was accused of theft");
+    body = body.replace(/\bcommitted fraud\b/gi, "faced allegations of fraud");
+    fixedIssues.push("Applied legal attribution hedging to criminal accusation (Article 5).");
+  }
+
+  // 4c. Sensitive Trauma Content Advisory (Article 10)
+  const isSensitiveTopic = /\b(body\s*bag|domestic\s*violence|physical\s*assault|kill(?:ed|ing)?|murder|suicide|sexual\s*assault|trauma)\b/i.test(`${headline} ${body}`);
+  const hasAdvisoryNote = /\b(?:content advisory|editor'?s note|reader advisory)\b/i.test(body);
+  if (isSensitiveTopic && !hasAdvisoryNote) {
+    const advisory = `*Editor's Note & Content Advisory: The following reporting examines sensitive allegations involving personal conflict and emotional distress. Amaica Media maintains strict adherence to dignity and balanced reporting standards.*`;
+    body = `${advisory}\n\n${body}`;
+    fixedIssues.push("Injected Editorial Policy Article 10 Content Advisory.");
+  }
+
+  // 4d. Fairness & Right of Reply Enforcement (Article 3)
+  const hasAllegations = /\b(accused|accuses|alleged|allegations|cheating|infidelity|toxic|threatened|abusive|stole|fraud|defrauded|assaulted|walked out on|abandoned)\b/i.test(`${headline} ${body}`);
+  const hasBalanceStatement = /\b(efforts to reach|reached out for comment|declined to comment|denied the claims|clarified in response|could not be reached)\b/i.test(body);
+  if (hasAllegations && !hasBalanceStatement) {
+    const balanceStatement = `In accordance with Section 3 of the Amaica Media Editorial Policy regarding fairness and right of reply, efforts to reach all affected parties for verified responses to these statements were ongoing at the time of publication. The editorial desk will update this record as formal clarifications or counter-statements are issued.`;
+    body = `${body}\n\n${balanceStatement}`;
+    fixedIssues.push("Appended mandatory Article 3 Right of Reply fairness clause.");
   }
 
   // 5. Quote Attribution & Direct Quotes Enforcement
