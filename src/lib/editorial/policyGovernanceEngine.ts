@@ -563,8 +563,14 @@ export function morphStoryWithPolicy(input: ArticleCheckInput): StoryMorphResult
   if (words < 700 || paragraphs.length < 6) {
     const contextualAdditions = generateContextualExpansionParagraphs(rawHeadline, "national", (input as any).category, body);
     for (const para of contextualAdditions) {
-      if (countWords(body) >= 720 && extractParagraphs(body).length >= 6) break;
       body = `${body}\n\n${para}`;
+      appliedFixes.push("Expanded beat-matched contextual background (Article 14).");
+      if (countWords(body) >= 720 && extractParagraphs(body).length >= 6) break;
+    }
+    while (countWords(body) < 720 || extractParagraphs(body).length < 6) {
+      const extra = generateContextualExpansionParagraphs(rawHeadline, "national", (input as any).category, body);
+      if (extra.length === 0) break;
+      body = `${body}\n\n${extra[0]}`;
       appliedFixes.push("Expanded beat-matched contextual background (Article 14).");
     }
   }

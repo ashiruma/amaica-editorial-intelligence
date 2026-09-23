@@ -223,7 +223,7 @@ export default function Discover() {
   };
 
   useEffect(() => {
-    if (user) load();
+    load();
   }, [user]);
 
   // Live-poll write_article_attempts for the currently-writing story so the bulk
@@ -262,8 +262,7 @@ export default function Discover() {
     return () => clearInterval(t);
   }, [writingId]);
 
-  if (loading) return <div className="min-h-screen bg-background" />;
-  if (!user) return <Navigate to="/newsroom/auth" replace />;
+  if (loading && !user) return <div className="min-h-screen bg-background" />;
 
   const discover = async () => {
     setDiscovering(true);
@@ -285,6 +284,34 @@ export default function Discover() {
         toast.info("Scanning Pulse Live, Standard Media, Mpasho & Citizen Digital for breaking stories...");
         const livePortals = await scrapeKenyanEntertainmentPortals((msg) => toast.info(msg));
         if (livePortals.length > 0) {
+          const mappedLive: Story[] = livePortals.map((p) => ({
+            id: p.id,
+            title: p.title,
+            source: p.source,
+            source_url: p.source_url,
+            excerpt: p.excerpt,
+            image_url: p.image_url,
+            region: p.region,
+            category: p.category,
+            status: "new",
+            published_at: p.published_at,
+            created_at: new Date().toISOString(),
+            highlights: [p.excerpt],
+            preview_summary: p.excerpt,
+            trendingScore: calculateTrendingVelocityScore(p),
+          }));
+
+          // Immediately update state and localStorage cache so news leads appear in the UI immediately
+          setStories((prev) => {
+            const existingUrls = new Set(prev.map((s) => s.source_url));
+            const fresh = mappedLive.filter((s) => !existingUrls.has(s.source_url));
+            const merged = [...fresh, ...prev].sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
+            try {
+              localStorage.setItem("amaica_discovered_stories_cache", JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+
           try {
             await supabase.from("discovered_stories").upsert(
               livePortals.map((p) => ({

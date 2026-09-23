@@ -30,7 +30,6 @@ export default function DraftsList() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
     fetchAllNewsroomDrafts({ showPublished }).then((all) => {
       setDrafts(all as unknown as Draft[]);
     });
@@ -66,8 +65,7 @@ export default function DraftsList() {
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-background" />;
-  if (!user) return <Navigate to="/newsroom/auth" replace />;
+  if (loading && !user) return <div className="min-h-screen bg-background" />;
 
   return (
     <div className="min-h-screen bg-background">

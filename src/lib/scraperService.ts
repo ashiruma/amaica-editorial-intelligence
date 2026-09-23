@@ -117,36 +117,133 @@ export function extractBestImage(markdown: string, metaImage?: string | null): s
 }
 
 /**
- * Strips navigation chrome, social share links, and cookie notices from markdown.
+ * Strips navigation chrome, social share bars, Taboola feeds, comments,
+ * and related articles from markdown so only the authentic, single-topic story remains.
  */
-export function cleanMarkdownContent(rawMarkdown: string): string {
+export function cleanMarkdownContent(rawMarkdown: string, storyTitle = ""): string {
   if (!rawMarkdown) return "";
-  const lines = rawMarkdown.split("\n");
 
-  const cleanLines = lines.filter((line) => {
-    const t = line.trim();
-    if (!t) return false;
-    // Skip isolated image links, divider bars, and header links
-    if (t.startsWith("![") || t.startsWith("[![") || t.startsWith("===") || t.startsWith("---")) return false;
-    // Skip boilerplate
-    const lower = t.toLowerCase();
+  const lines = rawMarkdown.split("\n");
+  const cleaned: string[] = [];
+
+  // Cutoff markers indicating the end of the primary article
+  const cutoffRegex = /^(?:0\s+comments|comments?|\d+\s+comments|share\s+on\s+facebook|share\s+on\s+x|share\s+this|share\s+article|leave\s+a\s+reply|related\s+(?:stories|articles|posts)|read\s+also:?|also\s+read:?|trending\s+stories|more\s+on\s+this|promoted\s+stories|recommended\s+stories|around\s+the\s+web|taboola|outbrain|sponsored\s+content|footer)\b/i;
+
+  // Header / nav markers to skip before the article
+  const navSkipRegex = /(?:flyout\s+menu|header\s+navigation|homelogin|close\s+flyout|sign\s+in|your\s+data|usuario|breadcrumbs?|categories|subscribe\s+to\s+notifications)/i;
+
+  let articleStarted = false;
+  let reachedEnd = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (reachedEnd) break;
+
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    // Check if line is the main title or header
+    if (line.startsWith("# ") || line.startsWith("## ")) {
+      if (!articleStarted) {
+        articleStarted = true;
+        continue;
+      }
+    }
+
+    // Skip lines before article start
+    if (!articleStarted) {
+      if (storyTitle && line.toLowerCase().includes(storyTitle.toLowerCase().slice(0, 30))) {
+        articleStarted = true;
+        continue;
+      }
+      if (navSkipRegex.test(line) || line.startsWith("* [") || line.startsWith("[News]") || line.startsWith("[Entertainment]")) {
+        continue;
+      }
+      if (/^\d{2}:\d{2}\s*-\s*\d{2}\s+[A-Za-z]+\s+\d{4}/.test(line)) {
+        articleStarted = true;
+        continue;
+      }
+      if (line.length > 50 && !line.includes("http") && !navSkipRegex.test(line)) {
+        articleStarted = true;
+      } else {
+        continue;
+      }
+    }
+
+    // Skip author links, publication dates, and social sharing links at the top of the article
+    if (cleaned.length === 0) {
+      if (
+        line.includes("/author/") ||
+        /^\d{2}:\d{2}\s*-\s*\d{2}\s+[A-Za-z]+\s+\d{4}/.test(line) ||
+        line.includes("facebook.com/sharer") ||
+        line.includes("twitter.com") ||
+        line.includes("x.com/intent") ||
+        line.includes("whatsapp.com") ||
+        line.includes("Copy link") ||
+        line.toLowerCase() === "advertisement"
+      ) {
+        continue;
+      }
+    }
+
+    // After article has accumulated some text, check for end-of-article cutoffs
+    if (cleaned.length >= 3) {
+      if (
+        cutoffRegex.test(line) ||
+        line.includes("facebook.com/sharer") ||
+        line.includes("whatsapp.com/channel") ||
+        line.includes("whatsapp.com/send") ||
+        line.includes("0 Comments") ||
+        line.toLowerCase().startsWith("subscribe [sportal")
+      ) {
+        reachedEnd = true;
+        break;
+      }
+    }
+
+    // Skip ad lines
+    const lower = line.toLowerCase();
     if (
+      lower === "advertisement" ||
+      lower === "ad" ||
+      lower === "undo" ||
+      lower.startsWith("> video") ||
       lower.includes("all rights reserved") ||
       lower.includes("cookie policy") ||
       lower.includes("privacy policy") ||
       lower.includes("terms of service") ||
       lower.includes("subscribe to our newsletter") ||
       lower.includes("download our app") ||
-      lower.includes("share this article")
+      lower.includes("share this article") ||
+      lower.includes("cards offering") ||
+      lower.includes("biotech to my watchlist") ||
+      lower.includes("freshstartinfo") ||
+      lower.includes("one tablet ready to go") ||
+      /^(?:watch|photo|video)\s*:/i.test(lower)
     ) {
-      return false;
+      continue;
     }
-    // Skip very short navigation fragments
-    if (t.length < 25 && (t.startsWith("[") || t.startsWith("* ["))) return false;
-    return true;
-  });
 
-  return cleanLines.join("\n\n").trim();
+    // Skip isolated image links, dividers, and empty links
+    if (
+      line.startsWith("![") ||
+      line.startsWith("[![") ||
+      line.startsWith("===") ||
+      line.startsWith("---") ||
+      /^\[\s*\]\(.*?\)$/.test(line) ||
+      (/^\[.*?\]\(https?:\/\/[^\s\)]+\)$/.test(line) && line.length < 70 && (line.includes("facebook") || line.includes("twitter") || line.includes("whatsapp") || line.includes("pulse.co.ke/search")))
+    ) {
+      continue;
+    }
+
+    // Skip lone captions that are just an entity name under an image
+    if (line.length < 25 && !/[.!?]$/.test(line) && cleaned.length > 0) {
+      continue;
+    }
+
+    cleaned.push(line);
+  }
+
+  return cleaned.join("\n\n").trim();
 }
 
 /**
@@ -254,8 +351,8 @@ export async function scrapeStoryResilient(
     });
 
     if (edgeData?.success && edgeData?.content && edgeData.content.length >= 200) {
-      scrapedContent = edgeData.content;
       if (edgeData.title) scrapedTitle = edgeData.title;
+      scrapedContent = cleanMarkdownContent(edgeData.content, scrapedTitle);
       if (edgeData.image_url) scrapedImage = edgeData.image_url;
     }
   } catch (edgeErr) {
@@ -275,7 +372,7 @@ export async function scrapeStoryResilient(
         const jData = json.data || {};
         if (jData.title && !scrapedTitle) scrapedTitle = jData.title;
         if (jData.content) {
-          scrapedContent = cleanMarkdownContent(jData.content);
+          scrapedContent = cleanMarkdownContent(jData.content, scrapedTitle);
           const bestImg = extractBestImage(jData.content, jData.image);
           if (bestImg) scrapedImage = bestImg;
         }
@@ -332,7 +429,7 @@ export async function scrapeKenyanEntertainmentPortals(
   const portals = [
     {
       name: "Pulse Live Kenya",
-      url: "https://www.pulselive.co.ke/entertainment",
+      url: "https://www.pulse.co.ke/entertainment",
       domain: "pulse",
       defaultRegion: "national" as const,
     },
@@ -375,16 +472,29 @@ export async function scrapeKenyanEntertainmentPortals(
       const data = await res.json();
       const content = data.data?.content || "";
 
+      // Extract image mapping from feed markdown: [![Image](imgUrl)](storyUrl)
+      const urlToImg = new Map<string, string>();
+      const feedLines = content.split("\n");
+      for (const fLine of feedLines) {
+        const trimmed = fLine.trim();
+        const imgMatch = trimmed.match(/^\[!\[.*?\]\((https?:\/\/[^\s]+?\.(?:jpe?g|png|webp)[^\s]*?)\)\]\((https?:\/\/[^\s]+?\))/i);
+        if (imgMatch) {
+          const imgUrl = imgMatch[1];
+          const storyUrl = imgMatch[2].replace(/\)+$/, "");
+          urlToImg.set(storyUrl, imgUrl);
+        }
+      }
+
       // Regex to extract markdown links: [text](href)
       const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g;
       let m: RegExpExecArray | null;
       let portalStoryCount = 0;
 
-      while ((m = linkRegex.exec(content)) !== null && portalStoryCount < 5) {
+      while ((m = linkRegex.exec(content)) !== null && portalStoryCount < 6) {
         let rawText = m[1].replace(/!\[.*?\]/g, "").replace(/\n/g, " ").replace(/\s+/g, " ").trim();
-        let url = m[2].trim();
+        let url = m[2].trim().replace(/\)+$/, "");
 
-        // Skip image media URLs and CDN assets
+        // Skip image media URLs and CDN assets directly
         if (
           /\.(?:jpg|jpeg|png|webp|svg)(\?|$)/i.test(url) ||
           url.includes("/images/") ||
@@ -426,11 +536,12 @@ export async function scrapeKenyanEntertainmentPortals(
         if (seenUrls.has(url)) continue;
         seenUrls.add(url);
 
-        // Find closest image around link context if possible
         const cleanTitle = rawText.replace(/\s*-\s*(?:Tuko|Mpasho|Citizen|Standard|Nation|Star|Pulse).*$/i, "").trim();
         const fullContext = cleanTitle;
         const region = detectRegion(fullContext, portal.defaultRegion) as "western_kenya" | "national" | "world";
         const category = detectCategory(fullContext, "celebrity") as "gossip" | "music" | "events" | "film" | "celebrity";
+
+        const heroImage = urlToImg.get(url) || extractBestImage(content);
 
         // Generate synthetic excerpt based on title and metadata
         const excerpt = `${cleanTitle}. Sourced in real time from ${portal.name} entertainment coverage.`;
@@ -441,7 +552,7 @@ export async function scrapeKenyanEntertainmentPortals(
           source: portal.name,
           source_url: url,
           excerpt,
-          image_url: null,
+          image_url: heroImage,
           region,
           category,
           published_at: new Date().toISOString(),

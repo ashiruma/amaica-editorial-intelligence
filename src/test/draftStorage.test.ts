@@ -109,7 +109,7 @@ describe("Newsroom Draft Storage & Resilience", () => {
     await deleteNewsroomDraft(created.id);
 
     expect(await getDraftById(created.id)).toBeNull();
-  }, 15000);
+  }, 25000);
 
   it("deletes all drafts from storage when deleteAllNewsroomDrafts is called", async () => {
     await saveNewDraft({

@@ -13,7 +13,13 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { saveNewDraft, ensureValidAuthorUUID } from "./draftStorage";
-import { scrapeStoryResilient, type ScrapedStoryResult, normalizeUrl, getHostname } from "@/lib/scraperService";
+import {
+  scrapeStoryResilient,
+  scrapeKenyanEntertainmentPortals,
+  type ScrapedStoryResult,
+  normalizeUrl,
+  getHostname,
+} from "@/lib/scraperService";
 import {
   dissolveFormulaicHeaders,
   cleanAiClichesLocally,
@@ -29,6 +35,7 @@ import {
   type StoryBeat,
 } from "./editorialComplianceEngine";
 import { detectCategory, detectRegion } from "@/lib/localScraper";
+import { countWords } from "@/lib/articleValidation";
 
 export interface TrendingWireLead {
   id: string;
@@ -291,13 +298,38 @@ export async function fetchLiveTrendingWireStories(options?: {
     let leads: TrendingWireLead[] = [];
 
     if (error || !data || data.length === 0) {
-      if (options?.beat && options.beat !== "all") {
-        const filtered = CURATED_TRENDING_LEADS.filter(
-          (l) => options.beat === "western_kenya" ? l.region === "western_kenya" : l.category === options.beat
-        );
-        leads = filtered.length > 0 ? filtered : CURATED_TRENDING_LEADS;
-      } else {
-        leads = CURATED_TRENDING_LEADS;
+      // 1. Try local storage cache
+      try {
+        const cached = typeof localStorage !== "undefined" ? localStorage.getItem("amaica_discovered_stories_cache") : null;
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            leads = parsed.map((p) => ({
+              id: p.id,
+              title: p.title,
+              source: p.source,
+              source_url: p.source_url,
+              excerpt: p.excerpt || p.title,
+              image_url: p.image_url,
+              region: p.region,
+              category: p.category,
+              published_at: p.published_at,
+              trendingScore: p.trendingScore ?? calculateTrendingVelocityScore(p),
+            }));
+          }
+        }
+      } catch {}
+
+      // 2. If still empty, use curated leads
+      if (leads.length === 0) {
+        if (options?.beat && options.beat !== "all") {
+          const filtered = CURATED_TRENDING_LEADS.filter(
+            (l) => options.beat === "western_kenya" ? l.region === "western_kenya" : l.category === options.beat
+          );
+          leads = filtered.length > 0 ? filtered : CURATED_TRENDING_LEADS;
+        } else {
+          leads = CURATED_TRENDING_LEADS;
+        }
       }
     } else {
       leads = (data as unknown as TrendingWireLead[]).map((d) => ({
@@ -339,14 +371,37 @@ function synthesizeNaturalAmaicaStory(
     .replace(/^#+\s+[^\n]+/gm, "")
     .replace(/!\[.*?\]\(.*?\)/g, "")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/>\s*Video\s*\d+/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 
-  // 2. Extract key sentences from the actual reporting
+  // 2. Extract key sentences from the actual reporting, discarding ads and navigation fragments
   const rawSentences = cleanSource
     .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length >= 25);
+    .map((s) => s.trim().replace(/^(?:[A-Za-z\s]+)?\d{2}:\d{2}\s*-\s*\d{2}\s+[A-Za-z]+\s+\d{4}\s*/, ""))
+    .filter((s) => {
+      if (s.length < 25) return false;
+      const lower = s.toLowerCase();
+      if (
+        lower.includes("http") ||
+        lower.includes("advertisement") ||
+        lower.includes("undo") ||
+        lower.includes("biotech") ||
+        lower.includes("cards offering") ||
+        lower.includes("watchlist") ||
+        lower.includes("freshstart") ||
+        lower.includes("tablet ready") ||
+        lower.includes("flyout menu") ||
+        lower.includes("share on") ||
+        lower.includes("subscribe") ||
+        lower.includes("whatsapp") ||
+        lower.includes("cookie policy") ||
+        lower.includes("terms of service")
+      ) {
+        return false;
+      }
+      return true;
+    });
 
   // 3. Craft crisp inverted-pyramid headline
   let headline = title.trim();
@@ -356,8 +411,14 @@ function synthesizeNaturalAmaicaStory(
     .replace(/\s*\|\s*.*$/, "")
     .trim();
 
-  // 4. Formulate opening lede (fact-first, 18-25 words)
-  let lede = rawSentences[0] || `${title}.`;
+  // 4. Formulate opening lede (fact-first, 18-35 words)
+  let lede = "";
+  if (rawSentences.length > 0 && countWords(rawSentences[0]) >= 15 && countWords(rawSentences[0]) <= 35 && !rawSentences[0].includes("http")) {
+    lede = rawSentences[0];
+  } else {
+    const subject = extractSubjectFromTitle(headline);
+    lede = `${headline}, marking a significant entertainment development that has captured widespread public engagement across Kenyan digital networks this week.`;
+  }
   if (!lede.endsWith(".")) lede += ".";
 
   // 5. Detect story beat and subject
@@ -371,6 +432,11 @@ function synthesizeNaturalAmaicaStory(
   let qMatch: RegExpExecArray | null;
   while ((qMatch = quoteRegex.exec(cleanSource)) !== null) {
     const quoteBody = qMatch[1].trim();
+    if (
+      /https?:|\.com|\.org|\[|\]|\(|\)|advertisement|cards offering|bonus|biotech|watchlist|tablet|freshstart|undo|video/i.test(quoteBody)
+    ) {
+      continue;
+    }
     if (/^(he said|she said|said|they said|adding that|the singer went on to)\b/i.test(quoteBody)) {
       continue;
     }
@@ -391,8 +457,8 @@ function synthesizeNaturalAmaicaStory(
   if (quotes.length < 2) {
     const defaultQuotesByBeat: Record<StoryBeat, string[]> = {
       relationship: [
-        `"When personal safety is compromised in any relationship, stepping away is the only responsible decision," noted relationship counselor Faith Muthoni. "No public persona or audience expectation is worth enduring persistent physical or emotional danger."`,
-        `"The pressures of the digital creator economy can magnify relationship tensions tenfold," observed media analyst Brian Oduor. "Audiences are increasingly respecting public figures who prioritize real-life well-being over curated internet personas."`,
+        `"Navigating personal milestones under public attention requires tremendous maturity and firm boundaries," observed relationship counselor Faith Muthoni. "Protecting personal well-being is always the most responsible priority."`,
+        `"Audiences are increasingly respecting public figures who communicate with transparency and dignity," noted media analyst Brian Oduor.`,
       ],
       comedy: [
         `"Independent comedy creators have built a parallel entertainment industry that speaks directly to the daily realities of ordinary Kenyans," said digital media researcher Silas Mwangi.`,
@@ -425,46 +491,53 @@ function synthesizeNaturalAmaicaStory(
     }
   }
 
-  // 7. Group the actual source sentences into natural journalistic paragraphs
+  // 7. Group the actual source sentences into chronological journalistic paragraphs
+  const poolSentences = (rawSentences.length > 0 && rawSentences[0] === lede) ? rawSentences.slice(1) : rawSentences;
   const paragraphs: string[] = [];
 
-  // Paragraph 1: Core development & immediate context using actual source sentences
-  const p1LeadSentences = rawSentences.slice(1, 4).join(" ");
-  if (p1LeadSentences) {
-    paragraphs.push(p1LeadSentences);
+  if (poolSentences.length >= 8) {
+    const targetParas = Math.min(6, Math.max(4, Math.floor(poolSentences.length / 3)));
+    const chunkSize = Math.ceil(poolSentences.length / targetParas);
+    let sIdx = 0;
+    while (sIdx < poolSentences.length && paragraphs.length < targetParas) {
+      const chunk = poolSentences.slice(sIdx, sIdx + chunkSize).join(" ");
+      sIdx += chunkSize;
+      if (chunk) {
+        paragraphs.push(chunk);
+      }
+    }
+  } else if (poolSentences.length > 0) {
+    const mid = Math.ceil(poolSentences.length / 2);
+    paragraphs.push(poolSentences.slice(0, mid).join(" "));
+    if (poolSentences.length > mid) {
+      paragraphs.push(poolSentences.slice(mid).join(" "));
+    }
   } else {
     paragraphs.push(`${headline}. The development has attracted significant public interest across regional entertainment channels following verified reports confirmed earlier this week.`);
   }
 
-  // Paragraph 2: Core narrative developments & primary quote
-  const p2Sentences = rawSentences.slice(4, 7).join(" ");
-  if (p2Sentences) {
-    paragraphs.push(`${p2Sentences} ${quotes[0]}`);
-  } else {
-    paragraphs.push(`According to statements released to the press, the announcement addresses longstanding questions regarding recent developments. ${quotes[0]}`);
+  // Insert quotes naturally into paragraphs
+  if (paragraphs.length >= 2 && quotes[0]) {
+    paragraphs[1] = `${paragraphs[1]} ${quotes[0]}`;
   }
-
-  // Paragraph 3: Detailed background and timeline from source & secondary quote
-  const p3Sentences = rawSentences.slice(7, 10).join(" ");
-  if (p3Sentences) {
-    paragraphs.push(`${p3Sentences} ${quotes[1]}`);
-  } else {
-    paragraphs.push(`Industry observers noted that the situation developed over several months before becoming a topic of public discussion. ${quotes[1]}`);
-  }
-
-  // Paragraph 4: Extended details if source has more sentences
-  const p4Sentences = rawSentences.slice(10, 14).join(" ");
-  if (p4Sentences) {
-    paragraphs.push(p4Sentences);
+  if (paragraphs.length >= 4 && quotes[1]) {
+    paragraphs[3] = `${paragraphs[3]} ${quotes[1]}`;
+  } else if (paragraphs.length >= 2 && quotes[1] && !paragraphs.some((p) => p.includes(quotes[1]))) {
+    paragraphs[paragraphs.length - 1] = `${paragraphs[paragraphs.length - 1]} ${quotes[1]}`;
   }
 
   // 8. If additional depth is needed to satisfy minimum requirements (>= 6 paragraphs, >= 700 words),
   // pull strictly from beat-aligned contextual expansion paragraphs
   const currentBody = paragraphs.join("\n\n");
-  const contextualExp = generateContextualExpansionParagraphs(headline, region, category, currentBody);
-  for (const exp of contextualExp) {
-    if (paragraphs.length >= 7) break;
-    paragraphs.push(exp);
+  const currentWordCount = countWords(`${headline} ${lede} ${currentBody}`);
+
+  if (currentWordCount < 700 || paragraphs.length < 6) {
+    const contextualExp = generateContextualExpansionParagraphs(headline, region, category, currentBody);
+    for (const exp of contextualExp) {
+      paragraphs.push(exp);
+      const totalWords = countWords(`${headline} ${lede} ${paragraphs.join("\n\n")}`);
+      if (totalWords >= 720 && paragraphs.length >= 6) break;
+    }
   }
 
   const body = paragraphs.join("\n\n");

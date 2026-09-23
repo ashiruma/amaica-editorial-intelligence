@@ -80,24 +80,28 @@ export type StoryBeat =
 export function detectStoryBeat(title: string, body = "", category?: string | null): StoryBeat {
   const combined = `${title} ${body} ${category || ""}`.toLowerCase();
 
-  // 1. Relationship / Breakup / Domestic disputes / Dating
+  // 1. Comedy & stand-up / satire / TikTok skits / viral humor (check before relationship so comedy lives are not miscategorized)
   if (
-    /\b(relationship|breakup|split|dating|ex-girlfriend|ex-boyfriend|marriage|divorce|infidelity|cheating|body bag|altercation|fights?|domestic|toxic|lover|romance|affair|partner)\b/i.test(
+    /\b(comedian|comedy|skit|skits|satire|stand-up|funny|punchline|parody|comic|hilariously|tiktok live|chizi nation|baba rio|prank|meme|laughter)\b/i.test(
       combined
     )
-  ) {
-    return "relationship";
-  }
-
-  // 2. Comedy & stand-up
-  if (
-    /\b(comedian|comedy|skit|skits|satire|stand-up|funny|punchline|parody|comic)\b/i.test(combined)
   ) {
     return "comedy";
   }
 
+  // 2. Music releases, albums, songs, recording artists
+  if (
+    category === "music" ||
+    /\b(album|track|single|ep|song|songs|benga|gengetone|afrobeats|recording|audio|producer|discography|stream|boomplay|spotify|hitmaker|vocalist|singer|rapper|hip-hop)\b/i.test(
+      title
+    )
+  ) {
+    return "music";
+  }
+
   // 3. Film, TV, theatre, acting
   if (
+    category === "film" ||
     /\b(film|movie|cinema|actor|actress|thespian|series|screenplay|nollywood|showmax|netflix|director|cast|screening|premiere|theatre)\b/i.test(
       combined
     )
@@ -116,22 +120,21 @@ export function detectStoryBeat(title: string, body = "", category?: string | nu
 
   // 5. Genuine live events / concerts (ONLY if explicit ticket/concert/festival keywords)
   if (
+    category === "events" &&
     /\b(festival|concert|stadium|live concert|tickets? on sale|gate charges|headline show|tour dates|live stage)\b/i.test(
       combined
-    ) &&
-    category === "events"
+    )
   ) {
     return "event";
   }
 
-  // 6. Music releases, albums, songs, recording artists
+  // 6. Relationship / Breakup / Domestic disputes / Dating
   if (
-    /\b(album|track|single|ep|song|songs|benga|gengetone|afrobeats|recording|audio|producer|discography|stream|boomplay|spotify)\b/i.test(
+    /\b(relationship|breakup|split|dating|ex-girlfriend|ex-boyfriend|marriage|divorce|infidelity|cheating|body bag|altercation|domestic|toxic|lover|romance|affair|partner|fianc[ée])\b/i.test(
       combined
-    ) ||
-    category === "music"
+    )
   ) {
-    return "music";
+    return "relationship";
   }
 
   return "celebrity_general";
@@ -181,28 +184,28 @@ export function generateContextualExpansionParagraphs(
     // ── 1. RELATIONSHIP & PERSONAL DISPUTE BEAT ──────────────────────────────
     relationship: [
       // Creator culture & public relationship pressures (~140 words)
-      `The disclosures shed fresh light on the unique pressures confronting Kenyan digital creators who build substantial public followings around their personal relationships. Over recent years, collaborative couples across Nairobi and urban hubs have transformed daily lifestyle vlogs and shared culinary formats into lucrative commercial properties. Commercializing domestic intimacy frequently creates immense pressure to sustain a facade of harmony even when personal bonds begin to fracture. That reality is harsh. When private disagreements escalate, the burden of managing audience expectations alongside brand obligations can intensify stress, making timely and safe separation far more complicated for the parties involved. Personal well-being must always come first.`,
+      `The disclosures have ignited broader public dialogue regarding the delicate balance between high-profile personal relationships and intense social media scrutiny in Kenya's entertainment scene. In an era where digital creators and public personalities frequently share intimate glimpses of their personal journeys, audience engagement can quickly evolve into overwhelming scrutiny when relationships experience strain. Media commentators note that public curiosity often intensifies emotional pressure, underscoring the necessity for clear boundaries between personal privacy and public commentary. Personal well-being and psychological peace must always remain the foremost priority for all parties involved.`,
 
       // Social media community debate & peer reaction (~135 words)
-      `Online audiences and fellow digital creators responded in substantial numbers across social platforms following the revelation. Online reaction was swift. While some followers reviewed past joint uploads to trace the timeline of reported disputes, the prevailing sentiment across discussion boards emphasized personal safety and mental health. Several high-profile digital creators praised the courage required to publicly acknowledge relational distress, pointing out that no brand partnership or social media following is worth enduring emotional exhaustion or physical danger. The incident prompted wider reflections across the creator community regarding the importance of establishing firm boundaries between private reality and public content.`,
+      `Across Kenyan social platforms and discussion forums, followers and entertainment peers have engaged in thoughtful conversations following the announcement. While digital audiences naturally dissect public statements and timelines, the prevailing sentiment has centered on empathy, maturity, and mutual respect. Cultural observers emphasize that navigating personal transitions under the public eye requires remarkable emotional strength, and commentators have commended individuals who prioritize long-term emotional well-being, clear communication, and personal safety over performative social media expectations.`,
 
       // Domestic safety, conflict resolution & counseling insights (~140 words)
-      `Relationship counselors and family wellness advocates in Nairobi noted that public revelations of repeated domestic altercations underscore critical conversations about personal safety. Safety remains the top priority. Mental health professionals emphasize that when domestic disputes escalate to recurrent physical confrontations and residential evictions, immediate physical separation becomes the most prudent course of action. Experts urged young adults navigating turbulent partnerships to seek trusted mediation or counseling resources early, noting that acknowledging warning signs and prioritizing personal well-being is vital for long-term emotional recovery and physical safety.`,
+      `Family counselors and relationship wellness practitioners in Nairobi observe that candid public discussions regarding personal milestones reflect an evolving cultural maturity among young adults. Mental health advocates stress that acknowledging relational challenges, seeking trusted counsel, and making decisive life adjustments are essential components of personal growth. Experts encourage individuals navigating complex relationships to maintain open communication, protect their personal peace, and seek supportive community networks during periods of major life change. Emotional wellness and safety remain paramount.`,
 
       // Commercial division & independent creative branding (~135 words)
-      `From an industry perspective, the separation highlights the complex business challenges that arise when collaborative influencer ventures dissolve. The business side is complicated. Talent managers noted that joint digital accounts, collaborative brand endorsements, and shared revenue streams require careful restructuring once a personal relationship ends. In recent months, talent agencies in Kenya have increasingly encouraged lifestyle influencers to maintain distinct individual digital identities and standalone legal contracts, ensuring both individuals retain financial stability and creative autonomy regardless of personal changes.`,
-
-      // Housing disputes & tenancy stability (~130 words)
-      `The controversy also ignited debate regarding the legal and physical protection available to domestic partners in informal residential arrangements. Housing agents and property managers in Nairobi noted that recurrent domestic disturbances often result in immediate tenancy terminations to protect other residents. Living in constant instability drains energy. Legal advocates emphasized that individuals experiencing domestic violence or threats to their physical safety should document evidence and report incidents to law enforcement stations immediately. Confidential support lines remain open across the country.`,
+      `From an industry standpoint, the announcement underscores the growing importance of personal autonomy and brand independence for modern creative figures. Talent managers and entertainment advisors increasingly advise public figures to build resilient, standalone creative identities that remain steadfast regardless of personal developments. Establishing distinct professional paths enables individuals to maintain sustained audience loyalty, commercial partnerships, and artistic fulfillment throughout their careers.`,
 
       // Audience consumption habits & influencer transparency (~130 words)
-      `Digital culture specialists noted that the split will likely shift how Kenyan audiences consume lifestyle content moving forward. For months, followers invested emotionally in the couple's shared milestones and domestic humor. That illusion is now broken. Analysts observed that audiences are becoming far more discerning, seeking authenticity over idealized influencer portrayals. Content creators who acknowledge hardship, clear personal boundaries, and real-life accountability are earning deeper long-term respect from Kenyan netizens.`,
+      `Digital culture specialists noted that public disclosures often shift how Kenyan audiences perceive lifestyle personalities moving forward. Followers who closely follow celebrity milestones are demonstrating an increased appreciation for honesty, emotional balance, and personal resilience. Analysts observed that audiences are becoming far more discerning, seeking authenticity over curated portrayals. Public figures who handle difficult life changes with dignity and accountability consistently earn lasting respect across East African communities.`,
 
       // Community solidarity & healing period (~130 words)
-      `In the days following the live broadcast, close relatives and creative colleagues have rallied around both individuals. The healing process takes time. Close associates indicated that ${subjectLabel} is taking time to decompress, prioritize mental wellness, and plan future career steps in a calm environment. Industry peers continue to call for empathy, restraint, and constructive support from the online public during this transition period.`,
+      `In the days following the public statements, close associates, family members, and creative colleagues have rallied around both individuals. The healing and transition process requires time, privacy, and calm reflection. Close associates indicated that ${subjectLabel} is taking time to decompress, prioritize personal wellness, and plan future creative steps in a supportive environment. Industry peers continue to call for empathy, restraint, and constructive support from the online public during this transition period.`,
 
       // Future trajectory & independent milestones (~130 words)
-      `Looking forward, industry observers expect ${subjectLabel} to redirect creative energies toward independent projects and solo digital formats. Loyal supporters have expressed enthusiasm for content that reflects authentic individual growth, resilience, and personal healing. Fresh starts bring new focus. As Kenya's digital entertainment space matures, audiences are demonstrating a clear preference for transparency and genuine personal fortitude over curated couple narratives. Both personalities are positioned to explore new creative opportunities while establishing healthy professional boundaries.`,
+      `Looking forward, industry observers expect ${subjectLabel} to redirect creative energies toward independent projects, fresh collaborations, and solo professional formats. Loyal supporters have expressed enthusiasm for content that reflects authentic individual growth, resilience, and personal evolution. Fresh starts bring renewed artistic focus. As Kenya's digital entertainment space continues to mature, audiences are demonstrating a clear preference for transparency, genuine personal fortitude, and dedication to creative excellence.`,
+
+      // Societal perspective & cultural evolution (~110 words)
+      `From a broader societal perspective, the situation highlights how contemporary Kenyan youth are actively redefining relationship dynamics and personal accountability. Relationship advocates and community mentors note that open discussions surrounding emotional maturity, respectful disengagement, and personal dignity help dismantle long-standing stigmas associated with relationship breakdowns. Observers commend the growing emphasis on emotional honesty and personal welfare across modern African social discourse, pointing to a healthy evolution in public dialogue.`,
     ],
 
     // ── 2. DIGITAL COMEDY & SATIRE BEAT ──────────────────────────────────────

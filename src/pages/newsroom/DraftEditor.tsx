@@ -87,7 +87,7 @@ export default function DraftEditor() {
   const { minWordCount } = useMinWordCount();
 
   useEffect(() => {
-    if (!id || !user) return;
+    if (!id) return;
     getDraftById(id).then((d) => {
       if (d) setDraft(d as unknown as Draft);
       else toast.error("Draft not found");
