@@ -103,7 +103,7 @@ export default function NewsroomAuth() {
       // 1. Check if user is entering admin master credentials or admin email
       if (verifyAdminPasscode(signInPassword) || isExplicitAdmin(signInEmail)) {
         signInAsAdmin(ADMIN_MASTER_PASSCODE, signInEmail || "ashiruma@amaicamedia.com");
-        toast.success("Welcome back, Nelson Shitanda!");
+        toast.success("Administrator clearance verified. Welcome back!");
         navigate(next, { replace: true });
         return;
       }
@@ -362,21 +362,21 @@ export default function NewsroomAuth() {
                       </p>
                     </div>
 
-                    {/* Instant Admin Access for Nelson Shitanda / Editorial Lead */}
+                    {/* Instant Admin Access for Administrator */}
                     <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-center space-y-2">
                       <div className="text-[11px] font-medium text-ink-mid">
-                        Editorial Desk Direct Clearance
+                        Administrator Master Clearance
                       </div>
                       <button
                         type="button"
                         onClick={() => {
                           signInAsAdmin(ADMIN_MASTER_PASSCODE, "ashiruma@amaicamedia.com");
-                          toast.success("Welcome back, Nelson Shitanda!");
+                          toast.success("Administrator clearance verified. Welcome back!");
                           navigate(next, { replace: true });
                         }}
                         className="w-full bg-accent text-accent-foreground font-semibold py-2 px-3 rounded text-xs hover:bg-accent/90 transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                       >
-                        <ShieldCheck size={14} /> ⚡ Instant Access as Nelson Shitanda (Editorial Admin)
+                        <ShieldCheck size={14} /> ⚡ Instant Access as Administrator
                       </button>
                     </div>
 

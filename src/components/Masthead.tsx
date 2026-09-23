@@ -37,19 +37,15 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
 
           {variant === "newsroom" ? (
             <nav aria-label="Newsroom navigation" className="hidden md:flex items-center gap-6 text-[13px]">
-              <NavLink to="/newsroom" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Discover</NavLink>
+              <NavLink to="/newsroom" end className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Discover</NavLink>
               <NavLink to="/newsroom/drafts" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Drafts</NavLink>
               <NavLink to="/newsroom/published" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Published</NavLink>
               <NavLink to="/newsroom/legends" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Legends</NavLink>
+              <NavLink to="/newsroom/discovery" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Autonomous Discovery</NavLink>
+              <NavLink to="/newsroom/health" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Health</NavLink>
               <NavLink to="/newsroom/ai-detector" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>AI Intelligence</NavLink>
               <NavLink to="/newsroom/editorial-policy" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Editorial Policy</NavLink>
               <NavLink to="/newsroom/style-guide" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Style guide</NavLink>
-              {isEditor && (
-                <NavLink to="/newsroom/health" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Health</NavLink>
-              )}
-              {isEditor && (
-                <NavLink to="/newsroom/discovery" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Discovery</NavLink>
-              )}
               {isAdmin && (
                 <NavLink to="/newsroom/admin" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Admin</NavLink>
               )}
@@ -63,6 +59,7 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
               <NavLink to="/category/events" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Events</NavLink>
               <NavLink to="/category/film" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Film & TV</NavLink>
               <NavLink to="/category/celebrity" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Celebrity</NavLink>
+              <NavLink to="/legends/legend-daudi-kabaka" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Our Legends</NavLink>
             </nav>
           )}
 
@@ -89,14 +86,19 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
           <nav id="mobile-nav-drawer" aria-label="Mobile navigation" className="md:hidden bg-primary-mid border-t border-primary-foreground/15 px-4 py-3 animate-in slide-in-from-top-2 duration-200">
             {variant === "newsroom" ? (
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom" className="py-1.5 text-primary-foreground/90 hover:text-accent">Discover</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom" end className="py-1.5 text-primary-foreground/90 hover:text-accent">Discover</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/drafts" className="py-1.5 text-primary-foreground/90 hover:text-accent">Drafts</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/published" className="py-1.5 text-primary-foreground/90 hover:text-accent">Published</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/legends" className="py-1.5 text-primary-foreground/90 hover:text-accent">Legends</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/discovery" className="py-1.5 text-primary-foreground/90 hover:text-accent">Discovery</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/health" className="py-1.5 text-primary-foreground/90 hover:text-accent">Scraper Health</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/ai-detector" className="py-1.5 text-accent font-semibold">AI Intelligence</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/editorial-policy" className="py-1.5 text-primary-foreground/90 hover:text-accent font-medium">Editorial Policy</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/style-guide" className="py-1.5 text-primary-foreground/90 hover:text-accent">Style Guide</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/" className="py-1.5 text-accent font-medium">View Live Site →</NavLink>
+                {isAdmin && (
+                  <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/admin" className="py-1.5 text-accent font-medium">Admin Clearance</NavLink>
+                )}
+                <NavLink onClick={() => setMobileOpen(false)} to="/" className="py-1.5 text-accent font-medium col-span-2 border-t border-primary-foreground/15 pt-2">View Live Site →</NavLink>
               </div>
             ) : (
               <div className="flex flex-col gap-2 text-sm">
@@ -106,21 +108,34 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
                 <NavLink onClick={() => setMobileOpen(false)} to="/category/events" className="py-1 text-primary-foreground/90 hover:text-accent">Concerts & Events</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/category/film" className="py-1 text-primary-foreground/90 hover:text-accent">Film & TV</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/category/celebrity" className="py-1 text-primary-foreground/90 hover:text-accent">Celebrity & Culture</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom" className="py-1 text-accent font-semibold pt-2 border-t border-primary-foreground/15">Open Newsroom Desk</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/legends/legend-daudi-kabaka" className="py-1 text-primary-foreground/90 hover:text-accent">Our Legends</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom" className="py-1 text-accent font-semibold pt-2 border-t border-primary-foreground/15">Open Newsroom Desk →</NavLink>
               </div>
             )}
           </nav>
         )}
       </header>
 
-      <div className="bg-destructive overflow-hidden h-[30px] flex items-center relative" aria-hidden="true">
-        <div className="relative z-20 bg-foreground text-background text-[10px] font-medium tracking-[0.12em] uppercase px-3.5 h-full flex items-center flex-shrink-0 shadow-sm">
-          {variant === "newsroom" ? "Newsroom" : "Live"}
-        </div>
-        <div className="flex-1 overflow-hidden relative h-full flex items-center">
-          <div className="flex animate-ticker whitespace-nowrap">
+      <div className="bg-destructive overflow-hidden h-[32px] flex items-center relative shadow-sm border-b border-destructive/40">
+        <Link
+          to="/newsroom"
+          title="Open Newsroom Intelligence Desk"
+          className="relative z-20 bg-foreground hover:bg-neutral-900 active:bg-black text-background text-[11px] font-bold tracking-[0.14em] uppercase px-3.5 sm:px-4 h-full flex items-center gap-2 flex-shrink-0 shadow-md border-r-2 border-accent transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+          </span>
+          <span className="group-hover:text-accent transition-colors">NEWSROOM</span>
+          <span className="text-[10px] text-accent font-bold group-hover:translate-x-0.5 transition-transform">→</span>
+        </Link>
+        <div className="flex-1 overflow-hidden relative h-full flex items-center" aria-label="Rolling breaking news updates">
+          {/* Subtle gradient fade right where the ticker rolls directly into the newsroom button */}
+          <div className="absolute left-0 top-0 bottom-0 w-12 z-10 pointer-events-none bg-gradient-to-r from-destructive via-destructive/80 to-transparent" />
+          <div className="absolute right-0 top-0 bottom-0 w-8 z-10 pointer-events-none bg-gradient-to-l from-destructive to-transparent" />
+          <div className="flex animate-ticker whitespace-nowrap" aria-hidden="true">
             {[0, 1].map((i) => (
-              <span key={i} className="text-destructive-foreground text-[12px] px-8 tracking-wide">
+              <span key={i} className="text-destructive-foreground text-[12px] px-8 tracking-wide font-medium">
                 Western Kenya Entertainment &bull; Music &bull; Film &bull; Events &bull; Culture &nbsp;&nbsp;&bull;&nbsp;&nbsp; Lead with the fact. Attribute everything. One idea per sentence. &nbsp;&nbsp;&bull;&nbsp;&nbsp; Amaica Media — Newsroom of Western Kenya &nbsp;&nbsp;&bull;&nbsp;&nbsp;
               </span>
             ))}

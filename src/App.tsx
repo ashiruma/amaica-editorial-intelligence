@@ -23,45 +23,49 @@ import NewsroomAuth from "./pages/NewsroomAuth";
 import { RequireNewsroomAuth } from "@/components/auth/RequireNewsroomAuth";
 import NotFound from "./pages/NotFound.tsx";
 
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<PublicHome />} />
-          <Route path="/category/:category" element={<PublicHome />} />
-          <Route path="/article/:id" element={<PublicArticle />} />
-          <Route path="/legends/:id" element={<LegendPage />} />
-          <Route path="/editorial-policy" element={<Navigate to="/newsroom/editorial-policy" replace />} />
-          <Route path="/style-guide" element={<Navigate to="/newsroom/style-guide" replace />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/newsroom/auth" element={<NewsroomAuth />} />
-          <Route path="/newsroom/login" element={<NewsroomAuth />} />
-          <Route path="/newsroom/signup" element={<NewsroomAuth />} />
-          <Route path="/~oauth/initiate" element={<Navigate to="/auth" replace />} />
-          <Route path="/oauth/consent" element={<OAuthConsent />} />
-          <Route path="/newsroom" element={<RequireNewsroomAuth><Discover /></RequireNewsroomAuth>} />
-          <Route path="/newsroom/drafts" element={<RequireNewsroomAuth><DraftsList /></RequireNewsroomAuth>} />
-          <Route path="/newsroom/draft/:id" element={<RequireNewsroomAuth><DraftEditor /></RequireNewsroomAuth>} />
-          <Route path="/newsroom/published" element={<RequireNewsroomAuth><Published /></RequireNewsroomAuth>} />
-          <Route path="/newsroom/admin" element={<RequireNewsroomAuth requireAdmin><Admin /></RequireNewsroomAuth>} />
-          <Route path="/newsroom/health" element={<RequireNewsroomAuth><ScrapeHealth /></RequireNewsroomAuth>} />
-          <Route path="/newsroom/legends" element={<RequireNewsroomAuth><NewsroomLegends /></RequireNewsroomAuth>} />
-          <Route path="/newsroom/discovery" element={<RequireNewsroomAuth><DiscoveryAdmin /></RequireNewsroomAuth>} />
-          <Route path="/newsroom/detector" element={<RequireNewsroomAuth><AiDetectorStudio /></RequireNewsroomAuth>} />
-          <Route path="/newsroom/ai-detector" element={<RequireNewsroomAuth><AiDetectorStudio /></RequireNewsroomAuth>} />
-          <Route path="/newsroom/editorial-policy" element={<RequireNewsroomAuth><EditorialPolicy /></RequireNewsroomAuth>} />
-          <Route path="/newsroom/style-guide" element={<RequireNewsroomAuth><StyleGuide /></RequireNewsroomAuth>} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<PublicHome />} />
+            <Route path="/category/:category" element={<PublicHome />} />
+            <Route path="/article/:id" element={<PublicArticle />} />
+            <Route path="/legends/:id" element={<LegendPage />} />
+            <Route path="/editorial-policy" element={<Navigate to="/newsroom/editorial-policy" replace />} />
+            <Route path="/style-guide" element={<Navigate to="/newsroom/style-guide" replace />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/newsroom/auth" element={<NewsroomAuth />} />
+            <Route path="/newsroom/login" element={<NewsroomAuth />} />
+            <Route path="/newsroom/signup" element={<NewsroomAuth />} />
+            <Route path="/~oauth/initiate" element={<Navigate to="/auth" replace />} />
+            <Route path="/oauth/consent" element={<OAuthConsent />} />
+            <Route path="/newsroom" element={<RequireNewsroomAuth><Discover /></RequireNewsroomAuth>} />
+            <Route path="/newsroom/drafts" element={<RequireNewsroomAuth><DraftsList /></RequireNewsroomAuth>} />
+            <Route path="/newsroom/draft/:id" element={<RequireNewsroomAuth><DraftEditor /></RequireNewsroomAuth>} />
+            <Route path="/newsroom/published" element={<RequireNewsroomAuth><Published /></RequireNewsroomAuth>} />
+            <Route path="/newsroom/admin" element={<RequireNewsroomAuth requireAdmin><Admin /></RequireNewsroomAuth>} />
+            <Route path="/newsroom/health" element={<RequireNewsroomAuth><ScrapeHealth /></RequireNewsroomAuth>} />
+            <Route path="/newsroom/legends" element={<RequireNewsroomAuth><NewsroomLegends /></RequireNewsroomAuth>} />
+            <Route path="/newsroom/discovery" element={<RequireNewsroomAuth><DiscoveryAdmin /></RequireNewsroomAuth>} />
+            <Route path="/newsroom/detector" element={<RequireNewsroomAuth><AiDetectorStudio /></RequireNewsroomAuth>} />
+            <Route path="/newsroom/ai-detector" element={<RequireNewsroomAuth><AiDetectorStudio /></RequireNewsroomAuth>} />
+            <Route path="/newsroom/editorial-policy" element={<RequireNewsroomAuth><EditorialPolicy /></RequireNewsroomAuth>} />
+            <Route path="/newsroom/style-guide" element={<RequireNewsroomAuth><StyleGuide /></RequireNewsroomAuth>} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

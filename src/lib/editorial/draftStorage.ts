@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { safeGetItem, safeSetItem, safeUUID } from "@/lib/safeStorage";
+import { SEED_PUBLISHED_STORIES } from "./seedStories";
 
 export const DEFAULT_ADMIN_AUTHOR_UUID = "2d623b06-aaca-414a-a0f8-fd7f12e372c6";
 const LOCAL_DRAFTS_STORAGE_KEY = "amaica_newsroom_local_drafts";
@@ -65,16 +67,26 @@ export function ensureValidAuthorUUID(authorId?: string | null): string {
 
 /**
  * Retrieves all locally-cached drafts.
+ * Fallbacks to SEED_PUBLISHED_STORIES if empty or offline.
  */
 export function getLocalDrafts(): NewsroomDraft[] {
   try {
-    const raw = localStorage.getItem(LOCAL_DRAFTS_STORAGE_KEY);
-    if (!raw) return [];
+    const raw = safeGetItem(LOCAL_DRAFTS_STORAGE_KEY);
+    if (raw === null || raw === undefined) {
+      // Seed initial published stories so the newsroom and public site are never empty on fresh sessions
+      setLocalDrafts(SEED_PUBLISHED_STORIES);
+      return [...SEED_PUBLISHED_STORIES];
+    }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+    // If parsed content was invalid, seed defaults
+    setLocalDrafts(SEED_PUBLISHED_STORIES);
+    return [...SEED_PUBLISHED_STORIES];
   } catch (e) {
     console.warn("Could not parse local drafts:", e);
-    return [];
+    return [...SEED_PUBLISHED_STORIES];
   }
 }
 
@@ -83,7 +95,7 @@ export function getLocalDrafts(): NewsroomDraft[] {
  */
 export function setLocalDrafts(drafts: NewsroomDraft[]): void {
   try {
-    localStorage.setItem(LOCAL_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+    safeSetItem(LOCAL_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
   } catch (e) {
     console.warn("Could not save to local drafts storage:", e);
   }
@@ -110,7 +122,7 @@ export function upsertLocalDraft(draft: NewsroomDraft): void {
 export async function saveNewDraft(payload: NewDraftPayload): Promise<NewsroomDraft> {
   const authorId = ensureValidAuthorUUID(payload.author_id);
   const now = new Date().toISOString();
-  const draftId = crypto.randomUUID();
+  const draftId = safeUUID();
   const idempotencyKey = payload.idempotency_key || `draft:${draftId}`;
 
   const draftRecord: NewsroomDraft = {

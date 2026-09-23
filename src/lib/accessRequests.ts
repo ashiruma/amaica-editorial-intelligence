@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Amaica Editorial Intelligence Platform
  * Newsroom Access & Clearance Request Engine
  *
@@ -25,9 +25,11 @@ export interface AccessRequest {
 const STORAGE_KEY = "amaica_newsroom_access_requests";
 const APPROVED_USERS_KEY = "amaica_approved_editorial_users";
 
+import { safeGetItem, safeSetItem } from "@/lib/safeStorage";
+
 export function getLocalRequests(): AccessRequest[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeGetItem(STORAGE_KEY);
     if (!raw) return [];
     return JSON.parse(raw);
   } catch {
@@ -37,13 +39,13 @@ export function getLocalRequests(): AccessRequest[] {
 
 export function saveLocalRequests(requests: AccessRequest[]) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(requests));
+    safeSetItem(STORAGE_KEY, JSON.stringify(requests));
   } catch {}
 }
 
 export function getApprovedEmails(): string[] {
   try {
-    const raw = localStorage.getItem(APPROVED_USERS_KEY);
+    const raw = safeGetItem(APPROVED_USERS_KEY);
     if (!raw) return [];
     return JSON.parse(raw);
   } catch {
@@ -57,7 +59,7 @@ export function addApprovedEmail(email: string) {
   if (!current.includes(norm)) {
     current.push(norm);
     try {
-      localStorage.setItem(APPROVED_USERS_KEY, JSON.stringify(current));
+      safeSetItem(APPROVED_USERS_KEY, JSON.stringify(current));
     } catch {}
   }
 }
@@ -66,7 +68,7 @@ export function removeApprovedEmail(email: string) {
   const norm = email.toLowerCase().trim();
   const current = getApprovedEmails().filter((e) => e !== norm);
   try {
-    localStorage.setItem(APPROVED_USERS_KEY, JSON.stringify(current));
+    safeSetItem(APPROVED_USERS_KEY, JSON.stringify(current));
   } catch {}
 }
 

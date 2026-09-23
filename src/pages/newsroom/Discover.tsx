@@ -18,6 +18,7 @@ import {
 } from "@/lib/editorial/wireRepurposingEngine";
 import { saveNewDraft, ensureValidAuthorUUID, isValidUUID } from "@/lib/editorial/draftStorage";
 import { ensureEditorialCompliance } from "@/lib/editorial/editorialComplianceEngine";
+import { safeGetItem, safeSetItem, safeUUID } from "@/lib/safeStorage";
 
 type Story = {
   id: string;
@@ -47,7 +48,7 @@ export default function Discover() {
   const [autoGenProgress, setAutoGenProgress] = useState<{ current: number; total: number; title: string; status: string } | null>(null);
   const [autoPilotEnabled, setAutoPilotEnabled] = useState<boolean>(() => {
     try {
-      return localStorage.getItem("amaica_autopilot_enabled") === "true";
+      return safeGetItem("amaica_autopilot_enabled") === "true";
     } catch {
       return false;
     }
@@ -75,7 +76,7 @@ export default function Discover() {
     const next = !autoPilotEnabled;
     setAutoPilotEnabled(next);
     try {
-      localStorage.setItem("amaica_autopilot_enabled", String(next));
+      safeSetItem("amaica_autopilot_enabled", String(next));
     } catch { /* ignore */ }
     if (next) {
       toast.success("⚡ Newsroom Auto-Pilot activated: Monitoring reference sites & auto-drafting viral stories");
@@ -158,12 +159,12 @@ export default function Discover() {
         .sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
       setStories(scoredStories);
       try {
-        localStorage.setItem("amaica_discovered_stories_cache", JSON.stringify(scoredStories));
+        safeSetItem("amaica_discovered_stories_cache", JSON.stringify(scoredStories));
       } catch { /* ignore */ }
     } else {
       // 1. Try local cache first
       try {
-        const cached = localStorage.getItem("amaica_discovered_stories_cache");
+        const cached = safeGetItem("amaica_discovered_stories_cache");
         if (cached) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -194,7 +195,7 @@ export default function Discover() {
         })).sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
         setStories(mappedStories);
         try {
-          localStorage.setItem("amaica_discovered_stories_cache", JSON.stringify(mappedStories));
+          safeSetItem("amaica_discovered_stories_cache", JSON.stringify(mappedStories));
         } catch { /* ignore */ }
 
         // Seed authentic stories to Supabase for persistence across newsroom sessions if connected
@@ -262,7 +263,18 @@ export default function Discover() {
     return () => clearInterval(t);
   }, [writingId]);
 
-  if (loading && !user) return <div className="min-h-screen bg-background" />;
+  if (loading && !user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Masthead variant="newsroom" />
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-16 text-center space-y-3">
+          <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" />
+          <h2 className="font-display text-lg font-bold text-foreground">Opening Amaica Newsroom Workspace</h2>
+          <p className="text-xs text-ink-light">Connecting to live entertainment intelligence feed...</p>
+        </main>
+      </div>
+    );
+  }
 
   const discover = async () => {
     setDiscovering(true);
@@ -307,7 +319,7 @@ export default function Discover() {
             const fresh = mappedLive.filter((s) => !existingUrls.has(s.source_url));
             const merged = [...fresh, ...prev].sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
             try {
-              localStorage.setItem("amaica_discovered_stories_cache", JSON.stringify(merged));
+              safeSetItem("amaica_discovered_stories_cache", JSON.stringify(merged));
             } catch {}
             return merged;
           });
@@ -358,7 +370,7 @@ export default function Discover() {
       });
 
       // Persist to discovered_stories so the lead has an authentic database UUID and record
-      let dbStoryId = crypto.randomUUID();
+      let dbStoryId = safeUUID();
       try {
         const { data: savedLead } = await supabase
           .from("discovered_stories")
@@ -544,8 +556,8 @@ export default function Discover() {
       });
 
       const draftCategory = a.category || detectCategory(`${story.title} ${story.excerpt || ""}`, story.category || "celebrity");
-      const authorId = ensureValidAuthorUUID(user.id);
-      const byline = user.user_metadata?.display_name || user.email?.split("@")[0] || "Amaica Newsroom";
+      const authorId = ensureValidAuthorUUID(user?.id);
+      const byline = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Amaica Newsroom";
 
       const draft = await saveNewDraft({
         author_id: authorId,

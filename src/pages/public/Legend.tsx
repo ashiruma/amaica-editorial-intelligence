@@ -32,10 +32,32 @@ function ensureParagraphs(html: string): string {
     .join("\n");
 }
 
+import { getSeedLegendById, getTodaySeedLegend, SEED_LEGENDS } from "@/lib/editorial/seedLegends";
+
 export default function LegendPage() {
   const { id } = useParams<{ id: string }>();
-  const [f, setF] = useState<Feature | null>(null);
-  const [archive, setArchive] = useState<Array<{ id: string; headline: string; feature_date: string }>>([]);
+  const [f, setF] = useState<Feature | null>(() => {
+    if (!id) return null;
+    const seed = getSeedLegendById(id) || getTodaySeedLegend();
+    return {
+      id: seed.id,
+      feature_date: seed.feature_date,
+      headline: seed.headline,
+      tribute: seed.tribute,
+      hero_image_url: seed.hero_image_url,
+      legends: {
+        name: seed.name,
+        country: seed.country,
+        era: seed.era,
+        field: seed.field,
+        short_bio: seed.short_bio,
+        impact: seed.impact,
+      },
+    };
+  });
+  const [archive, setArchive] = useState<Array<{ id: string; headline: string; feature_date: string }>>(() => {
+    return SEED_LEGENDS.map((s) => ({ id: s.id, headline: s.headline, feature_date: s.feature_date }));
+  });
 
   useEffect(() => {
     if (!id) return;
@@ -43,12 +65,18 @@ export default function LegendPage() {
       .from("legend_features")
       .select("id, feature_date, headline, tribute, hero_image_url, legends(name, country, era, field, short_bio, impact)")
       .eq("id", id).maybeSingle()
-      .then(({ data }) => setF(data as unknown as Feature));
+      .then(({ data }) => {
+        if (data) setF(data as unknown as Feature);
+      })
+      .catch(() => {});
     supabase
       .from("legend_features")
       .select("id, headline, feature_date")
       .order("feature_date", { ascending: false }).limit(10)
-      .then(({ data }) => setArchive(data || []));
+      .then(({ data }) => {
+        if (data && data.length > 0) setArchive(data);
+      })
+      .catch(() => {});
   }, [id]);
 
   if (!f) return <div className="min-h-screen bg-background"><Masthead variant="public" /></div>;

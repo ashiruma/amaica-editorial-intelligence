@@ -23,14 +23,15 @@ export function verifyAdminPasscode(passcode: string): boolean {
   return passcode.trim() === ADMIN_MASTER_PASSCODE;
 }
 
+import { safeGetItem, safeSetItem, safeRemoveItem } from "@/lib/safeStorage";
+
 export function isExplicitAdmin(email?: string | null): boolean {
   if (!email) return false;
   const lower = email.toLowerCase().trim();
   return (
     lower.includes("ashiruma") ||
     lower.includes("admin") ||
-    lower.includes("nelson") ||
-    lower.includes("shitanda")
+    lower.includes("amaica")
   );
 }
 
@@ -43,32 +44,36 @@ export function useAuth() {
   // Check for an explicitly signed-in newsroom user (or localhost editorial admin)
   const checkLocalUser = (): LocalNewsroomUser | null => {
     try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const stored = safeGetItem(LOCAL_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed?.id && parsed?.email) {
-          // If stored ID is an old non-UUID "staff-..." format, auto-migrate to valid RFC4122 UUID
+          // If stored ID is an old non-UUID format, auto-migrate to valid RFC4122 UUID
           if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parsed.id)) {
             parsed.id = DEFAULT_ADMIN_AUTHOR_UUID;
             try {
-              localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(parsed));
+              safeSetItem(LOCAL_STORAGE_KEY, JSON.stringify(parsed));
             } catch {}
           }
           return parsed;
         }
       }
 
-      // In local dev environment (localhost / 127.0.0.1), auto-initialize editorial admin session
-      // so newsroom workspace is immediately active and never blocked
-      if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+      // In local dev environment, initialize editorial admin session
+      if (typeof window !== "undefined" && (
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname === "" ||
+        window.location.protocol === "file:"
+      )) {
         const defaultAdmin: LocalNewsroomUser = {
           id: DEFAULT_ADMIN_AUTHOR_UUID,
           email: "ashiruma@amaicamedia.com",
-          displayName: "Nelson Shitanda (Editorial Admin)",
+          displayName: "Administrator",
           roles: ["admin", "editor"],
         };
         try {
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(defaultAdmin));
+          safeSetItem(LOCAL_STORAGE_KEY, JSON.stringify(defaultAdmin));
         } catch {}
         return defaultAdmin;
       }
@@ -238,7 +243,7 @@ export function useAuth() {
       roles: assignedRoles,
     };
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localUser));
+      safeSetItem(LOCAL_STORAGE_KEY, JSON.stringify(localUser));
     } catch {}
     setUser({
       id: localUser.id,
@@ -261,7 +266,7 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      safeRemoveItem(LOCAL_STORAGE_KEY);
     } catch {}
     setUser(null);
     setSession(null);

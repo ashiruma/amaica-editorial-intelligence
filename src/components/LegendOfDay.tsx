@@ -18,8 +18,26 @@ type Feature = {
   } | null;
 };
 
+import { getTodaySeedLegend } from "@/lib/editorial/seedLegends";
+
 export function LegendOfDay() {
-  const [feature, setFeature] = useState<Feature | null>(null);
+  const [feature, setFeature] = useState<Feature | null>(() => {
+    const seed = getTodaySeedLegend();
+    return {
+      id: seed.id,
+      feature_date: seed.feature_date,
+      headline: seed.headline,
+      tribute: seed.tribute,
+      hero_image_url: seed.hero_image_url,
+      draft_id: null,
+      legends: {
+        name: seed.name,
+        country: seed.country,
+        era: seed.era,
+        field: seed.field,
+      },
+    };
+  });
 
   useEffect(() => {
     supabase
@@ -28,7 +46,11 @@ export function LegendOfDay() {
       .order("feature_date", { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(({ data }) => setFeature(data as unknown as Feature))
+      .then(({ data }) => {
+        if (data) {
+          setFeature(data as unknown as Feature);
+        }
+      })
       .catch((err) => console.warn("Could not query legend_features:", err));
   }, []);
 

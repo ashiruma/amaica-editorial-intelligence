@@ -5,14 +5,33 @@ import { Masthead } from "@/components/Masthead";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Crown, Plus, Sparkles } from "lucide-react";
+import { SEED_LEGENDS } from "@/lib/editorial/seedLegends";
 
 type Legend = { id: string; name: string; country: string | null; era: string | null; field: string | null; impact: string | null; active: boolean };
 type Feature = { id: string; feature_date: string; headline: string; legends: { name: string } | null };
 
 export default function NewsroomLegends() {
   const { user, loading } = useAuth();
-  const [legends, setLegends] = useState<Legend[]>([]);
-  const [features, setFeatures] = useState<Feature[]>([]);
+
+  const [legends, setLegends] = useState<Legend[]>(() => {
+    return SEED_LEGENDS.map((s) => ({
+      id: s.id,
+      name: s.name,
+      country: s.country,
+      era: s.era,
+      field: s.field,
+      impact: s.impact,
+      active: s.active,
+    }));
+  });
+  const [features, setFeatures] = useState<Feature[]>(() => {
+    return SEED_LEGENDS.map((s) => ({
+      id: s.id,
+      feature_date: s.feature_date,
+      headline: s.headline,
+      legends: { name: s.name },
+    }));
+  });
   const [running, setRunning] = useState(false);
   const [form, setForm] = useState({ name: "", country: "", era: "", field: "", short_bio: "", impact: "" });
 
@@ -22,8 +41,8 @@ export default function NewsroomLegends() {
         supabase.from("legends").select("*").order("name"),
         supabase.from("legend_features").select("id, feature_date, headline, legends(name)").order("feature_date", { ascending: false }).limit(20),
       ]);
-      setLegends((l as Legend[]) || []);
-      setFeatures((f as unknown as Feature[]) || []);
+      if (l && l.length > 0) setLegends(l as Legend[]);
+      if (f && f.length > 0) setFeatures(f as unknown as Feature[]);
     } catch (err) {
       console.warn("Could not query legends from Supabase:", err);
     }
