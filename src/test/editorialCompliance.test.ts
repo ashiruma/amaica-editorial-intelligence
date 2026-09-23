@@ -228,4 +228,67 @@ Brand partnerships and digital advertising contracts generate millions of shilli
     expect(errors.length).toBe(0);
     expect(canApprove(finalIssues)).toBe(true);
   });
+
+  it("regression: ensures Mags & Alma breakup story stays 100% on topic with ZERO concert/stadium hallucinations", async () => {
+    const magsDraft = {
+      headline: "Mags Reveals Why She Left Relationship With Alma, Says She Feared Ending Up in a Body Bag",
+      lede: "Kenyan content creator Mags has opened up on her decision to leave her relationship with Alma, disclosing repeated physical altercations and safety concerns.",
+      body: `Speaking during a live session where she explained she wanted to share her side of the story, Kenyan content creator Mags opened up about the difficulties she experienced during her relationship with Alma.
+
+She cited frequent domestic conflicts and alleged infidelity as the primary drivers of the breakdown.
+
+"A lot of times we found ourselves in physical altercations na tumefukuzwa kwa apartments mingi," Mags said during the broadcast.
+
+While explaining why she eventually decided to leave the partnership, Mags said the situation had become so volatile that she began fearing for her physical safety.
+
+"Mimi ata nilikua like one day I'm gonna end up in a body bag if I don't get out of this relationship," she stated.
+
+The couple had built a prominent online following through shared lifestyle and culinary content across social media platforms before the split.`,
+      template_type: "breaking",
+      category: "celebrity",
+      min_word_count: 700,
+      sources: [
+        {
+          url: "https://mpasho.co.ke/entertainment/2026-09-16-mags-reveals-why-she-left-relationship-with-alma",
+          title: "Mpasho",
+          notes: [{ text: "Verified live stream statements and quotes from Mags", section: "Key Details" }],
+        },
+      ],
+    };
+
+    const result = ensureEditorialCompliance(magsDraft);
+    expect(result.success).toBe(true);
+    expect(result.approvable).toBe(true);
+    expect(result.wordCount).toBeGreaterThanOrEqual(700);
+    expect(result.paragraphCount).toBeGreaterThanOrEqual(6);
+    expect(result.quotesCount).toBeGreaterThanOrEqual(2);
+
+    // CRITICAL: MUST NOT contain ANY concert / festival hallucinations
+    expect(result.body).not.toMatch(/Bukhungu/i);
+    expect(result.body).not.toMatch(/Carnivore/i);
+    expect(result.body).not.toMatch(/VIP terrace/i);
+    expect(result.body).not.toMatch(/line array/i);
+    expect(result.body).not.toMatch(/sound engineers/i);
+    expect(result.body).not.toMatch(/Douglas Masiga/i);
+    expect(result.body).not.toMatch(/acoustic calibrations/i);
+    expect(result.body).not.toMatch(/KSh 2,500/i);
+    expect(result.body).not.toMatch(/KSh 6,000/i);
+    expect(result.body).not.toMatch(/festival coordinator/i);
+    expect(result.body).not.toMatch(/stage timetable/i);
+
+    // MUST contain beat-relevant themes (creator economy, relationships, safety)
+    expect(result.body).toMatch(/relationship|creator|safety|boundaries/i);
+
+    // Must pass validation with zero errors
+    const finalIssues = validateArticle({
+      headline: result.headline,
+      lede: result.lede,
+      body: result.body,
+      sources: result.sources,
+      template_type: "breaking",
+      min_word_count: 700,
+    });
+    expect(finalIssues.filter((i) => i.severity === "error").length).toBe(0);
+    expect(canApprove(finalIssues)).toBe(true);
+  });
 });

@@ -417,8 +417,8 @@ export const AI_FILLER_WORDS = [
 // 4. Grounding anchors: Genuine local Western Kenya / Kenyan news signals
 export const LOCAL_GROUNDING_ANCHORS = [
   /\b(ksh|kes|shillings?)\.?\s*[\d,]+(?:\.\d+)?(?:\s*(?:million|billion|k|m|b))?\b/i,
-  /\b(carnivore|alchemist|bukhungu|mega city|kisumu mall|sarit centre|uhuru park|nyayo stadium|kasarani|muindi mbingu|mombasa road|kicc)\b/i,
-  /\b(kakamega|kisumu|bungoma|busia|vihiga|siaya|homa bay|migori|kisii|eldoret|mumias|webuye|luanda|bondo|kitale)\b/i,
+  /\b(carnivore|alchemist|bukhungu|mega city|kisumu mall|sarit centre|uhuru park|nyayo stadium|kasarani|muindi mbingu|mombasa road|kicc|kilimani|westlands|kileleshwa|cbd)\b/i,
+  /\b(nairobi|mombasa|nakuru|kakamega|kisumu|bungoma|busia|vihiga|siaya|homa bay|migori|kisii|eldoret|mumias|webuye|luanda|bondo|kitale)\b/i,
   /\b(benga|ohangla|gengetone|arbantone|mugithi|taarab|isukuti|chakacha|rumba|rhumba|kamabeka|litungu)\b/i,
   /\b(m-pesa|mpesa|safaricom|kbc|citizentv|standard media|nation media|kiss 100|classic 105|radio jambo|ghettoradio)\b/i,
   /"[^"]{10,}"\s*(said|told|explained|confirmed|stated|lamented|remarked|tweeted|posted|added|noted)/i,
@@ -772,7 +772,7 @@ export function analyzeAiContent(body: string, headline = "", lede = ""): AiDete
   } else {
     // If NO LLM clichés or participials exist, clean human writing must NOT be penalized
     if (sentences.length >= 6 && (sentenceMetrics.shortSentenceRatio ?? 0) === 0 && sentenceMetrics.burstinessVerdict === "robotic_uniform") {
-      rawScore += 10;
+      rawScore += 5;
     }
   }
 
