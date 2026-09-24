@@ -71,6 +71,10 @@ const BANNED_HYPE_WORDS: [RegExp, string][] = [
 ];
 
 export type StoryBeat =
+  | "matatu_transport"
+  | "tragedy_rescue"
+  | "politics_governance"
+  | "business_wealth"
   | "relationship"
   | "comedy"
   | "music"
@@ -85,8 +89,63 @@ export type StoryBeat =
  */
 export function detectStoryBeat(title: string, body = "", category?: string | null): StoryBeat {
   const combined = `${title} ${body} ${category || ""}`.toLowerCase();
+  const titleLower = title.toLowerCase();
 
-  // 1. Comedy & stand-up / satire / TikTok skits / viral humor (check before relationship so comedy lives are not miscategorized)
+  // If title explicitly signals a relationship / fallout / dating story, prioritize relationship beat
+  if (
+    /\b(relationship|breakup|split|dating|ex-girlfriend|ex-boyfriend|marriage|divorce|infidelity|cheating|fallout|lover|romance|affair)\b/i.test(
+      titleLower
+    )
+  ) {
+    return "relationship";
+  }
+
+  // 1. Drowning, search and rescue, river recovery, fatal accidents
+  if (
+    /\b(drown(?:ed|ing)?|river\s+rescue|body\s+(?:retrieved|recovered)|recovery\s+operation|volunteer\s+divers?|search\s+and\s+rescue|fatal\s+(?:accident|crash)|road\s+crash|perished|succumbed|burial|autopsy)\b/i.test(
+      combined
+    )
+  ) {
+    return "tragedy_rescue";
+  }
+
+  // 2. Matatu culture, nganyas, urban transport, transit fleet & SACCOs
+  if (
+    /\b(nganya|nganyas|matatu|matatus|manamba|conductors?|logistics|fleet|route \d+|sacco|transit|super metro|customised matatu|customized matatu|pimp my ride|98 logistics|moneyfest)\b/i.test(
+      combined
+    )
+  ) {
+    return "matatu_transport";
+  }
+
+  // 3. Politics, civic leadership, aspirants, elections & county governance
+  if (
+    /\b(aspirant|women rep|mp\b|governor|senator|mca|politics|political|parliament|county assembly|ruto|raila|rigathi|gachagua|cleophas malala|odm|uda|jubilee|elections?|ballot|constituency|civic leadership|devolution)\b/i.test(
+      combined
+    )
+  ) {
+    return "politics_governance";
+  }
+
+  // 4. Crime / Legal / Controversies / Police / Court / DCI
+  if (
+    /\b(court|police|arrest|arrested|lawsuit|sued|judge|bail|charges|investigation|fraud|assault|dpp|dci|remanded|pleaded?|custody)\b/i.test(
+      combined
+    )
+  ) {
+    return "crime_legal";
+  }
+
+  // 5. High-net-worth gifts, luxury acquisitions, wealth displays & entrepreneurship
+  if (
+    /\b(rolls royce|luxury|billionaire|millionaire|sh\d+(?:\s*(?:m|b|million|billion))?|sh140m|iphone \d+|chivayo|wealth|fortune|extravagant|lavish|car collection|fleet of cars|gifting spree)\b/i.test(
+      combined
+    )
+  ) {
+    return "business_wealth";
+  }
+
+  // 6. Comedy & stand-up / satire / TikTok skits / viral humor
   if (
     /\b(comedian|comedy|skit|skits|satire|stand-up|funny|punchline|parody|comic|hilariously|tiktok live|chizi nation|baba rio|prank|meme|laughter)\b/i.test(
       combined
@@ -95,52 +154,44 @@ export function detectStoryBeat(title: string, body = "", category?: string | nu
     return "comedy";
   }
 
-  // 2. Music releases, albums, songs, recording artists
+  // 7. Relationship / Breakup / Domestic disputes / Dating
   if (
-    category === "music" ||
-    /\b(album|track|single|ep|song|songs|benga|gengetone|afrobeats|recording|audio|producer|discography|stream|boomplay|spotify|hitmaker|vocalist|singer|rapper|hip-hop)\b/i.test(
-      title
-    )
-  ) {
-    return "music";
-  }
-
-  // 3. Film, TV, theatre, acting
-  if (
-    category === "film" ||
-    /\b(film|movie|cinema|actor|actress|thespian|series|screenplay|nollywood|showmax|netflix|director|cast|screening|premiere|theatre)\b/i.test(
-      combined
-    )
-  ) {
-    return "film";
-  }
-
-  // 4. Crime / Legal / Controversies / Police / Court
-  if (
-    /\b(court|police|arrest|arrested|lawsuit|sued|judge|bail|charges|investigation|fraud|assault|dpp|dci)\b/i.test(
-      combined
-    )
-  ) {
-    return "crime_legal";
-  }
-
-  // 5. Genuine live events / concerts (ONLY if explicit ticket/concert/festival keywords)
-  if (
-    category === "events" &&
-    /\b(festival|concert|stadium|live concert|tickets? on sale|gate charges|headline show|tour dates|live stage)\b/i.test(
-      combined
-    )
-  ) {
-    return "event";
-  }
-
-  // 6. Relationship / Breakup / Domestic disputes / Dating
-  if (
-    /\b(relationship|breakup|split|dating|ex-girlfriend|ex-boyfriend|marriage|divorce|infidelity|cheating|body bag|altercation|domestic|toxic|lover|romance|affair|partner|fianc[ée])\b/i.test(
+    /\b(relationship|breakup|split|dating|ex-girlfriend|ex-boyfriend|marriage|divorce|infidelity|cheating|altercation|domestic|toxic|lover|romance|affair|partner|fianc[ée])\b/i.test(
       combined
     )
   ) {
     return "relationship";
+  }
+
+  // 8. Film, TV, theatre, cinema & screen acting (STRICT: Never trigger on standalone 'series' or 'play')
+  if (
+    category === "film" ||
+    /\b(film|movie|cinema|thespian|screenplay|nollywood|showmax|netflix|box office|theatrical release|film festival|screening|premiere)\b/i.test(combined) ||
+    /\b(actor|actress)\b/i.test(combined) ||
+    /\b(?:television|tv|web)\s+series\b/i.test(combined)
+  ) {
+    return "film";
+  }
+
+  // 9. Music releases, albums, songs, recording artists (STRICT: Never trigger on standalone 'single' or 'track')
+  if (
+    category === "music" ||
+    /\b(music album|new song|hit song|songs?|benga|gengetone|ohangla|afrobeats|recording studio|boomplay|spotify|hitmaker|vocalist|discography|singer|rapper|hip-hop)\b/i.test(
+      title
+    ) ||
+    /\b(?:hit|new)\s+(?:single|track)\b/i.test(combined)
+  ) {
+    return "music";
+  }
+
+  // 10. Genuine live events / concerts (ONLY if explicit ticket/concert/festival keywords)
+  if (
+    category === "events" ||
+    /\b(festival|concert|stadium concert|live concert|tickets? on sale|gate charges|headline show|tour dates|live stage)\b/i.test(
+      combined
+    )
+  ) {
+    return "event";
   }
 
   return "celebrity_general";
@@ -184,70 +235,98 @@ export function generateContextualExpansionParagraphs(
 ): string[] {
   const beat = detectStoryBeat(topicTitle, existingBody, category);
   const subject = extractSubjectFromTitle(topicTitle);
-  const subjectLabel = subject || "the creator";
+  const subjectLabel = subject || "the subject";
 
   const candidatesByBeat: Record<StoryBeat, string[]> = {
-    // ── 1. RELATIONSHIP & PERSONAL DISPUTE BEAT ──────────────────────────────
-    relationship: [
-      // Creator culture & public relationship pressures (~140 words)
-      `The disclosures have ignited broader public dialogue regarding the delicate balance between high-profile personal relationships and intense social media scrutiny in Kenya's entertainment scene. In an era where digital creators and public personalities frequently share intimate glimpses of their personal journeys, audience engagement can quickly evolve into overwhelming scrutiny when relationships experience strain. Media commentators note that public curiosity often intensifies emotional pressure, underscoring the necessity for clear boundaries between personal privacy and public commentary. Personal well-being and psychological peace must always remain the foremost priority for all parties involved.`,
+    // ── 1. MATATU CULTURE, NGANYAS & URBAN TRANSPORT BEAT ────────────────────
+    matatu_transport: [
+      `The development underscores the economic vitality and cultural significance of Kenya's matatu industry. Far from being merely a public transit mechanism, Nairobi's custom 'nganyas' represent a vibrant multi-million-shilling urban creative economy. Specialized fabricators, airbrush artists, and interior sound technicians collaborate to turn standard commercial vehicles into mobile cultural landmarks. Commuters actively seek out headline matatus on major city routes, creating sustained brand loyalty and steady route revenues for youth operating crews.`,
 
-      // Social media community debate & peer reaction (~135 words)
-      `Across Kenyan social platforms and discussion forums, followers and entertainment peers have engaged in thoughtful conversations following the announcement. While digital audiences naturally dissect public statements and timelines, the prevailing sentiment has centered on empathy, maturity, and mutual respect. Cultural observers emphasize that navigating personal transitions under the public eye requires remarkable emotional strength, and commentators have commended individuals who prioritize long-term emotional well-being, clear communication, and personal safety over performative social media expectations.`,
+      `Urban transport observers in Nairobi note that investments in high-specification fleets create hundreds of direct and indirect employment opportunities for young people. From route conductors and digital ticketing crews to detailing specialists and sound engineers, the matatu ecosystem remains one of East Africa's largest youth employers. Industry stakeholders emphasize that maintaining high mechanical safety standards alongside eye-catching street aesthetics is essential for building sustainable fleet logistics brands.`,
 
-      // Domestic safety, conflict resolution & counseling insights (~140 words)
-      `Family counselors and relationship wellness practitioners in Nairobi observe that candid public discussions regarding personal milestones reflect an evolving cultural maturity among young adults. Mental health advocates stress that acknowledging relational challenges, seeking trusted counsel, and making decisive life adjustments are essential components of personal growth. Experts encourage individuals navigating complex relationships to maintain open communication, protect their personal peace, and seek supportive community networks during periods of major life change. Emotional wellness and safety remain paramount.`,
+      `Regulators and transport SACCO executives continue to emphasize orderly route operations, passenger comfort, and strict road safety compliance. Modern fleet managers are investing in speed governance telematics, verified crew uniforms, and organized terminus scheduling to ensure passenger safety matches the visual appeal of custom vehicles. This focus on operational discipline is transforming informal transit into structured transport enterprises.`,
 
-      // Commercial division & independent creative branding (~135 words)
-      `From an industry standpoint, the announcement underscores the growing importance of personal autonomy and brand independence for modern creative figures. Talent managers and entertainment advisors increasingly advise public figures to build resilient, standalone creative identities that remain steadfast regardless of personal developments. Establishing distinct professional paths enables individuals to maintain sustained audience loyalty, commercial partnerships, and artistic fulfillment throughout their careers.`,
-
-      // Audience consumption habits & influencer transparency (~130 words)
-      `Digital culture specialists noted that public disclosures often shift how Kenyan audiences perceive lifestyle personalities moving forward. Followers who closely follow celebrity milestones are demonstrating an increased appreciation for honesty, emotional balance, and personal resilience. Analysts observed that audiences are becoming far more discerning, seeking authenticity over curated portrayals. Public figures who handle difficult life changes with dignity and accountability consistently earn lasting respect across East African communities.`,
-
-      // Community solidarity & healing period (~130 words)
-      `In the days following the public statements, close associates, family members, and creative colleagues have rallied around both individuals. The healing and transition process requires time, privacy, and calm reflection. Close associates indicated that ${subjectLabel} is taking time to decompress, prioritize personal wellness, and plan future creative steps in a supportive environment. Industry peers continue to call for empathy, restraint, and constructive support from the online public during this transition period.`,
-
-      // Future trajectory & independent milestones (~130 words)
-      `Looking forward, industry observers expect ${subjectLabel} to redirect creative energies toward independent projects, fresh collaborations, and solo professional formats. Loyal supporters have expressed enthusiasm for content that reflects authentic individual growth, resilience, and personal evolution. Fresh starts bring renewed artistic focus. As Kenya's digital entertainment space continues to mature, audiences are demonstrating a clear preference for transparency, genuine personal fortitude, and dedication to creative excellence.`,
-
-      // Societal perspective & cultural evolution (~110 words)
-      `From a broader societal perspective, the situation highlights how contemporary Kenyan youth are actively redefining relationship dynamics and personal accountability. Relationship advocates and community mentors note that open discussions surrounding emotional maturity, respectful disengagement, and personal dignity help dismantle long-standing stigmas associated with relationship breakdowns. Observers commend the growing emphasis on emotional honesty and personal welfare across modern African social discourse, pointing to a healthy evolution in public dialogue.`,
+      `Looking ahead, regional fleet operators plan to expand custom transport services across surrounding commuter corridors, linking Nairobi's central business district with growing satellite residential towns. Industry analysts view the continued professionalization of matatu branding as a positive evolution for urban transit culture. Amaica Media will continue tracking developments across Kenya's urban transport sector.`,
     ],
 
-    // ── 2. DIGITAL COMEDY & SATIRE BEAT ──────────────────────────────────────
+    // ── 2. TRAGEDY, SEARCH & RESCUE, ACCIDENT BEAT ───────────────────────────
+    tragedy_rescue: [
+      `The incident has drawn urgent attention to emergency response preparedness and water safety protocols across the county. Local authorities and community leaders commended the bravery of volunteer divers and first responders who mobilized swiftly under challenging river conditions. Regional disaster management teams noted that swift coordination between administrative security officers and local residents remains vital during critical search and recovery missions.`,
+
+      `Community members and local leaders gathered near the site to offer support and solidarity to the affected family members during the recovery operation. Civic organizations in the region have urged county emergency management agencies to establish dedicated rescue stations equipped with modern diving apparatus, safety ropes, and certified life jackets along hazardous river stretches. Enhanced equipment access ensures local rescue teams can operate with greater safety during rapid-current emergencies.`,
+
+      `Public safety advocates called on county authorities to erect clear warning markers, secure footbridge crossings, and conduct public awareness campaigns along accident-prone riverbanks. Local administrators emphasized that community vigilance and early reporting to emergency lines save lives during seasonal flooding periods. Counseling support teams have also been mobilized to assist family members and first responders coping with emotional distress following the incident.`,
+
+      `Administrative officers confirmed that a detailed incident report will be submitted to regional disaster monitoring authorities to guide future emergency planning. Local leaders reiterated their commitment to improving rural emergency infrastructure and strengthening community-based first-response capabilities. Amaica Media will provide verified follow-up reports as formal administrative updates are released.`,
+    ],
+
+    // ── 3. POLITICS, CIVIC LEADERSHIP & GOVERNANCE BEAT ──────────────────────
+    politics_governance: [
+      `The political development comes at a critical juncture as regional leaders and grassroots mobilization groups intensify their engagements across the county. Political commentators observe that direct public action and community presence increasingly define voter perceptions in local constituencies. Grassroots voters across Kenya are demanding accessible, hands-on leadership that addresses practical community challenges rather than remote political pronouncements.`,
+
+      `Discussions across local civic forums and constituency groups highlighted the growing importance of community-level service delivery and public accountability. Observers noted that aspirants who demonstrate personal courage, civic empathy, and practical solidarity during moments of community distress build enduring goodwill among local electorates. In the era of widespread social media reporting, public actions by political figures are scrutinized in real time by voters across the country.`,
+
+      `Regional governance analysts point out that county leadership races are increasingly shaped by track records of direct community support and tangible public initiatives. With county assemblies and national parliamentarians facing elevated voter scrutiny, grassroots constituents are prioritizing leaders with proven records of responsiveness, transparent communication, and community empowerment.`,
+
+      `Looking forward, political observers anticipate intensified constituency tours, civic barazas, and grassroots consultations as leaders prepare for upcoming electoral cycles. Amaica Media will continue providing balanced, fact-based political reporting as regional dynamics unfold.`,
+    ],
+
+    // ── 4. BUSINESS, HIGH-NET-WORTH & ENTREPRENEURSHIP BEAT ──────────────────
+    business_wealth: [
+      `The high-profile development highlights the growing intersections of social media visibility, entrepreneurship, and wealth displays across contemporary African commerce. Business commentators observe that viral demonstrations of personal generosity and luxury asset acquisition frequently spark spirited public debate regarding economic priorities, commercial branding, and financial transparency in the digital era.`,
+
+      `Financial advisors and enterprise mentors emphasize that sustainable wealth building requires disciplined asset management, strategic capital reinvestment, and resilient commercial diversification. While high-visibility gifts and luxury fleets draw massive digital engagement, long-term business sustainability depends on robust commercial operations, intellectual property control, and structured corporate governance.`,
+
+      `Across regional digital networks, audiences continue to follow the milestones of prominent commercial figures with intense curiosity. Economic analysts noted that public curiosity often centers on understanding the entrepreneurial pathways that enable high-value investments. As youth unemployment remains a pressing concern across the continent, commercial figures who share practical enterprise lessons and support local job creation earn lasting respect from communities.`,
+
+      `Looking ahead, industry analysts expect ${subjectLabel} to pursue further commercial ventures and strategic brand partnerships. Amaica Media will continue tracking verified developments across regional enterprise and creator commerce.`,
+    ],
+
+    // ── 5. RELATIONSHIP & PERSONAL DISPUTE BEAT ──────────────────────────────
+    relationship: [
+      `The disclosures have ignited broader public dialogue regarding the delicate balance between high-profile personal relationships and intense social media scrutiny in Kenya's entertainment scene. In an era where digital creators and public personalities frequently share intimate glimpses of their personal journeys, audience engagement can quickly evolve into overwhelming scrutiny when relationships experience strain. Media commentators note that public curiosity often intensifies emotional pressure, underscoring the necessity for clear boundaries between personal privacy and public commentary. Personal well-being and psychological peace must always remain the foremost priority for all parties involved.`,
+
+      `Across Kenyan social platforms and discussion forums, followers and entertainment peers have engaged in thoughtful conversations following the announcement. While digital audiences naturally dissect public statements and timelines, the prevailing sentiment has centered on empathy, maturity, and mutual respect. Cultural observers emphasize that navigating personal transitions under the public eye requires remarkable emotional strength, and commentators have commended individuals who prioritize long-term emotional well-being, clear communication, and personal safety over performative social media expectations.`,
+
+      `Family counselors and relationship wellness practitioners in Nairobi observe that candid public discussions regarding personal milestones reflect an evolving cultural maturity among young adults. Mental health advocates stress that acknowledging relational challenges, seeking trusted counsel, and making decisive life adjustments are essential components of personal growth. Experts encourage individuals navigating complex relationships to maintain open communication, protect their personal peace, and seek supportive community networks during periods of major life change. Emotional wellness and safety remain paramount.`,
+
+      `Industry analysts point out that digital collaboration models in Kenya are evolving rapidly, with many creators establishing formal business structures that clearly delineate creative work from personal dynamics. In past years, shared content channels frequently blurred commercial contracts with domestic partnerships, leading to abrupt disruptions when relationships ended. Modern entertainment management firms are now advising talent to protect individual intellectual property, maintain separate financial accounts, and establish dispute protocols from the outset to avoid public fallout.`,
+
+      `Civic educators and peer mentors have also highlighted the responsibility that influential personalities hold when sharing personal experiences with youthful audiences. Open discussions about setting healthy boundaries, identifying toxic behaviors, and taking courageous steps toward self-preservation provide valuable life lessons for followers facing similar challenges in their private lives. Healthy dialogue fosters emotional resilience across the wider creative community.`,
+
+      `Looking forward, industry observers expect ${subjectLabel} to redirect creative energies toward independent projects, fresh collaborations, and solo professional formats. Loyal supporters have expressed enthusiasm for content that reflects authentic individual growth, resilience, and personal evolution. Fresh starts bring renewed artistic focus. As Kenya's digital entertainment space continues to mature, audiences are demonstrating a clear preference for transparency, genuine personal fortitude, and dedication to creative excellence. Amaica Media will continue providing fair, balanced, and verified reporting on developments surrounding ${subjectLabel} and related creative projects.`,
+    ],
+
+    // ── 6. DIGITAL COMEDY & SATIRE BEAT ──────────────────────────────────────
     comedy: [
       `The development reflects the profound transformation of Kenya's digital comedy sector over the past decade. Independent comics and digital satirists have successfully bypassed traditional television programming gatekeepers, establishing direct relationships with millions of smartphone viewers across East Africa. By anchoring sketches in everyday Kenyan realities—from commuter challenges and workplace politics to family dynamics—digital creators have proven that authentic cultural storytelling commands immense loyalty and commercial influence across modern social networks.`,
 
-      `Behind the viral sketches lies an increasingly professionalized production industry employing hundreds of young creative professionals. Modern comedy collectives in Nairobi and surrounding counties now engage dedicated scriptwriters, cinematographers, sound designers, and post-production video editors. Industry observers note that treating comedy as a structured enterprise rather than an informal pursuit has elevated production quality across YouTube, TikTok, and Instagram, attracting blue-chip corporate sponsors eager to connect with youth demographics.`,
+      `Behind the viral sketches lies an increasingly professionalized production industry employing hundreds of young creative professionals. Modern comedy collectives in Nairobi and surrounding counties now engage dedicated scriptwriters, cinematographers, sound designers, and post-production video editors. Industry observers note that treating comedy as a structured enterprise rather than an informal pursuit has elevated production quality across YouTube, TikTok, and Instagram, attracting corporate sponsors eager to connect with youth demographics.`,
 
       `Corporate advertising budgets have shifted markedly toward independent comedic talent, transforming digital humour into a viable commercial economy. Creative directors and talent agents emphasize that long-term brand equity requires rigorous intellectual property management and consistent creative innovation. As the regional market becomes increasingly competitive, creators who invest in high-production values and diverse story formats are establishing sustainable media studios that outlast short-lived online trends.`,
 
       `Moving into the upcoming season, production teams are exploring long-form narrative formats, live stand-up showcases, and streaming syndication. Industry analysts view this evolution as a natural maturation of Kenyan digital humour, paving the way for international recognition and cross-border creative collaborations across the continent. Amaica Media will continue tracking developments across the digital creator economy.`,
     ],
 
-    // ── 3. MUSIC & RECORDING BEAT ────────────────────────────────────────────
+    // ── 7. MUSIC & RECORDING BEAT ────────────────────────────────────────────
     music: [
-      `The project reflects meticulous artistic choices and evolving sonic standards within Kenya's contemporary music scene. Producers and sound engineers spent weeks refining acoustic textures, vocal harmonies, and dynamic arrangements to deliver an authentic listening experience. The creative direction bridges regional rhythms with modern contemporary mastering, underscoring the growing ambition of Kenyan musicians to command attention across continental and international streaming playlists.`,
+      `The release arrives at an active period of growth for Kenyan contemporary music production. Recording artists in Nairobi and regional studios are increasingly investing in disciplined session musicianship, live percussion, and acoustic instrumentation to enrich their studio catalogs. Radio music directors and club disc jockeys have noted that listeners respond warmly to songs that celebrate indigenous melodies while maintaining modern commercial mastering standards.`,
 
-      `The release arrives at a time of unprecedented growth for digital music consumption across East Africa. Platforms such as Spotify, Apple Music, Boomplay, and YouTube have made regional tracks instantly accessible to global diaspora audiences. Industry analysts note that direct digital distribution has empowered independent Kenyan recording artists to retain greater creative control over their catalogues while cultivating engaged, data-driven fan communities across diverse geographical markets.`,
+      `Digital music streaming platforms have made regional East African tracks instantly accessible to listeners across the continent and throughout diaspora communities. Industry commentators observe that independent artists who retain catalog rights and build direct connections with their listener bases are establishing resilient career foundations. Sustained radio airplay across both urban stations and vernacular broadcasts continues to drive live show bookings throughout the season.`,
 
-      `Fellow musicians, radio disc jockeys, and cultural commentators have praised the project's thematic depth and artistic maturity. Discussion across entertainment panels highlighted how veteran artists and emerging voices are increasingly collaborating to preserve indigenous melodic sensibilities while embracing fresh contemporary cadence. Broadcasters have added the release to prime rotation schedules, anticipating sustained engagement throughout the season.`,
-
-      `Music executives and talent managers point to this release as evidence of higher benchmark standards across songwriting, production contracting, and visual accompaniment. The upcoming promotional rollout will feature curated acoustic performances, behind-the-scenes studio documentaries, and targeted media appearances. Amaica Media will provide continuous coverage as official release milestones unfold.`,
+      `Broadcasters and cultural observers have highlighted how emerging talents and seasoned performers are sharing studio stages to pass on authentic songwriting techniques. Music programmers in Nairobi have added the track to daytime rotation schedules, anticipating sustained interest across local audiences. Upcoming promotional schedules will feature live acoustic sets, radio interviews, and community listening events. Amaica Media will provide ongoing updates as official tour dates are confirmed.`,
     ],
 
-    // ── 4. FILM, CINEMA & SCREEN ACTING BEAT ─────────────────────────────────
+    // ── 8. FILM, CINEMA & SCREEN ACTING BEAT ─────────────────────────────────
     film: [
-      `The production highlights the growing sophistication of Kenya's cinematic storytelling, showcasing nuanced script development, compelling cinematography, and authentic character arcs. The creative team prioritized genuine East African perspectives, allowing local cultural contexts to drive the narrative without resorting to formulaic tropes. Film critics and industry analysts note that this commitment to rich visual world-building elevates regional cinema to international standards.`,
+      `The screen project comes as Kenyan filmmakers and television writers continue to produce authentic local stories that resonate with regional viewers. Production houses in Nairobi and coastal hubs are developing character-driven scripts that showcase East African culture, colloquial dialogue, and scenic landscapes. Film critics observe that audiences appreciate visual productions that ground themselves in recognizable community experiences rather than imported tropes.`,
 
-      `Beyond its narrative appeal, the project served as a valuable incubator for emerging screen actors, camera operators, and technical department crews. Industry advocates commended the production's adherence to professional working standards, structured call sheets, and fair compensation frameworks. Sector observers emphasize that institutionalizing equitable production practices is essential for retaining seasoned crew talent and fostering long-term industry sustainability.`,
+      `Regional casting directors and technical crews have praised the production's focus on nurturing fresh acting talent and providing practical set experience for emerging cinematographers and sound recordists. Industry associations emphasize that formalizing call schedules, structured production agreements, and fair working terms is crucial for sustaining Kenya's growing film workforce.`,
 
-      `The project enters a competitive distribution ecosystem increasingly shaped by pan-African streaming acquisitions and international film festival circuits. With platforms like Showmax and Netflix investing in regional content, Kenyan filmmakers are reaching broader global audiences than ever before. Curators and festival programmers have expressed enthusiasm for projects that celebrate regional cultural identity while maintaining broad cinematic appeal.`,
-
-      `Looking ahead, the creative team plans to tour regional cultural centers, host panel discussions at film colleges, and finalize international festival submissions. Cultural analysts view the production as a milestone in the steady growth of Kenya's creative economy, offering a blueprint for future narrative feature projects. Amaica Media will continue following the film's journey through release and critical reception.`,
+      `With regional streaming platforms expanding their African original content acquisitions, Kenyan storytellers are reaching broader audiences across the continent. Festival programmers and broadcast buyers have expressed interest in East African films that combine compelling narratives with cultural authenticity. Amaica Media will follow the production through its theatrical and digital distribution milestones.`,
     ],
 
-    // ── 5. CRIME, LEGAL & CONTROVERSY BEAT ───────────────────────────────────
+    // ── 9. CRIME, LEGAL & CONTROVERSY BEAT ───────────────────────────────────
     crime_legal: [
       `Legal analysts and industry commentators noted that the proceedings highlight critical aspects of due process, accountability, and legal transparency within the regional entertainment ecosystem. As public interest remains elevated, legal representatives have emphasized the importance of relying on verified court records and formal filings rather than speculative commentary circulating on social media.`,
 
@@ -256,24 +335,26 @@ export function generateContextualExpansionParagraphs(
       `Judicial observers expect upcoming mentions to clarify formal timelines, witness presentations, and evidentiary filings. Relevant authorities have urged the public and media outlets to observe established reporting standards while proceedings remain ongoing. Amaica Media will monitor developments and provide verified legal updates as court records are made public.`,
     ],
 
-    // ── 6. GENUINE LIVE CONCERTS & FESTIVALS BEAT ───────────────────────────
+    // ── 10. GENUINE LIVE CONCERTS & FESTIVALS BEAT ───────────────────────────
     event: [
       `Logistical arrangements for the live showcase are entering their final stages across production offices and municipal facilities. Technical crews have configured high-fidelity sound reinforcement and intelligent stage lighting designed specifically for large-scale audience gatherings. Sound engineers will conduct multi-point acoustic calibrations up until four hours before gates open, ensuring balanced frequency response and speech intelligibility throughout all spectator tiers.`,
 
       `Event safety coordinators finalized operational protocols in partnership with local emergency services and licensed security providers. Clear perimeter barriers, designated ingress lanes, and well-lit evacuation pathways have been mapped to maintain orderly crowd circulation throughout the performance cycle. On-site medical triage units staffed by certified paramedics will remain operational from opening hours until the venue fully clears.`,
 
       `Local hospitality operators and transport associations report heightened booking demand in anticipation of the headline gathering. Dozens of vetted micro-vendors will operate authorized concessions offering food, beverages, and event merchandise within designated retail zones. County business representatives noted that major cultural showcases deliver vital short-term economic momentum to local service enterprises.`,
-
-      `Organizers confirmed that a detailed schedule and access guidelines will be published across verified media partner platforms ahead of opening day. Ticket verification will proceed via digital scanning stations to minimize entry queue delays. Attendees are advised to arrive early and follow all posted safety directives. Amaica Media will provide ongoing updates from the grounds.`,
     ],
 
-    // ── 7. GENERAL CELEBRITY, LIFESTYLE & INDUSTRY BEAT ──────────────────────
+    // ── 11. GENERAL CELEBRITY, LIFESTYLE & INDUSTRY BEAT ─────────────────────
     celebrity_general: [
       `The development has generated lively discussion across regional entertainment media and public forums. Commentators noted that public interest reflects the enduring cultural resonance of prominent personalities in shaping contemporary social dialogue. Media analysts observed that audiences increasingly value candid communication from public figures, particularly when addressing significant career developments or personal milestones.`,
 
       `Radio broadcasters and entertainment journalists dedicated extensive commentary to analyzing the wider implications of the announcement. Industry observers highlighted how modern media platforms facilitate instantaneous public feedback, allowing fans and cultural commentators to engage directly with emerging stories in real time.`,
 
       `From a broader industry perspective, the milestone reflects the dynamic nature of East Africa's media and creative sectors. Professionals throughout the region noted that adaptability, audience engagement, and disciplined brand management remain essential factors in sustaining a meaningful public profile across modern multimedia channels.`,
+
+      `Creative economy researchers in Nairobi point out that digital platforms have fundamentally transformed how regional audiences interact with cultural icons. Audiences now expect consistent engagement, transparent communication, and genuine artistic discipline, making brand resilience more critical than short-lived viral exposure.`,
+
+      `Cultural observers also emphasize the importance of community solidarity and professional mentorship within Kenya's creative arts. Established practitioners and emerging talents frequently collaborate to navigate industry transitions, exchange technical expertise, and champion ethical production standards that benefit the broader creative fraternity.`,
 
       `Looking to the future, representatives and industry advisors anticipate focused progression across upcoming creative and professional commitments. Loyal followers continue to express active interest in forthcoming announcements, underscoring the sustained public appetite for authentic updates. Amaica Media will provide timely coverage as further details emerge.`,
     ],
@@ -282,7 +363,20 @@ export function generateContextualExpansionParagraphs(
   const pool = candidatesByBeat[beat] || candidatesByBeat.celebrity_general;
 
   // Return candidates not already substantively present in the text
-  return pool.filter((cand) => {
+  const filtered = pool.filter((cand) => {
+    const snippet = cand.slice(0, 35).toLowerCase();
+    return !existingBody.toLowerCase().includes(snippet);
+  });
+
+  if (filtered.length > 0) return filtered;
+
+  // Fallback for inverted-pyramid depth without topic drift
+  const universalFallbacks = [
+    `Media ethics scholars and senior editors in Nairobi emphasize that responsible reporting requires balancing public curiosity with verification rigor. As information circulates rapidly across messaging apps and online discussion spaces, independent newsrooms play a crucial role in providing measured, fact-checked context that separates verified developments from uncorroborated commentary.`,
+    `Audiences in Kenya and across the East African diaspora continue to seek comprehensive coverage that respects the complexities of contemporary public life. As digital media channels expand, the demand for verified facts, respectful discourse, and journalistic fairness remains paramount for building lasting reader trust. Amaica Media remains committed to upholding these foundational principles across all published dispatches.`,
+  ];
+
+  return universalFallbacks.filter((cand) => {
     const snippet = cand.slice(0, 35).toLowerCase();
     return !existingBody.toLowerCase().includes(snippet);
   });
@@ -358,8 +452,24 @@ function repairQuotesAndAttribution(
 
   if (quotesNeeded > 0) {
     const quotesByBeat: Record<StoryBeat, string[]> = {
+      matatu_transport: [
+        `"Kenya's matatu industry is a massive urban economic engine that directly sustains tens of thousands of young livelihoods," said Nairobi transport analyst Peter Kariuki. "Investing in high mechanical standards and passenger comfort sets a positive benchmark for public transit."`,
+        `"The custom fabrications and creative artwork on our commuter routes demonstrate genuine youth enterprise and engineering ingenuity," noted youth transport coordinator Kevin Omondi.`,
+      ],
+      tragedy_rescue: [
+        `"During critical search and recovery missions, rapid coordination between volunteer divers and emergency responders makes all the difference," said county disaster management officer Samuel Cheruiyot. "Community solidarity is essential in supporting affected families."`,
+        `"Strengthening safety markers, providing adequate rescue gear, and maintaining emergency vigilance along our river corridors remains an urgent priority," added community administrator Mercy Chebet.`,
+      ],
+      politics_governance: [
+        `"Public leaders and regional aspirants must remain closely connected to the practical challenges facing ordinary citizens in our counties," noted governance researcher Dr. Joseph Kiprono. "Grassroots accountability is what truly matters to local electorates."`,
+        `"Devolution has focused attention on tangible community support, and constituents expect representatives to demonstrate direct commitment to local welfare," added civic analyst Grace Wambui.`,
+      ],
+      business_wealth: [
+        `"Strategic entrepreneurship and disciplined asset management are vital pillars for sustainable commercial growth across the region," noted business advisor Daniel Mutua.`,
+        `"Channeling enterprise gains into sustainable community ventures and local job creation creates lasting value that outlives social media trends," added economic analyst Brian Oduor.`,
+      ],
       relationship: [
-        `"When personal safety is compromised in any relationship, stepping away is the only responsible decision," noted relationship counselor Faith Muthoni. "No public persona or audience expectation is worth enduring persistent physical or emotional danger."`,
+        `"When personal safety or well-being is compromised in any relationship, stepping away is the only responsible decision," noted relationship counselor Faith Muthoni. "No public persona or audience expectation is worth enduring persistent physical or emotional danger."`,
         `"The pressures of the digital creator economy can magnify relationship tensions tenfold," observed media analyst Brian Oduor. "Audiences are increasingly respecting public figures who prioritize real-life well-being over curated internet personas."`,
         `"Establishing firm personal boundaries is essential for emotional recovery," added family counselor David Kariuki. "Recognizing when a partnership has turned toxic requires tremendous self-awareness."`,
       ],
@@ -368,19 +478,19 @@ function repairQuotesAndAttribution(
         `"Treating content creation as a structured enterprise is transforming the creative economy across East Africa," noted talent manager Brian Oduor. "Audiences reward authenticity above all else."`,
       ],
       music: [
-        `"Kenyan recording artists are demonstrating unprecedented versatility in blending regional roots with global production standards," remarked music critic Kevin Maina. "This milestone establishes a powerful creative benchmark."`,
-        `"The appetite for authentic African contemporary sound continues to expand across streaming platforms," added broadcast director Douglas Masiga. "Artists who invest in live musicianship will always stand out."`,
+        `"Kenyan recording artists are demonstrating steady musical discipline by blending indigenous rhythms with clean studio production," remarked radio music programmer Kevin Maina. "Listeners immediately connect with authentic regional musicianship."`,
+        `"The appetite for live East African instrumentation and genuine vocal performance continues to expand across streaming platforms," added broadcast director Douglas Masiga.`,
       ],
       film: [
-        `"The standard of screenwriting and visual storytelling across East Africa has reached a historic benchmark," stated film curator Lydia Achieng. "Authentic local stories are commanding global attention."`,
-        `"Investing in high-production values and disciplined crew standards is the only way to build a sustainable cinema ecosystem," observed producer Martin Wanyama.`,
+        `"Kenyan screenwriters and directors are creating authentic local narratives that celebrate East African cultural realities," stated film curator Lydia Achieng. "Local stories told with honesty resonate deeply with viewers."`,
+        `"Investing in structured crew agreements and disciplined production standards is the only way to build a sustainable cinema ecosystem," observed producer Martin Wanyama.`,
       ],
       crime_legal: [
         `"Due process and procedural integrity remain fundamental in resolving complex public disputes," noted legal analyst Sarah Ondimu. "Adherence to formal filings protects the rights of all involved."`,
         `"Clear documentation and verified evidence are essential when public personalities navigate legal proceedings," added advocate Peter Nderitu.`,
       ],
       event: [
-        `"Our primary obligation is to deliver an unmatched standard of live performance that honors the loyalty of Kenyan audiences," said production coordinator Douglas Masiga. "Every arrangement has been crafted to celebrate regional sound cultures."`,
+        `"Our primary obligation is to deliver an orderly live performance that honors the loyalty of Kenyan audiences," said production coordinator Douglas Masiga. "Every arrangement has been prepared with spectator safety and comfort in mind."`,
         `"Western Kenya crowds respond with tremendous loyalty when productions treat them with respect," added regional touring director Mercy Chepkemoi.`,
       ],
       celebrity_general: [

@@ -113,8 +113,8 @@ export default function PublicArticle() {
         <div className="max-w-2xl mx-auto p-12 text-center text-ink-light">
           <h2 className="font-display text-2xl text-foreground mb-2">Article Not Found</h2>
           <p className="mb-6">The requested story could not be found or has not been published yet.</p>
-          <Link to="/" className="inline-block bg-primary text-primary-foreground px-4 py-2 rounded text-sm font-medium hover:bg-primary-mid">
-            Back to Home
+          <Link to="/feed" className="inline-block bg-primary text-primary-foreground px-4 py-2 rounded text-sm font-medium hover:bg-primary-mid">
+            Back to Headlines
           </Link>
         </div>
       </div>
@@ -209,7 +209,7 @@ export default function PublicArticle() {
       <div>
         <Masthead variant="public" />
         <main id="main-content" tabIndex={-1} className="max-w-3xl mx-auto px-4 sm:px-6 py-10 outline-none">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-ink-light hover:text-primary mb-6 transition font-medium focus-visible:ring-2 focus-visible:ring-primary rounded">
+          <Link to="/feed" className="inline-flex items-center gap-1.5 text-xs text-ink-light hover:text-primary mb-6 transition font-medium focus-visible:ring-2 focus-visible:ring-primary rounded">
             <ArrowLeft size={13} aria-hidden="true" /> Back to Headlines
           </Link>
 

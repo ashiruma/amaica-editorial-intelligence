@@ -8,7 +8,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-12 border-b border-primary-foreground/15">
           {/* Brand & Mission */}
           <div className="md:col-span-2">
-            <Link to="/" className="font-display text-2xl font-bold tracking-tight inline-block mb-3">
+            <Link to="/feed" className="font-display text-2xl font-bold tracking-tight inline-block mb-3">
               Amaica <span className="text-accent">MEDIA</span>
             </Link>
             <p className="text-primary-foreground/80 text-sm leading-relaxed max-w-md mb-4">
@@ -31,7 +31,7 @@ export function Footer() {
               <li><Link to="/category/events" className="hover:text-accent transition">Concerts & Events</Link></li>
               <li><Link to="/category/film" className="hover:text-accent transition">Film & TV</Link></li>
               <li><Link to="/category/celebrity" className="hover:text-accent transition">Celebrity & Culture</Link></li>
-              <li><Link to="/newsroom/legends" className="hover:text-accent transition">Our Legends</Link></li>
+              <li><Link to="/legends/today" className="hover:text-accent transition">Kenyan Legends</Link></li>
             </ul>
           </div>
 

@@ -61,12 +61,28 @@ export default function LegendPage() {
 
   useEffect(() => {
     if (!id) return;
-    supabase
-      .from("legend_features")
-      .select("id, feature_date, headline, tribute, hero_image_url, legends(name, country, era, field, short_bio, impact)")
-      .eq("id", id).maybeSingle()
+    const query = id === "today"
+      ? supabase
+          .from("legend_features")
+          .select("id, feature_date, headline, tribute, hero_image_url, legends(name, country, era, field, short_bio, impact)")
+          .order("feature_date", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : supabase
+          .from("legend_features")
+          .select("id, feature_date, headline, tribute, hero_image_url, legends(name, country, era, field, short_bio, impact)")
+          .eq("id", id)
+          .maybeSingle();
+
+    query
       .then(({ data }) => {
-        if (data) setF(data as unknown as Feature);
+        if (data) {
+          const lData = data as unknown as Feature;
+          const country = lData.legends?.country?.toLowerCase();
+          if (!country || country === "kenya") {
+            setF(lData);
+          }
+        }
       })
       .catch(() => {});
     supabase
@@ -86,11 +102,11 @@ export default function LegendPage() {
     <div className="min-h-screen bg-background">
       <Masthead variant="public" />
       <main id="main-content" tabIndex={-1} className="max-w-4xl mx-auto px-4 sm:px-6 py-8 outline-none">
-        <Link to="/" className="text-xs text-ink-light hover:text-primary inline-flex items-center gap-1 mb-4">
-          <ArrowLeft size={12} /> Back
+        <Link to="/feed" className="text-xs text-ink-light hover:text-primary inline-flex items-center gap-1 mb-4">
+          <ArrowLeft size={12} /> Back to Feed
         </Link>
         <div className="label-eyebrow text-accent mb-2 inline-flex items-center gap-1">
-          <Crown size={12} /> Our Legends · {new Date(f.feature_date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
+          <Crown size={12} /> Kenyan Legends · {new Date(f.feature_date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
         </div>
         <h1 className="font-display text-4xl md:text-5xl leading-tight mb-2">{f.headline}</h1>
         {l && (

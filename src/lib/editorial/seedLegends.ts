@@ -121,6 +121,106 @@ export const SEED_LEGENDS: LegendItem[] = [
 <p>Amaica Media pays homage to Fundi Konde: the visionary engineer, acoustic pioneer, and mentor whose strings ignited the Kenyan soundscape.</p>
     `.trim(),
   },
+  {
+    id: "legend-e-sir",
+    name: "E-Sir (Issah Mmari)",
+    country: "Kenya",
+    era: "1999 – 2003",
+    field: "Kapuka & Urban Rap Icon",
+    short_bio: "South C lyrical prodigy who transformed Kenyan pop music with infectious Swahili rhyme schemes and street poetry.",
+    impact: "Proved that local Sheng cadence could dominate mainstream commercial radio, inspiring generations of modern urban musicians.",
+    active: true,
+    feature_date: "2026-09-18",
+    headline: "E-Sir: The Immortal Voice of Kenya's Urban Renaissance",
+    hero_image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80",
+    tribute: `
+<p>Few recording artists in East African history captured the youthful spirit and swagger of urban Nairobi with greater brilliance than Issah Mmari, known universally as E-Sir. Rising from South C estate in the early 2000s under Ogopa Deejays, E-Sir transformed Kenyan radio with an effortless flow, clever Sheng wordplay, and undeniable charisma.</p>
+
+<p>Anthems such as "Mos Mos", "Boomba Train", "Hamunitishi", and "Leo ni Leo" bridged generational divides. His lyrical cadence proved that contemporary African hip-hop did not need to imitate foreign sounds to command mass appeal. He spoke the authentic language of Nairobi streets with charm and lyrical dexterity.</p>
+
+<p>Though his life was tragically cut short in March 2003, his artistic imprint remains permanent. Amaica Media celebrates E-Sir as an immortal Kenyan legend whose rhymes set the gold standard for East African urban music.</p>
+    `.trim(),
+  },
+  {
+    id: "legend-queen-jane",
+    name: "Queen Jane (Jane Nyambura)",
+    country: "Kenya",
+    era: "1980s – 2010",
+    field: "Central Kenya Benga Pioneer",
+    short_bio: "Trailblazing benga vocalist and bandleader whose emotive storytelling and sweet melodies captured millions of hearts.",
+    impact: "Broke through male-dominated traditional benga to lead Queenja Les Les, opening doors for female bandleaders across Kenya.",
+    active: true,
+    feature_date: "2026-09-17",
+    headline: "Queen Jane: The Unrivaled Songstress of Central Kenya Benga",
+    hero_image_url: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80",
+    tribute: `
+<p>In a benga music industry historically dominated by male guitarists, Jane Nyambura rose with unmatched vocal elegance, emotional honesty, and fierce independence. Performing as Queen Jane alongside her outfit Queenja Les Les, she captivated audiences with timeless hits including "Nduththe", "Mukuwe", and "Gakondo".</p>
+
+<p>Her songs chronicled the everyday joys, romantic dilemmas, and social realities of ordinary Kenyan families. With soaring lead vocals and tight, danceable benga guitar licks, she packed concert halls across Nairobi, Central Kenya, and the diaspora for over two decades.</p>
+
+<p>Amaica Media pays homage to Queen Jane: a courageous cultural pioneer whose voice remains an enduring treasure of Kenyan musical heritage.</p>
+    `.trim(),
+  },
+  {
+    id: "legend-mzee-ojwang",
+    name: "Mzee Ojwang (Benson Wanjau)",
+    country: "Kenya",
+    era: "1960s – 2015",
+    field: "Television & Comedy Pioneer",
+    short_bio: "The beloved father of Kenyan comedy whose hilarious television patriarch role on Vitimbi entertained the nation for decades.",
+    impact: "United households across ethnic and linguistic divides through clean family humor and masterclass character acting.",
+    active: true,
+    feature_date: "2026-09-16",
+    headline: "Mzee Ojwang: The Immortal Patriarch of Kenyan Comedy",
+    hero_image_url: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop&q=80",
+    tribute: `
+<p>For more than thirty years on the Kenya Broadcasting Corporation (KBC), television sets across the country fell silent with anticipation whenever Benson Wanjau, universally known as Mzee Ojwang Hatari, appeared on screen. Sporting his iconic feather-adorned hat and humorous Luo-accented Swahili, Mzee Ojwang became the quintessential national father figure.</p>
+
+<p>Alongside Mama Kayai (Mary Khavere), he anchored long-running family dramas <em>Darubini</em> and <em>Vitimbi</em>. His comedic timing defused national tensions, exposed marital foibles, and offered moral guidance with gentle hilarity. At a time when national unity was paramount, Mzee Ojwang proved that humor transcends all ethnic boundaries.</p>
+
+<p>Amaica Media honors Mzee Ojwang as the supreme pioneer of Kenyan television acting, whose laughter illuminated living rooms across the Republic for generations.</p>
+    `.trim(),
+  },
+  {
+    id: "legend-do-misiani",
+    name: "D.O. Misiani",
+    country: "Kenya",
+    era: "1960s – 2006",
+    field: "Benga Patriarch & Shirati Jazz Leader",
+    short_bio: "Fierce bandleader of Shirati Jazz who fused lakeside folk philosophy with blistering electric benga guitar arrangements.",
+    impact: "Elevated Kenyan benga into an internationally celebrated dance music genre across Europe, America, and the African continent.",
+    active: true,
+    feature_date: "2026-09-15",
+    headline: "D.O. Misiani: The Undisputed King of Benga",
+    hero_image_url: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&auto=format&fit=crop&q=80",
+    tribute: `
+<p>Daniel Owino Misiani was widely recognized as the grandfather of benga music. Leading the legendary Shirati Jazz Band, Misiani revolutionized Kenyan dance halls with rapid, interlocking lead guitars that mimicked traditional eight-stringed nyatiti finger-picking.</p>
+
+<p>His compositions—spanning hits like "Lala Salama", "Piny Ose Mer", and "Kisero"—were renowned for their incisive political commentary, philosophical reflections on human mortality, and blistering rhythmic endurance. He toured international music festivals, putting Kenya's indigenous guitar craftsmanship on global stages.</p>
+
+<p>Amaica Media immortalizes D.O. Misiani as a peerless giant whose electrifying fretwork laid the foundation for modern East African guitar music.</p>
+    `.trim(),
+  },
+  {
+    id: "legend-joseph-kamaru",
+    name: "Joseph Kamaru",
+    country: "Kenya",
+    era: "1960s – 2018",
+    field: "Folk Philosopher & Kikuyu Benga Titan",
+    short_bio: "Prolific acoustic guitarist and folk bard whose poetic recordings documented Kenya's post-colonial history.",
+    impact: "Recorded over a thousand seminal compositions, preserving cultural proverbs and speaking truth on national political stages.",
+    active: true,
+    feature_date: "2026-09-14",
+    headline: "Joseph Kamaru: The Conscience and Memory of Kenyan Folk",
+    hero_image_url: "https://images.unsplash.com/photo-1520523839898-507127027178?w=1200&auto=format&fit=crop&q=80",
+    tribute: `
+<p>Joseph Kamaru was much more than a musician; he was an oral historian and cultural custodian. Beginning his recording career in 1965, Kamaru penned deeply evocative songs that reflected the economic trials, political realignments, and moral debates of a changing Kenya.</p>
+
+<p>With an acoustic guitar and deep command of traditional proverbs, his music transcended ethnic lines to command audiences from rural marketplaces to state banquets. Songs such as "Ndari ya Mwarimu", "Ke Ngwitikie", and "Chania River" tackled societal taboos with poetic courage and unmatched lyrical sophistication.</p>
+
+<p>Amaica Media pays profound tribute to Joseph Kamaru: a titan of indigenous storytelling whose archive remains a sacred pillar of Kenyan cultural heritage.</p>
+    `.trim(),
+  },
 ];
 
 export function getTodaySeedLegend(): LegendItem {

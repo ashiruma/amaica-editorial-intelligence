@@ -160,6 +160,14 @@ export const EDITORIAL_POLICY_SECTIONS = [
     tag: "Zero-Emoji Mandate",
     icon: Ban,
   },
+  {
+    num: "17",
+    title: "KENYAN HERITAGE & LEGENDS MANDATE",
+    content:
+      "Amaica Media's 'Our Legends' editorial segment is strictly and exclusively dedicated to honoring Kenyan cultural, entertainment, musical, comedic, literary, and social icons. To safeguard the focused preservation of Kenyan and Western Kenya cultural patrimony, international figures from outside the Republic of Kenya are expressly excluded from the Daily Legend showcase. Every featured legend must be verified for their historical contribution to Kenyan national identity and grassroots communities.",
+    tag: "Kenyan Heritage Doctrine",
+    icon: Award,
+  },
 ];
 
 export const EDITORIAL_APPROVAL_PRINCIPLES = [
@@ -174,6 +182,7 @@ export const EDITORIAL_APPROVAL_PRINCIPLES = [
   "Have photographs, videos, audio and user-generated content been authenticated?",
   "Would we be able to defend the editorial decision if challenged?",
   "Is it 100% free of emojis and unprofessional symbols?",
+  "Does it honor authentic Kenyan heritage and strictly adhere to the Kenyan Legends doctrine?",
 ];
 
 const STYLE_RULES = [

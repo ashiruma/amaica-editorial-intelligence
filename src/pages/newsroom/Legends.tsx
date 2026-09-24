@@ -33,16 +33,27 @@ export default function NewsroomLegends() {
     }));
   });
   const [running, setRunning] = useState(false);
-  const [form, setForm] = useState({ name: "", country: "", era: "", field: "", short_bio: "", impact: "" });
+  const [form, setForm] = useState({ name: "", country: "Kenya", era: "", field: "", short_bio: "", impact: "" });
 
   const load = async () => {
     try {
       const [{ data: l }, { data: f }] = await Promise.all([
         supabase.from("legends").select("*").order("name"),
-        supabase.from("legend_features").select("id, feature_date, headline, legends(name)").order("feature_date", { ascending: false }).limit(20),
+        supabase.from("legend_features").select("id, feature_date, headline, legends(name, country)").order("feature_date", { ascending: false }).limit(20),
       ]);
-      if (l && l.length > 0) setLegends(l as Legend[]);
-      if (f && f.length > 0) setFeatures(f as unknown as Feature[]);
+      if (l && l.length > 0) {
+        // Enforce strictly Kenyan legends
+        const kenyanOnly = (l as Legend[]).filter(
+          (item) => !item.country || item.country.toLowerCase() === "kenya"
+        );
+        if (kenyanOnly.length > 0) setLegends(kenyanOnly);
+      }
+      if (f && f.length > 0) {
+        const kenyanFeatures = (f as any[]).filter(
+          (feat) => !feat.legends?.country || feat.legends.country.toLowerCase() === "kenya"
+        );
+        if (kenyanFeatures.length > 0) setFeatures(kenyanFeatures as unknown as Feature[]);
+      }
     } catch (err) {
       console.warn("Could not query legends from Supabase:", err);
     }
@@ -58,7 +69,7 @@ export default function NewsroomLegends() {
       const { data, error } = await supabase.functions.invoke("daily-legend");
       if (error) throw error;
       if (data?.already) toast.message("Today's legend already exists");
-      else toast.success("New legend tribute generated");
+      else toast.success("New Kenyan legend tribute generated");
       await load();
     } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
     finally { setRunning(false); }
@@ -67,9 +78,10 @@ export default function NewsroomLegends() {
   const addLegend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
-    const { error } = await supabase.from("legends").insert(form);
+    const finalForm = { ...form, country: form.country.trim() || "Kenya" };
+    const { error } = await supabase.from("legends").insert(finalForm);
     if (error) toast.error(error.message);
-    else { toast.success("Legend added"); setForm({ name: "", country: "", era: "", field: "", short_bio: "", impact: "" }); await load(); }
+    else { toast.success("Kenyan legend added"); setForm({ name: "", country: "Kenya", era: "", field: "", short_bio: "", impact: "" }); await load(); }
   };
 
   const toggle = async (l: Legend) => {
@@ -83,9 +95,9 @@ export default function NewsroomLegends() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex items-end justify-between mb-6 flex-wrap gap-4">
           <div>
-            <div className="label-eyebrow text-primary mb-1 flex items-center gap-1"><Crown size={11} /> Newsroom · Our Legends</div>
-            <h1 className="font-display text-3xl">Legends roster</h1>
-            <p className="text-sm text-ink-light">Curated African entertainment icons. One legend is featured daily.</p>
+            <div className="label-eyebrow text-primary mb-1 flex items-center gap-1"><Crown size={11} /> Newsroom · Kenyan Legends</div>
+            <h1 className="font-display text-3xl">Kenyan legends roster</h1>
+            <p className="text-sm text-ink-light">Curated Kenyan music, stage, and cultural icons. One legend is featured daily.</p>
           </div>
           <button onClick={runDaily} disabled={running} className="bg-primary text-primary-foreground px-4 py-2.5 rounded text-sm font-medium hover:bg-primary-mid transition flex items-center gap-2 disabled:opacity-50">
             <Sparkles size={14} /> {running ? "Generating…" : "Generate today's tribute"}

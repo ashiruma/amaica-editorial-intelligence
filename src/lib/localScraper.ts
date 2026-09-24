@@ -37,17 +37,27 @@ export function detectCategory(
   if (isGossipContent(lower)) {
     return "gossip";
   }
-  const musicTerms = ["song", "album", "single", "track", "benga", "ohangla", "isukuti", "gengetone", "hitmaker", "singer", "rapper", "audio", "video release", "ep"];
-  if (musicTerms.some((m) => lower.includes(m))) {
+  // 1. Film & Screen Acting (Strict: avoid matching common words like 'series' or 'play' alone)
+  if (
+    /\b(movie|cinema|film|thespian|screenplay|nollywood|showmax|netflix|box office|theatrical release)\b/i.test(lower) ||
+    /\b(actor|actress|cast member)\b/i.test(lower) ||
+    /\b(?:television|tv|web)\s+series\b/i.test(lower)
+  ) {
+    return "film";
+  }
+  // 2. Music & Recording releases (Strict: avoid matching standalone 'single' or 'track')
+  if (
+    /\b(music album|new song|hit song|songs?|benga|ohangla|isukuti|gengetone|hitmaker|vocalist|discography|spotify|boomplay|recording studio|music video|ep release|soundtrack)\b/i.test(lower) ||
+    /\b(singer|rapper)\b/i.test(lower) ||
+    /\b(?:hit|new)\s+(?:single|track)\b/i.test(lower)
+  ) {
     return "music";
   }
-  const eventTerms = ["concert", "festival", "show", "live performance", "entry fee", "tickets", "tour", "bukhungu", "extravaganza", "nightlife"];
-  if (eventTerms.some((e) => lower.includes(e))) {
+  // 3. Events & Live Concerts
+  if (
+    /\b(concert|music festival|live performance|entry fee|tickets on sale|gate charges|headline show|tour dates|live stage|extravaganza)\b/i.test(lower)
+  ) {
     return "events";
-  }
-  const filmTerms = ["movie", "film", "actor", "actress", "cinema", "netflix", "premiere", "series", "theatre", "play"];
-  if (filmTerms.some((f) => lower.includes(f))) {
-    return "film";
   }
   return (fallback as "gossip" | "music" | "events" | "film" | "celebrity") || "celebrity";
 }

@@ -5,8 +5,8 @@ import {
 } from "../pages/public/EditorialPolicy";
 
 describe("Amaica Media Editorial Policy & Governance", () => {
-  it("contains all 16 official policy clauses including the zero-emoji workplace standard", () => {
-    expect(EDITORIAL_POLICY_SECTIONS.length).toBe(16);
+  it("contains all 17 official policy clauses including the zero-emoji workplace standard and Kenyan Heritage mandate", () => {
+    expect(EDITORIAL_POLICY_SECTIONS.length).toBe(17);
 
     const titles = EDITORIAL_POLICY_SECTIONS.map((s) => s.title);
     expect(titles).toContain("EDITORIAL INDEPENDENCE");
@@ -25,6 +25,7 @@ describe("Amaica Media Editorial Policy & Governance", () => {
     expect(titles).toContain("NEWSROOM PROFESSIONAL CONDUCT");
     expect(titles).toContain("EDITORIAL ACCOUNTABILITY AND QUALITY ASSURANCE");
     expect(titles).toContain("STRICT ZERO-EMOJI WORKPLACE STANDARD");
+    expect(titles).toContain("KENYAN HERITAGE & LEGENDS MANDATE");
   });
 
   it("verifies AI and Digital Tools clause mandates human fact-checking responsibility", () => {

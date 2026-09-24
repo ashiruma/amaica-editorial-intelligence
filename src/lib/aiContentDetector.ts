@@ -123,6 +123,23 @@ export const BANNED_AI_CLICHES = [
   "captivated audiences",
   "undeniable talent",
   "redefining the landscape",
+  "marked a significant entertainment development",
+  "marking a significant entertainment development",
+  "growing sophistication of Kenya's cinematic storytelling",
+  "nuanced script development",
+  "compelling cinematography",
+  "authentic character arcs",
+  "rich visual world-building",
+  "elevates regional cinema to international standards",
+  "valuable incubator for emerging screen actors",
+  "structured call sheets",
+  "fair compensation frameworks",
+  "competitive distribution ecosystem increasingly shaped by pan-African streaming acquisitions",
+  "meticulous artistic choices",
+  "evolving sonic standards",
+  "unprecedented versatility",
+  "powerful creative benchmark",
+  "data-driven fan communities",
   "redefining the soundscape",
   "at its core",
   "at the core of",
@@ -1153,12 +1170,33 @@ export function cleanAiClichesLocally(text: string): { cleaned: string; replacem
     [/\b(In conclusion,|To conclude,)\s*/gi, "Overall, "],
     [/\b(It is worth noting that|It is important to note that)\s*/gi, ""],
     [/\bbreathtaking\b/gi, "high-energy"],
-    [/\bdynamic\b/gi, "busy"],
+    [/\bdynamic\b/gi, "active"],
     [/\bmultifaceted\b/gi, "varied"],
     [/\bseamlessly\b/gi, "smoothly"],
     [/\bmeticulously\b/gi, "carefully"],
     [/\bpoised to\b/gi, "set to"],
     [/\bgame[- ]changer\b/gi, "major breakthrough"],
+    [/\bmarking a significant entertainment development\b/gi, "drawing widespread public interest"],
+    [/\bmarked a significant entertainment development\b/gi, "drew widespread public interest"],
+    [/\bgrowing sophistication of Kenya's cinematic storytelling\b/gi, "growth of Kenyan visual storytelling"],
+    [/\bnuanced script development,\s*compelling cinematography,\s*and authentic character arcs\b/gi, "detailed scriptwriting and local character perspectives"],
+    [/\bnuanced script development\b/gi, "detailed scriptwriting"],
+    [/\bcompelling cinematography\b/gi, "strong camera direction"],
+    [/\bauthentic character arcs\b/gi, "relatable characters"],
+    [/\brich visual world-building\b/gi, "vivid visual presentation"],
+    [/\belevates regional cinema to international standards\b/gi, "connects regional storytelling with broad audiences"],
+    [/\bvaluable incubator for emerging screen actors,\s*camera operators,\s*and technical department crews\b/gi, "practical production training ground for local camera crews and young actors"],
+    [/\bvaluable incubator for emerging screen actors\b/gi, "training ground for local actors"],
+    [/\badherence to professional working standards,\s*structured call sheets,\s*and fair compensation frameworks\b/gi, "structured work agreements, scheduled call times, and fair crew pay"],
+    [/\bstructured call sheets\b/gi, "scheduled call times"],
+    [/\bfair compensation frameworks\b/gi, "fair crew pay"],
+    [/\bcompetitive distribution ecosystem increasingly shaped by pan-African streaming acquisitions\b/gi, "expanding regional distribution landscape across digital streaming platforms"],
+    [/\bmeticulous artistic choices and evolving sonic standards\b/gi, "focused musicianship and studio production"],
+    [/\bmeticulous artistic choices\b/gi, "careful production decisions"],
+    [/\bevolving sonic standards\b/gi, "fresh contemporary sounds"],
+    [/\bunprecedented versatility\b/gi, "creative range"],
+    [/\bpowerful creative benchmark\b/gi, "strong artistic standard"],
+    [/\bdata-driven fan communities\b/gi, "dedicated listeners"],
 
     // Entertainment, Concerts, and Live Performance AI tropes
     [/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+Delivers\s+Electrifying\s+([A-Za-z]+)\s+Performance\b/gi, "$1 thrills $2 fans in live concert"],
@@ -1509,27 +1547,28 @@ function splitCompoundSentences(text: string, maxWords = 18): { text: string; co
           modified = modified.replace(/,\s*as well as\s+/i, ". It also featured ");
           count++;
         }
-        // Split at and when length exceeds maxWords
-        else if (words.length > maxWords && /,\s*and\s+([a-z])/i.test(modified)) {
-          modified = modified.replace(/,\s*and\s+([a-z])/i, (_, letter) => `. ${letter.toUpperCase()}`);
+        // Split at independent and-clause only when followed by an explicit subject and finite verb
+        else if (
+          words.length > maxWords &&
+          /,\s*and\s+(he|she|they|it|the\s+[a-z]+|officials?|authorities|police|investigators?|analysts?|commentators?|organizers?)\s+([a-z]+)\b/i.test(modified)
+        ) {
+          modified = modified.replace(
+            /,\s*and\s+(he|she|they|it|the\s+[a-z]+|officials?|authorities|police|investigators?|analysts?|commentators?|organizers?)\s+([a-z]+)\b/i,
+            (_, subj, verb) => `. ${subj.charAt(0).toUpperCase() + subj.slice(1)} ${verb}`
+          );
           count++;
         }
-        // Split at with
-        else if (/,\s*with\s+([a-z])/i.test(modified)) {
-          modified = modified.replace(/,\s*with\s+([a-z])/i, (_, letter) => `. With ${letter}`);
-          count++;
-        }
-        // Split at including
-        else if (/,\s*including\s+/i.test(modified)) {
+        // Split at including only when length exceeds maxWords
+        else if (words.length > maxWords && /,\s*including\s+/i.test(modified)) {
           modified = modified.replace(/,\s*including\s+/i, ". This includes ");
           count++;
         }
         // Split at alongside
         else if (/,\s*alongside\s+/i.test(modified)) {
-          modified = modified.replace(/,\s*alongside\s+/i, ". Other featured acts included ");
+          modified = modified.replace(/,\s*alongside\s+/i, ". Other featured participants included ");
           count++;
         }
-        // Split at trailing participials
+        // Split at trailing participials (context-neutral: never hardcode 'The artist')
         else if (/,\s*(?:confirming|alleging|warning|noting|stating|explaining|adding|delivering|featuring|treating|thrilling|bringing together|kicking off|showcasing|highlighting)\s+/i.test(modified)) {
           modified = modified.replace(/,\s*(confirming|alleging|warning|noting|stating|explaining|adding|delivering|featuring|treating|thrilling|bringing together|kicking off|showcasing|highlighting)\s+/i, (_, v) => {
             const verbMap: Record<string, string> = {
@@ -1549,7 +1588,7 @@ function splitCompoundSentences(text: string, maxWords = 18): { text: string; co
               showcasing: "showcased",
               highlighting: "highlighted",
             };
-            return `. The artist ${verbMap[v.toLowerCase()] || v} `;
+            return `. This ${verbMap[v.toLowerCase()] || v} `;
           });
           count++;
         }
@@ -1596,20 +1635,21 @@ function injectAdaptiveBurstiness(text: string): { text: string; count: number }
       let words = s.split(/\s+/).filter(Boolean);
       let mod = s;
 
-      if (words.length >= 16 && /,\s*and\s+([a-z])/i.test(mod)) {
-        mod = mod.replace(/,\s*and\s+([a-z])/i, (_, letter) => {
-          count++;
-          return `. ${letter.toUpperCase()}`;
-        });
+      if (
+        words.length >= 16 &&
+        /,\s*and\s+(he|she|they|it|the\s+[a-z]+|officials?|authorities|police|investigators?|analysts?|commentators?|organizers?)\s+([a-z]+)\b/i.test(mod)
+      ) {
+        mod = mod.replace(
+          /,\s*and\s+(he|she|they|it|the\s+[a-z]+|officials?|authorities|police|investigators?|analysts?|commentators?|organizers?)\s+([a-z]+)\b/i,
+          (_, subj, verb) => {
+            count++;
+            return `. ${subj.charAt(0).toUpperCase() + subj.slice(1)} ${verb}`;
+          }
+        );
       } else if (words.length >= 14 && /,\s*while\s+/i.test(mod)) {
         mod = mod.replace(/,\s*while\s+/i, () => {
           count++;
           return `. Meanwhile, `;
-        });
-      } else if (words.length >= 14 && /,\s*with\s+([a-z])/i.test(mod)) {
-        mod = mod.replace(/,\s*with\s+([a-z])/i, (_, letter) => {
-          count++;
-          return `. With ${letter}`;
         });
       } else if (words.length >= 12 && /\b(plans to [^,.]+?)\s+and\s+(will [^.]+)\./i.test(mod)) {
         mod = mod.replace(/\b(plans to [^,.]+?)\s+and\s+(will [^.]+)\./i, (_, p1, p2) => {

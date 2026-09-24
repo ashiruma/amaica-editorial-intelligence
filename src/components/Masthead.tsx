@@ -36,28 +36,28 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
           </div>
 
           {variant === "newsroom" ? (
-            <nav aria-label="Newsroom navigation" className="hidden md:flex items-center gap-6 text-[13px]">
-              <NavLink to="/newsroom" end className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Discover</NavLink>
-              <NavLink to="/newsroom/drafts" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Drafts</NavLink>
+            <nav aria-label="Newsroom navigation" className="hidden md:flex items-center gap-5 text-[13px]">
+              <NavLink to="/newsroom" end className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Wire Desk</NavLink>
+              <NavLink to="/newsroom/drafts" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Drafts &amp; Review</NavLink>
               <NavLink to="/newsroom/published" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Published</NavLink>
-              <NavLink to="/newsroom/legends" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Legends</NavLink>
-              <NavLink to="/newsroom/discovery" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Autonomous Discovery</NavLink>
-              <NavLink to="/newsroom/health" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Health</NavLink>
+              <NavLink to="/newsroom/legends" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Kenyan Legends</NavLink>
               <NavLink to="/newsroom/editorial-policy" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Editorial Policy &amp; Style</NavLink>
+              <NavLink to="/newsroom/discovery" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Auto-Scanner</NavLink>
+              <NavLink to="/newsroom/health" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Health</NavLink>
               {isAdmin && (
                 <NavLink to="/newsroom/admin" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Admin</NavLink>
               )}
-              <NavLink to="/" className="text-primary-foreground/80 hover:text-primary-foreground">View site →</NavLink>
+              <NavLink to="/feed" className="text-accent font-medium hover:text-accent/90 border-l border-primary-foreground/20 pl-3">View Reader Site →</NavLink>
             </nav>
           ) : (
             <nav aria-label="Main category navigation" className="hidden md:flex items-center gap-6 text-[13px]">
-              <NavLink end to="/" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Latest</NavLink>
+              <NavLink end to="/feed" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Latest</NavLink>
               <NavLink to="/category/gossip" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Gossip</NavLink>
               <NavLink to="/category/music" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Music</NavLink>
               <NavLink to="/category/events" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Events</NavLink>
-              <NavLink to="/category/film" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Film & TV</NavLink>
+              <NavLink to="/category/film" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Film &amp; TV</NavLink>
               <NavLink to="/category/celebrity" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Celebrity</NavLink>
-              <NavLink to="/legends/legend-daudi-kabaka" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Our Legends</NavLink>
+              <NavLink to="/legends/legend-daudi-kabaka" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Kenyan Legends</NavLink>
             </nav>
           )}
 
@@ -65,7 +65,7 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
             {user ? (
               <>
                 {variant === "public" && (
-                  <button onClick={() => navigate("/newsroom")} className="text-[12px] bg-accent text-accent-foreground font-semibold px-2.5 py-1 rounded hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-accent">Newsroom</button>
+                  <button onClick={() => navigate("/newsroom")} className="text-[12px] bg-accent text-accent-foreground font-semibold px-2.5 py-1 rounded hover:bg-accent/90 focus-visible:ring-2 focus-visible:ring-accent">Newsroom Desk</button>
                 )}
                 <button onClick={async () => { await signOut(); navigate("/"); }} className="text-primary-foreground/70 hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded p-1" aria-label="Sign out">
                   <LogOut size={16} />
@@ -84,28 +84,27 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
           <nav id="mobile-nav-drawer" aria-label="Mobile navigation" className="md:hidden bg-primary-mid border-t border-primary-foreground/15 px-4 py-3 animate-in slide-in-from-top-2 duration-200">
             {variant === "newsroom" ? (
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom" end className="py-1.5 text-primary-foreground/90 hover:text-accent">Discover</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/drafts" className="py-1.5 text-primary-foreground/90 hover:text-accent">Drafts</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom" end className="py-1.5 text-primary-foreground/90 hover:text-accent">Wire Desk</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/drafts" className="py-1.5 text-primary-foreground/90 hover:text-accent">Drafts &amp; Review</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/published" className="py-1.5 text-primary-foreground/90 hover:text-accent">Published</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/legends" className="py-1.5 text-primary-foreground/90 hover:text-accent">Legends</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/discovery" className="py-1.5 text-primary-foreground/90 hover:text-accent">Discovery</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/legends" className="py-1.5 text-primary-foreground/90 hover:text-accent">Kenyan Legends</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/discovery" className="py-1.5 text-primary-foreground/90 hover:text-accent">Auto-Scanner</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/health" className="py-1.5 text-primary-foreground/90 hover:text-accent">Scraper Health</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/ai-detector" className="py-1.5 text-accent font-semibold">AI Intelligence</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/editorial-policy" className="py-1.5 text-primary-foreground/90 hover:text-accent font-medium">Editorial Policy &amp; Style</NavLink>
                 {isAdmin && (
                   <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/admin" className="py-1.5 text-accent font-medium">Admin Clearance</NavLink>
                 )}
-                <NavLink onClick={() => setMobileOpen(false)} to="/" className="py-1.5 text-accent font-medium col-span-2 border-t border-primary-foreground/15 pt-2">View Live Site →</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/feed" className="py-1.5 text-accent font-medium col-span-2 border-t border-primary-foreground/15 pt-2">View Reader Site →</NavLink>
               </div>
             ) : (
               <div className="flex flex-col gap-2 text-sm">
-                <NavLink onClick={() => setMobileOpen(false)} end to="/" className="py-1 text-primary-foreground/90 hover:text-accent">Latest Stories</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/category/gossip" className="py-1 text-primary-foreground/90 hover:text-accent">Gossip & Rumours</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/category/music" className="py-1 text-primary-foreground/90 hover:text-accent">Music & Benga</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/category/events" className="py-1 text-primary-foreground/90 hover:text-accent">Concerts & Events</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/category/film" className="py-1 text-primary-foreground/90 hover:text-accent">Film & TV</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/category/celebrity" className="py-1 text-primary-foreground/90 hover:text-accent">Celebrity & Culture</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/legends/legend-daudi-kabaka" className="py-1 text-primary-foreground/90 hover:text-accent">Our Legends</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} end to="/feed" className="py-1 text-primary-foreground/90 hover:text-accent">Latest Stories</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/category/gossip" className="py-1 text-primary-foreground/90 hover:text-accent">Gossip &amp; Rumours</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/category/music" className="py-1 text-primary-foreground/90 hover:text-accent">Music &amp; Benga</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/category/events" className="py-1 text-primary-foreground/90 hover:text-accent">Concerts &amp; Events</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/category/film" className="py-1 text-primary-foreground/90 hover:text-accent">Film &amp; TV</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/category/celebrity" className="py-1 text-primary-foreground/90 hover:text-accent">Celebrity &amp; Culture</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/legends/legend-daudi-kabaka" className="py-1 text-primary-foreground/90 hover:text-accent">Kenyan Legends</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom" className="py-1 text-accent font-semibold pt-2 border-t border-primary-foreground/15">Open Newsroom Desk →</NavLink>
               </div>
             )}

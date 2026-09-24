@@ -48,7 +48,12 @@ export function LegendOfDay() {
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
-          setFeature(data as unknown as Feature);
+          const lData = data as unknown as Feature;
+          const country = lData.legends?.country?.toLowerCase();
+          // Strictly enforce Kenyan legends doctrine
+          if (!country || country === "kenya") {
+            setFeature(lData);
+          }
         }
       })
       .catch((err) => console.warn("Could not query legend_features:", err));
@@ -58,7 +63,7 @@ export function LegendOfDay() {
   const l = feature.legends;
 
   return (
-    <section className="mb-10 bg-primary text-primary-foreground rounded shadow-elevated overflow-hidden">
+    <section className="mb-10 bg-primary text-primary-foreground rounded shadow-elevated overflow-hidden border-2 border-accent/30">
       <div className="grid md:grid-cols-[1fr_1.4fr]">
         <div className="aspect-[4/3] md:aspect-auto bg-primary-mid relative overflow-hidden">
           {feature.hero_image_url ? (
@@ -68,13 +73,13 @@ export function LegendOfDay() {
               {l?.name?.[0] ?? "L"}
             </div>
           )}
-          <div className="absolute top-3 left-3 bg-accent text-accent-foreground text-[10px] font-medium tracking-widest uppercase px-2 py-1 flex items-center gap-1">
-            <Crown size={11} /> Our Legends · Today
+          <div className="absolute top-3 left-3 bg-accent text-accent-foreground text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 flex items-center gap-1.5 shadow-sm rounded-sm">
+            <Crown size={12} /> Kenyan Legend of the Day
           </div>
         </div>
         <div className="p-6 md:p-8">
-          <div className="label-eyebrow text-accent mb-2">
-            {l?.name}{l?.country ? ` · ${l.country}` : ""}{l?.era ? ` · ${l.era}` : ""}
+          <div className="label-eyebrow text-accent mb-2 font-semibold">
+            {l?.name} · Kenya{l?.era ? ` · ${l.era}` : ""}
           </div>
           <h2 className="font-display text-2xl md:text-3xl leading-tight mb-3">{feature.headline}</h2>
           <div

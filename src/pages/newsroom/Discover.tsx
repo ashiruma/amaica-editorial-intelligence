@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Masthead } from "@/components/Masthead";
+import { LegendOfDay } from "@/components/LegendOfDay";
 import { useAuth } from "@/lib/auth";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -42,7 +43,7 @@ export default function Discover() {
   const navigate = useNavigate();
   const { minWordCount } = useMinWordCount();
   const [stories, setStories] = useState<Story[]>([]);
-  const [filter, setFilter] = useState<"all" | "trending" | "western_circuit" | "music" | "celebrity" | "western_gossip" | "festivals">("all");
+  const [filter, setFilter] = useState<"all" | "trending" | "western_circuit" | "music" | "celebrity" | "nganyas" | "politics" | "western_gossip" | "festivals">("all");
   const [discovering, setDiscovering] = useState(false);
   const [autoGenerating, setAutoGenerating] = useState(false);
   const [autoGenProgress, setAutoGenProgress] = useState<{ current: number; total: number; title: string; status: string } | null>(null);
@@ -717,6 +718,12 @@ export default function Discover() {
     if (filter === "celebrity") {
       return s.category === "celebrity" || /(celeb|actor|actress|influencer|star|model|comedian|vlogger|couple|marriage|courtship|fashion|lifestyle)/i.test(blob);
     }
+    if (filter === "nganyas") {
+      return s.category === "matatu_transport" || /(nganya|matatu|super metro|manamba|tout|saccho|sacco|pimp my ride|matatus)/i.test(blob);
+    }
+    if (filter === "politics") {
+      return s.category === "politics" || s.category === "politics_governance" || /(governor|senator|mp\b|women rep|ruto|raila|rigathi|gachagua|politics|parliament|county assembly|mca\b)/i.test(blob);
+    }
     if (filter === "festivals") {
       return s.category === "events" || /(festival|nightlife|club|concert|showcase|expo|gala|carnival|stage|stadium|party|arena)/i.test(blob);
     }
@@ -846,6 +853,11 @@ export default function Discover() {
           </div>
         )}
 
+        {/* Kenyan Legend of the Day Spotlight for Newsroom */}
+        <div className="mb-6">
+          <LegendOfDay />
+        </div>
+
         {/* Instant Breaking Story Ingestion */}
         <div className="mb-6 p-4 bg-card border border-border rounded shadow-sm">
           <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-primary uppercase tracking-wider">
@@ -882,6 +894,8 @@ export default function Discover() {
             ["western_circuit", "Western Circuit"],
             ["music", "Music & Afrobeats"],
             ["celebrity", "Celebrity & Showbiz"],
+            ["nganyas", "Nganyas & Matatus"],
+            ["politics", "Politics & Civic"],
             ["western_gossip", "Western Gossip"],
             ["festivals", "Festivals & Nightlife"],
           ] as const).map(([key, label]) => (
