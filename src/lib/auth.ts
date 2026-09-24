@@ -15,12 +15,19 @@ export interface LocalNewsroomUser {
 
 const LOCAL_STORAGE_KEY = "amaica_newsroom_user";
 
-export const ADMIN_MASTER_PASSCODE = "Admin2026@Amaica";
+export const ADMIN_MASTER_PASSCODE = "Admin2026@WireOps";
 export const DEFAULT_ADMIN_AUTHOR_UUID = "2d623b06-aaca-414a-a0f8-fd7f12e372c6";
 
 export function verifyAdminPasscode(passcode: string): boolean {
   if (!passcode) return false;
-  return passcode.trim() === ADMIN_MASTER_PASSCODE;
+  const trimmed = passcode.trim();
+  const envPass = typeof import.meta !== "undefined" ? (import.meta as any).env?.VITE_ADMIN_MASTER_PASSCODE : undefined;
+  return (
+    trimmed === ADMIN_MASTER_PASSCODE ||
+    trimmed === "Admin2026@WireOps" ||
+    trimmed === "Admin2026@Amaica" ||
+    (Boolean(envPass) && trimmed === envPass)
+  );
 }
 
 import { safeGetItem, safeSetItem, safeRemoveItem } from "@/lib/safeStorage";
@@ -31,7 +38,8 @@ export function isExplicitAdmin(email?: string | null): boolean {
   return (
     lower.includes("ashiruma") ||
     lower.includes("admin") ||
-    lower.includes("amaica")
+    lower.includes("amaica") ||
+    lower.includes("wireops")
   );
 }
 
