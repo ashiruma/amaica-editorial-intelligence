@@ -263,6 +263,29 @@ export default function Discover() {
     return () => clearInterval(t);
   }, [writingId]);
 
+  // Periodic background Auto-Pilot if enabled
+  useEffect(() => {
+    if (!user || !autoPilotEnabled) return;
+
+    const runAutoPilotCycle = async () => {
+      if (autoGenerating || discovering) return;
+      try {
+        console.log("⚡ Auto-Pilot: Scanning reference portals for fresh trending news...");
+        await handleAutoGenerateTrending(2);
+      } catch (err) {
+        console.warn("Auto-Pilot cycle warning:", err);
+      }
+    };
+
+    const timer = setTimeout(runAutoPilotCycle, 4000);
+    const interval = setInterval(runAutoPilotCycle, 8 * 60 * 1000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, [user, autoPilotEnabled, autoGenerating, discovering, handleAutoGenerateTrending]);
+
   if (loading && !user) {
     return (
       <div className="min-h-screen bg-background">
@@ -712,29 +735,6 @@ export default function Discover() {
     toast.success(`Queued ${ok} story${ok === 1 ? "" : "ies"} to Review Desk (0% AI Certified)${fail ? ` · ${fail} failed` : ""}`);
     if (fail === 0 && batch.length > 1) navigate("/newsroom/drafts");
   };
-
-  // Periodic background Auto-Pilot if enabled
-  useEffect(() => {
-    if (!user || !autoPilotEnabled) return;
-
-    const runAutoPilotCycle = async () => {
-      if (autoGenerating || discovering) return;
-      try {
-        console.log("⚡ Auto-Pilot: Scanning reference portals for fresh trending news...");
-        await handleAutoGenerateTrending(2);
-      } catch (err) {
-        console.warn("Auto-Pilot cycle warning:", err);
-      }
-    };
-
-    const timer = setTimeout(runAutoPilotCycle, 4000);
-    const interval = setInterval(runAutoPilotCycle, 8 * 60 * 1000);
-
-    return () => {
-      clearTimeout(timer);
-      clearInterval(interval);
-    };
-  }, [user, autoPilotEnabled, autoGenerating, discovering, handleAutoGenerateTrending]);
 
   return (
     <div className="min-h-screen bg-background">

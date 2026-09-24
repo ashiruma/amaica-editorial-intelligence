@@ -26,4 +26,10 @@ describe("Application Routing and Page Rendering", () => {
     render(<App />);
     expect(screen.getAllByText(/Amaica/i).length).toBeGreaterThan(0);
   });
+
+  it("renders /newsroom route without hook violation or render anomaly", async () => {
+    window.history.pushState({}, "Test", "/newsroom");
+    render(<App />);
+    expect(screen.getAllByText(/Amaica/i).length).toBeGreaterThan(0);
+  });
 });
