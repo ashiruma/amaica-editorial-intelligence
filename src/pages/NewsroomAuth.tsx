@@ -243,8 +243,8 @@ export default function NewsroomAuth() {
     <div className="min-h-screen bg-background flex flex-col justify-between">
       {/* Top Newsroom Masthead */}
       <header className="bg-primary text-primary-foreground border-b-[3px] border-accent py-3 px-6 flex items-center justify-between shadow-sm">
-        <Link to="/" className="font-display font-bold text-xl tracking-tight flex items-center gap-2">
-          Amaica <span className="text-accent">ENTERTAINMENT</span>
+        <Link to="/newsroom" className="font-display font-bold text-xl tracking-tight flex items-center gap-2">
+          WireOps <span className="text-accent">DESK</span>
         </Link>
         <div className="flex items-center gap-2 text-xs text-primary-foreground/80 font-mono">
           <ShieldAlert size={14} className="text-accent" />

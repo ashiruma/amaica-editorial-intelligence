@@ -35,17 +35,18 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<PublicHome />} />
-            <Route path="/category/:category" element={<PublicHome />} />
-            <Route path="/article/:id" element={<PublicArticle />} />
-            <Route path="/legends/:id" element={<LegendPage />} />
+            <Route path="/" element={<Navigate to="/newsroom" replace />} />
+            <Route path="/feed" element={<RequireNewsroomAuth><PublicHome /></RequireNewsroomAuth>} />
+            <Route path="/category/:category" element={<RequireNewsroomAuth><PublicHome /></RequireNewsroomAuth>} />
+            <Route path="/article/:id" element={<RequireNewsroomAuth><PublicArticle /></RequireNewsroomAuth>} />
+            <Route path="/legends/:id" element={<RequireNewsroomAuth><LegendPage /></RequireNewsroomAuth>} />
             <Route path="/editorial-policy" element={<Navigate to="/newsroom/editorial-policy" replace />} />
             <Route path="/style-guide" element={<Navigate to="/newsroom/style-guide" replace />} />
-            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/auth" element={<Navigate to="/newsroom/auth" replace />} />
             <Route path="/newsroom/auth" element={<NewsroomAuth />} />
             <Route path="/newsroom/login" element={<NewsroomAuth />} />
             <Route path="/newsroom/signup" element={<NewsroomAuth />} />
-            <Route path="/~oauth/initiate" element={<Navigate to="/auth" replace />} />
+            <Route path="/~oauth/initiate" element={<Navigate to="/newsroom/auth" replace />} />
             <Route path="/oauth/consent" element={<OAuthConsent />} />
             <Route path="/newsroom" element={<RequireNewsroomAuth><Discover /></RequireNewsroomAuth>} />
             <Route path="/newsroom/drafts" element={<RequireNewsroomAuth><DraftsList /></RequireNewsroomAuth>} />

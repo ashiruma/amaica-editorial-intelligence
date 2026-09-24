@@ -57,8 +57,8 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
         <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4 text-primary animate-pulse">
           <Loader2 className="w-6 h-6 animate-spin" />
         </div>
-        <div className="font-display font-bold text-lg text-foreground">Opening Newsroom Workspace</div>
-        <p className="text-xs text-muted-foreground mt-1">Securing Amaica Media newsroom...</p>
+        <div className="font-display font-bold text-lg text-foreground">Opening WireOps Desk</div>
+        <p className="text-xs text-muted-foreground mt-1">Securing operations console...</p>
       </div>
     );
   }
@@ -145,12 +145,12 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
     <div className="min-h-screen bg-background flex flex-col justify-between">
       {/* Top Header */}
       <header className="bg-primary text-primary-foreground border-b-[3px] border-accent py-3 px-6 flex items-center justify-between shadow-sm">
-        <Link to="/" className="font-display font-bold text-xl tracking-tight flex items-center gap-2">
-          Amaica <span className="text-accent">MEDIA</span>
+        <Link to="/newsroom" className="font-display font-bold text-xl tracking-tight flex items-center gap-2">
+          WireOps <span className="text-accent">DESK</span>
         </Link>
         <div className="flex items-center gap-2 text-xs text-primary-foreground/80 font-mono">
           <Lock size={13} className="text-accent" />
-          <span>Private Newsroom Intelligence Desk</span>
+          <span>Restricted Operations Console</span>
         </div>
       </header>
 
@@ -162,10 +162,10 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
               <ShieldAlert className="w-7 h-7" />
             </div>
             <h1 className="font-display font-bold text-2xl text-foreground">
-              Newsroom Permission Portal
+              WireOps Desk · Restricted Access
             </h1>
             <p className="text-xs text-ink-light max-w-md mx-auto leading-relaxed">
-              This system is private and feeds <strong className="text-foreground">amaicamedia.com</strong>. Anyone seeking access must request permission from the Administrator.
+              This system is private and confidential. Access is restricted to authorized personnel invited and approved by the Administrator.
             </p>
           </div>
 

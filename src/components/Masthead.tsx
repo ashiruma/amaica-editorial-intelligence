@@ -30,8 +30,8 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
             >
               {mobileOpen ? <CloseIcon size={20} /> : <Menu size={20} />}
             </button>
-            <Link to="/" className="font-display text-xl font-bold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded">
-              Amaica <span className="text-accent">ENTERTAINMENT</span>
+            <Link to="/newsroom" className="font-display text-xl font-bold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded">
+              WireOps <span className="text-accent">DESK</span>
             </Link>
           </div>
 
@@ -136,7 +136,7 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
           <div className="flex animate-ticker whitespace-nowrap" aria-hidden="true">
             {[0, 1].map((i) => (
               <span key={i} className="text-destructive-foreground text-[12px] px-8 tracking-wide font-medium">
-                Western Kenya Entertainment &bull; Music &bull; Film &bull; Events &bull; Culture &nbsp;&nbsp;&bull;&nbsp;&nbsp; Lead with the fact. Attribute everything. One idea per sentence. &nbsp;&nbsp;&bull;&nbsp;&nbsp; Amaica Media — Newsroom of Western Kenya &nbsp;&nbsp;&bull;&nbsp;&nbsp;
+                WireOps Desk &bull; Real-Time Wire Monitoring &bull; Multi-Beat Ingestion &bull; 0% AI Clearance &bull; Fact-Locked Repurposing &bull; Instant Sync &nbsp;&nbsp;&bull;&nbsp;&nbsp;
               </span>
             ))}
           </div>
