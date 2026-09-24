@@ -54,30 +54,9 @@ export default function Admin() {
     }
   };
 
-  useEffect(() => {
-    if (loading) return;
-    if (!user) {
-      navigate("/auth", { replace: true });
-      return;
-    }
-    if (!isAdmin) {
-      navigate("/newsroom", { replace: true });
-      return;
-    }
-    void load();
-  }, [user, isAdmin, loading, navigate]);
-
-  // Hard gate: never render admin UI for non-admins (defense in depth — RLS already blocks data)
-  if (loading || !user || !isAdmin) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Masthead />
-        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-16 text-center text-sm text-ink-light">
-          Verifying access…
-        </main>
-      </div>
-    );
-  }
+  const loadRequests = () => {
+    setRequests(getLocalRequests());
+  };
 
   const load = async () => {
     try {
@@ -102,13 +81,34 @@ export default function Admin() {
     loadRequests();
   };
 
-  const loadRequests = () => {
-    setRequests(getLocalRequests());
-  };
-
   useEffect(() => {
     loadRequests();
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      navigate("/auth", { replace: true });
+      return;
+    }
+    if (!isAdmin) {
+      navigate("/newsroom", { replace: true });
+      return;
+    }
+    void load();
+  }, [user, isAdmin, loading, navigate]);
+
+  // Hard gate: never render admin UI for non-admins (defense in depth — RLS already blocks data)
+  if (loading || !user || !isAdmin) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Masthead />
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-16 text-center text-sm text-ink-light">
+          Verifying access…
+        </main>
+      </div>
+    );
+  }
 
   const handleApprove = async (id: string, email: string) => {
     await approveAccessRequest(id, user?.email || "ashiruma");

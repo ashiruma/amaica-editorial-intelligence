@@ -74,22 +74,6 @@ export default function ScrapeHealth() {
   const [newDomain, setNewDomain] = useState("");
   const [retryingUrl, setRetryingUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (loading) return;
-    if (!user) return navigate("/auth", { replace: true });
-    if (!isEditor) return navigate("/newsroom", { replace: true });
-    void load();
-  }, [user, isEditor, loading, navigate]);
-
-  if (loading || !user || !isEditor) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Masthead />
-        <main className="max-w-6xl mx-auto px-4 py-16 text-center text-sm text-ink-light">Verifying access…</main>
-      </div>
-    );
-  }
-
   async function load() {
     try {
       const [f, b, e] = await Promise.all([
@@ -154,6 +138,22 @@ export default function ScrapeHealth() {
 
   const failed = failures.filter((f) => !f.last_success_at || (f.last_failed_at && new Date(f.last_failed_at) > new Date(f.last_success_at || 0)));
   const succeeded = failures.filter((f) => f.last_success_at && (!f.last_failed_at || new Date(f.last_success_at) >= new Date(f.last_failed_at || 0)));
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user) return navigate("/auth", { replace: true });
+    if (!isEditor) return navigate("/newsroom", { replace: true });
+    void load();
+  }, [user, isEditor, loading, navigate]);
+
+  if (loading || !user || !isEditor) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Masthead />
+        <main className="max-w-6xl mx-auto px-4 py-16 text-center text-sm text-ink-light">Verifying access…</main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -34,6 +34,10 @@ import {
   generateContextualExpansionParagraphs,
   type StoryBeat,
 } from "./editorialComplianceEngine";
+import {
+  perfectArticleHeadlineLedeBody,
+  auditGrammarlyScore,
+} from "./grammarlyPerfectionEngine";
 import { detectCategory, detectRegion } from "@/lib/localScraper";
 import { countWords } from "@/lib/articleValidation";
 
@@ -67,6 +71,7 @@ export interface RepurposedStoryResult {
   wordCount: number;
   storyId?: string;
   aiReport?: AiDetectionResult;
+  grammarlyScore?: number;
 }
 
 // Fallback curated trending Kenyan entertainment & news topics with 100% verified, live URLs (zero 404s)
@@ -662,9 +667,12 @@ export async function repurposeWireStory(options: {
     }]
   });
 
-  const finalHeadline = compliance.headline;
-  const finalLede = compliance.lede;
-  const finalBody = compliance.body;
+  onProgress?.("Applying Grammarly 99%+ copy-editing perfection polish...");
+  const perfected = perfectArticleHeadlineLedeBody(compliance.headline, compliance.lede, compliance.body);
+  const finalHeadline = perfected.headline;
+  const finalLede = perfected.lede;
+  const finalBody = perfected.body;
+  const grammarlyAudit = auditGrammarlyScore(finalBody);
 
   const fullText = `${finalHeadline}\n\n${finalLede}\n\n${finalBody}`;
 
@@ -720,6 +728,7 @@ export async function repurposeWireStory(options: {
     wordCount: wordsCount,
     storyId,
     aiReport,
+    grammarlyScore: grammarlyAudit.score,
   };
 }
 

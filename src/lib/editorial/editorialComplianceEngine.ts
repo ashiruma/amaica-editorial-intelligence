@@ -32,6 +32,10 @@ import {
   analyzeAiContent,
   BANNED_AI_CLICHES,
 } from "@/lib/aiContentDetector";
+import {
+  convertParticipleToPastTense,
+  perfectArticleHeadlineLedeBody,
+} from "./grammarlyPerfectionEngine";
 
 export interface ComplianceInput extends ArticleCheckInput {
   region?: string | null;
@@ -616,10 +620,12 @@ export function ensureEditorialCompliance(input: ComplianceInput): ComplianceRes
       if (synonym) {
         body = body.replace(re, synonym);
         lede = lede.replace(re, synonym);
-      } else if (flagged.type === "participial") {
-        const core = phrase.replace(/^,\s*/, "").replace(/ing$/, "");
-        const reP = new RegExp(`,\\s*${core.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}ing\\s+`, "gi");
-        body = body.replace(reP, `. This ${core}ed `);
+      } else if ((flagged.category === "participial" || flagged.type === "participial")) {
+        const gerundWord = phrase.replace(/^,\s*/, "").replace(/\s+.*$/, "");
+        const past = convertParticipleToPastTense(gerundWord);
+        const reP = new RegExp(`,\\s*${gerundWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b\\s*`, "gi");
+        body = body.replace(reP, `. This ${past} `);
+        lede = lede.replace(reP, `. This ${past} `);
       } else {
         body = body.replace(re, "").replace(/[ \t]{2,}/g, " ");
         lede = lede.replace(re, "").replace(/[ \t]{2,}/g, " ");
@@ -710,11 +716,13 @@ export function ensureEditorialCompliance(input: ComplianceInput): ComplianceRes
           const re = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
           body = body.replace(re, synonym);
           lede = lede.replace(re, synonym);
-        } else if (flagged.type === "participial" && /^,\s*\w+ing/i.test(phrase)) {
+        } else if ((flagged.category === "participial" || flagged.type === "participial") && /^,\s*\w+ing/i.test(phrase)) {
           // Participial: ", leaving" → ". This left"
-          const core = phrase.replace(/^,\s*/, "").replace(/ing$/, "");
-          const re = new RegExp(`,\\s*${core.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}ing\\s+`, "gi");
-          body = body.replace(re, `. This ${core}ed `);
+          const gerundWord = phrase.replace(/^,\s*/, "").replace(/\s+.*$/, "");
+          const past = convertParticipleToPastTense(gerundWord);
+          const reP = new RegExp(`,\\s*${gerundWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b\\s*`, "gi");
+          body = body.replace(reP, `. This ${past} `);
+          lede = lede.replace(reP, `. This ${past} `);
         } else {
           // Generic cliché with no mapping: remove the phrase and trim whitespace
           const re = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
@@ -754,6 +762,15 @@ export function ensureEditorialCompliance(input: ComplianceInput): ComplianceRes
       template_type: input.template_type,
       min_word_count: minWords,
     });
+  }
+
+  // 11. Final Grammarly 99%+ Perfection Polish (correctness, clarity, AP quote mechanics, sentence pacing)
+  const perfected = perfectArticleHeadlineLedeBody(headline, lede, body);
+  headline = perfected.headline;
+  lede = perfected.lede;
+  body = perfected.body;
+  if (perfected.improvements.length > 0) {
+    fixedIssues.push(`Applied ${perfected.improvements.length} Grammarly 99%+ copy-editing perfection polish(es).`);
   }
 
   const finalWords = countWords(body);

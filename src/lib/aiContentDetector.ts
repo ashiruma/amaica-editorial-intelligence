@@ -333,6 +333,7 @@ export const AI_PARTICIPIAL_PATTERNS = [
   { pattern: /,\s*potentially including\b/gi, label: ", potentially including" },
   { pattern: /,\s*nurturing\b/gi, label: ", nurturing" },
   { pattern: /,\s*elevating\b/gi, label: ", elevating" },
+  { pattern: /,\s*making\b/gi, label: ", making" },
   { pattern: /,\s*making them accessible\b/gi, label: ", making them accessible" },
   { pattern: /,\s*making it accessible\b/gi, label: ", making it accessible" },
   { pattern: /,\s*bridging\b/gi, label: ", bridging" },

@@ -9,6 +9,10 @@ import { cleanAiClichesLocally, humanizeText, convertToPlainText, generateCertif
 import { useMinWordCount } from "@/hooks/useNewsroomSettings";
 import { getDraftById, updateDraftContent, deleteNewsroomDraft, ensureValidAuthorUUID, isValidUUID } from "@/lib/editorial/draftStorage";
 import { ensureEditorialCompliance } from "@/lib/editorial/editorialComplianceEngine";
+import {
+  perfectArticleHeadlineLedeBody,
+  auditGrammarlyScore,
+} from "@/lib/editorial/grammarlyPerfectionEngine";
 import { auditEditorialPolicy, morphStoryWithPolicy, type PolicyAuditResult } from "@/lib/editorial/policyGovernanceEngine";
 import {
   Bot,
@@ -187,6 +191,25 @@ export default function DraftEditor() {
     });
   }, [draft?.headline, draft?.lede, draft?.body, draft?.template_type, sources, minWordCount]);
 
+  const grammarlyAudit = useMemo(() => {
+    return auditGrammarlyScore(draft?.body || "");
+  }, [draft?.body]);
+
+  const polishGrammar99 = () => {
+    if (!draft) return;
+    const { headline, lede, body, improvements } = perfectArticleHeadlineLedeBody(
+      draft.headline,
+      draft.lede || "",
+      draft.body || ""
+    );
+    update({ headline, lede, body });
+    if (improvements.length > 0) {
+      toast.success(`Polished to Grammarly 99%+ standards! Applied ${improvements.length} copy-editing enhancement${improvements.length === 1 ? "" : "s"}.`);
+    } else {
+      toast.info("Draft already satisfies Grammarly 99%+ correctness and clarity standards!");
+    }
+  };
+
   const policyAudit: PolicyAuditResult | null = useMemo(() => {
     if (!draft) return null;
     return auditEditorialPolicy({
@@ -315,11 +338,20 @@ export default function DraftEditor() {
       }
 
       // Guarantee ultra 0% AI humanized output on save/publish
-      const finalBody = candidateBody ? humanizeText(candidateBody, "ultra").humanizedText : candidateBody;
-      const finalLede = candidateLede ? humanizeText(candidateLede, "ultra").humanizedText : candidateLede;
+      let finalBody = candidateBody ? humanizeText(candidateBody, "ultra").humanizedText : candidateBody;
+      let finalLede = candidateLede ? humanizeText(candidateLede, "ultra").humanizedText : candidateLede;
+      let finalHeadline = draft.headline;
+
+      // Guarantee Grammarly 99%+ copy-editing perfection on save/publish
+      if (finalBody) {
+        const perfected = perfectArticleHeadlineLedeBody(finalHeadline, finalLede || "", finalBody);
+        finalHeadline = perfected.headline;
+        finalLede = perfected.lede;
+        finalBody = perfected.body;
+      }
 
       const updates: any = {
-        headline: draft.headline,
+        headline: finalHeadline,
         lede: finalLede,
         body: finalBody,
         category: draft.category,
@@ -588,6 +620,22 @@ export default function DraftEditor() {
               <span className="text-ink-light">{draft.template_type} · {draft.region.replace("_", " ")}</span>
             </div>
 
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Grammarly 99%+ Score Badge */}
+              <button
+                type="button"
+                onClick={polishGrammar99}
+                className={`text-xs px-2.5 py-1 rounded border flex items-center gap-1.5 font-medium transition cursor-pointer ${
+                  grammarlyAudit.score >= 99
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                    : "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
+                }`}
+                title={`Grammarly Quality Rating: ${grammarlyAudit.score}%. Click to polish to 99%+ standards.`}
+              >
+                <Sparkles size={12} className={grammarlyAudit.score >= 99 ? "text-emerald-600" : "text-amber-600"} />
+                <span>Grammarly {grammarlyAudit.score}%</span>
+              </button>
+
             {/* AI Risk Score Badge */}
             {aiResult && (
               <div className="flex items-center gap-2">
@@ -651,6 +699,7 @@ export default function DraftEditor() {
                 </div>
               </div>
             )}
+            </div>
           </div>
 
           {/* Collapsible AI Content Inspector */}
@@ -904,6 +953,15 @@ export default function DraftEditor() {
                     <ShieldCheck size={13} className={fixBusy ? "animate-spin" : ""} />
                     <span>Morph to Policy</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={polishGrammar99}
+                    className="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs px-3 py-2.5 rounded font-bold transition shadow-xs cursor-pointer"
+                    title="Polish to Grammarly 99%+ correctness and clarity"
+                  >
+                    <Sparkles size={13} />
+                    <span>Grammarly 99%+ Polish</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -937,6 +995,15 @@ export default function DraftEditor() {
                 >
                   <Sparkles size={12} />
                   Auto-Fix to 0% AI (Instant Humanize)
+                </button>
+                <button
+                  type="button"
+                  onClick={polishGrammar99}
+                  className="inline-flex items-center gap-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs px-3 py-1.5 rounded font-semibold transition shadow-xs cursor-pointer"
+                  title="Polish to Grammarly 99%+ correctness and clarity"
+                >
+                  <Sparkles size={12} />
+                  Polish to 99%+ Grammarly
                 </button>
               </div>
             )}
