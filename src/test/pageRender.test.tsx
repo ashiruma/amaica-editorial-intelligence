@@ -32,4 +32,10 @@ describe("Application Routing and Page Rendering", () => {
     render(<App />);
     expect(screen.getAllByText(/Amaica/i).length).toBeGreaterThan(0);
   });
+
+  it("renders /newsroom/draft/:id route without hook violation or invariant 310 error", async () => {
+    window.history.pushState({}, "Test", "/newsroom/draft/test-draft-123");
+    render(<App />);
+    expect(screen.getAllByText(/Amaica/i).length).toBeGreaterThan(0);
+  });
 });

@@ -171,6 +171,10 @@ export default function DraftEditor() {
     }
   };
 
+  const sources: SourceRef[] = useMemo(() => {
+    return (draft?.sources as SourceRef[]) || [];
+  }, [draft?.sources]);
+
   const { issues, aiResult } = useMemo(() => {
     if (!draft) return { issues: [] as Issue[], aiResult: null as AiDetectionResult | null };
     return validateArticleWithAiDetails({
@@ -178,28 +182,10 @@ export default function DraftEditor() {
       lede: draft.lede,
       body: draft.body,
       template_type: draft.template_type,
-      sources: (draft.sources as SourceRef[]) || [],
+      sources,
       min_word_count: minWordCount,
     });
-  }, [draft?.headline, draft?.lede, draft?.body, draft?.template_type, draft?.sources, minWordCount]);
-
-  if (loading) return <div className="min-h-screen bg-background" />;
-  if (!user) return <Navigate to="/newsroom/auth" replace />;
-  if (!draft) return <div className="min-h-screen bg-background"><Masthead variant="newsroom" /><div className="p-8 text-ink-light">Loading…</div></div>;
-
-  const update = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
-
-  const errors = issues.filter((i) => i.severity === "error");
-  const warnings = issues.filter((i) => i.severity === "warning");
-  const approvable = canApprove(issues);
-
-  const sources: SourceRef[] = (draft.sources as SourceRef[]) || [];
-  const updateSource = (idx: number, patch: Partial<SourceRef>) => {
-    const next = sources.map((s, i) => (i === idx ? { ...s, ...patch } : s));
-    update({ sources: next });
-  };
-  const addSource = () => update({ sources: [...sources, { url: "", title: "", notes: [] }] });
-  const removeSource = (idx: number) => update({ sources: sources.filter((_, i) => i !== idx) });
+  }, [draft?.headline, draft?.lede, draft?.body, draft?.template_type, sources, minWordCount]);
 
   const policyAudit: PolicyAuditResult | null = useMemo(() => {
     if (!draft) return null;
@@ -212,6 +198,23 @@ export default function DraftEditor() {
       min_word_count: minWordCount || 700,
     });
   }, [draft?.headline, draft?.lede, draft?.body, sources, draft?.template_type, minWordCount]);
+
+  if (loading) return <div className="min-h-screen bg-background" />;
+  if (!user) return <Navigate to="/newsroom/auth" replace />;
+  if (!draft) return <div className="min-h-screen bg-background"><Masthead variant="newsroom" /><div className="p-8 text-ink-light">Loading…</div></div>;
+
+  const update = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
+
+  const errors = issues.filter((i) => i.severity === "error");
+  const warnings = issues.filter((i) => i.severity === "warning");
+  const approvable = canApprove(issues);
+
+  const updateSource = (idx: number, patch: Partial<SourceRef>) => {
+    const next = sources.map((s, i) => (i === idx ? { ...s, ...patch } : s));
+    update({ sources: next });
+  };
+  const addSource = () => update({ sources: [...sources, { url: "", title: "", notes: [] }] });
+  const removeSource = (idx: number) => update({ sources: sources.filter((_, i) => i !== idx) });
 
   const morphDraftWithPolicy = () => {
     if (!draft) return;
