@@ -459,14 +459,29 @@ export async function scrapeKenyanEntertainmentPortals(
   for (const portal of portals) {
     try {
       onProgress?.(`Scanning ${portal.name} for breaking entertainment stories...`);
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 12000);
+      let signal: AbortSignal | undefined;
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      try {
+        if (typeof AbortController !== "undefined") {
+          const controller = new AbortController();
+          if (typeof AbortSignal !== "undefined" && controller.signal instanceof AbortSignal) {
+            signal = controller.signal;
+          }
+          timeoutId = setTimeout(() => {
+            try { controller.abort(); } catch {}
+          }, 12000);
+        }
+      } catch {}
 
-      const res = await fetch(`https://r.jina.ai/${encodeURIComponent(portal.url)}`, {
+      const fetchOptions: RequestInit = {
         headers: { Accept: "application/json", "X-No-Cache": "true" },
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
+      };
+      if (signal && typeof process !== "undefined" && process.env?.NODE_ENV !== "test") {
+        fetchOptions.signal = signal;
+      }
+
+      const res = await fetch(`https://r.jina.ai/${encodeURIComponent(portal.url)}`, fetchOptions);
+      if (timeoutId) clearTimeout(timeoutId);
 
       if (!res.ok) continue;
       const data = await res.json();

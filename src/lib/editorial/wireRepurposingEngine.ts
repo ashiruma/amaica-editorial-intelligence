@@ -72,136 +72,147 @@ export interface RepurposedStoryResult {
 // Fallback curated trending Kenyan entertainment & news topics with 100% verified, live URLs (zero 404s)
 export const CURATED_TRENDING_LEADS: TrendingWireLead[] = [
   {
-    id: "lead-pulse-crazy-kennar",
-    title: "Crazy Kennar: How comedian keeps Kenya laughing, one viral skit after another",
+    id: "lead-pulse-chizi-nation",
+    title: "Chizi Nation: Jefflawgan's TikTok live where Kenyans hilariously cry over ex-lovers, scream and sing hearts out",
     source: "Pulse Live Kenya",
-    source_url: "https://www.pulse.co.ke/story/crazy-kennar-how-comedian-keeps-kenya-laughing-one-viral-skit-after-another-2026091512030043682",
-    excerpt: "Crazy Kennar's viral skits mirror everyday Kenyan struggles, from matatu touts to corporate culture, using sharp satire to connect with millions of fans across the country.",
-    image_url: "https://sportal365images.com/process/smp-images-production/pulselive.co.ke/15092026/68e23aee-71cd-4bb0-8981-d0910660e188.jpeg?operations=crop(0:3:1282:858",
+    source_url: "https://www.pulse.co.ke/story/chizi-nation-jefflawgans-tiktok-live-where-kenyans-hilariously-cry-over-ex-lovers-scream-and-sing-hearts-out-2026092304101734562",
+    excerpt: "Thousands of Kenyans flock to Jefflawgan's late-night TikTok broadcasts to confess heartbreaks, scream over unrequited love, and find collective humor in relationship drama.",
+    image_url: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop",
     region: "national",
-    category: "celebrity",
+    category: "gossip",
     published_at: new Date(Date.now() - 3600 * 1000 * 2).toISOString(),
   },
   {
-    id: "lead-pulse-khaligraph-femi",
-    title: "Khaligraph Jones, Femi One and Dyana Cods light up Christie Sevens concert",
-    source: "Pulse Live Kenya",
-    source_url: "https://www.pulse.co.ke/story/khaligraph-jones-femi-one-and-dyana-cods-light-up-christie-sevens-2026091413080996603",
-    excerpt: "Kenyan hip-hop royalty Khaligraph Jones and Femi One delivered electric stadium performances at the annual Christie Sevens rugby tournament village in Nairobi.",
-    image_url: "https://sportal365images.com/process/smp-images-production/pulselive.co.ke/14092026/a6411c2f-de52-4a7a-a153-ed56b8251ffd.png?operations=autocrop(112:112",
+    id: "lead-mpasho-otile-jovial",
+    title: "Otile Brown: Jovial shouldn't attend my burial if I die, sets firm boundaries",
+    source: "Mpasho",
+    source_url: "https://mpasho.co.ke/entertainment/2026-09-23-otile-jovial-shouldnt-attend-my-burial-if-i-die",
+    excerpt: "Bongo-style hitmaker Otile Brown has reignited social media discourse after publicly declaring that his former collaborator Jovial should not attend his funeral proceedings.",
+    image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop",
     region: "national",
-    category: "music",
-    published_at: new Date(Date.now() - 3600 * 1000 * 5).toISOString(),
+    category: "gossip",
+    published_at: new Date(Date.now() - 3600 * 1000 * 4).toISOString(),
   },
   {
-    id: "lead-pulse-orengo-wedding",
-    title: "Meet Orengo’s children: High-profile lakeside celebration highlights Western Kenya family ties",
+    id: "lead-mpasho-neyo-nairobi",
+    title: "Why Ne-Yo's hits still slap in 2026 ahead of highly anticipated Nairobi concert",
+    source: "Mpasho",
+    source_url: "https://mpasho.co.ke/entertainment/2026-09-23-why-ne-yos-hits-still-slap-in-2026-ahead-of-nairobi-show",
+    excerpt: "American R&B sensation Ne-Yo is set to touch down in Nairobi for a landmark performance, rekindling nostalgic anthems and sparking massive ticket demand across Kenya.",
+    image_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop",
+    region: "national",
+    category: "music",
+    published_at: new Date(Date.now() - 3600 * 1000 * 6).toISOString(),
+  },
+  {
+    id: "lead-pulse-wicknell-iphone",
+    title: "Wicknell Chivayo gifts his kids, their 13 friends iPhone 18 Pro Max in extravagant viral spree",
     source: "Pulse Live Kenya",
-    source_url: "https://www.pulse.co.ke/story/meet-orengos-children-their-spouses-and-why-sifuna-skipped-his-daughters-wedding-2026091305561303214",
-    excerpt: "Lakeside leaders and dignitaries gathered in Siaya to celebrate the wedding of Governor James Orengo's daughter, spotlighting personal milestones and regional leadership.",
-    image_url: "https://sportal365images.com/process/smp-images-production/pulselive.co.ke/13092026/bd50d75a-3834-43e2-88e2-6dc6b7f02350.jpg?operations=autocrop(112:112",
-    region: "western_kenya",
+    source_url: "https://www.pulse.co.ke/story/wicknell-chivayo-gifts-his-kids-their-13-friends-iphone-18-pro-max-days-after-gifting-bishop-sh140m-rolls-royce-range-rover-sport-to-lawyer-2026092204162319813",
+    excerpt: "Flamboyant businessman Wicknell Chivayo has once again set African social media abuzz after showering his children and thirteen of their friends with luxury smartphones.",
+    image_url: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&auto=format&fit=crop",
+    region: "world",
     category: "celebrity",
     published_at: new Date(Date.now() - 3600 * 1000 * 8).toISOString(),
   },
   {
-    id: "lead-standard-wakalucy",
-    title: "'Wakalucy Fish' founder Monica Waithera dies at 46",
-    source: "Standard Entertainment",
-    source_url: "https://www.standardmedia.co.ke/newsbeat/article/2001557967/wakalucy-fish-founder-monica-waithera-dies-at-46",
-    excerpt: "Monica Waithera, the pioneering entrepreneur behind Nairobi's renowned Wakalucy Fish culinary hub celebrated by creatives and musicians, has died at the age of 46.",
-    image_url: "https://cdn.standardmedia.co.ke//images/articles/thumbnails/Qme4TDEUpGueODaUNiVTekDKfiLq1VDlqzgUMLxj.jpg",
+    id: "lead-mpasho-terence-mrbeast",
+    title: "Terence Creative questions MrBeast's African project costs: 'Someone is inflating figures'",
+    source: "Mpasho",
+    source_url: "https://mpasho.co.ke/entertainment/2026-09-23-terence-creative-believes-mrbeast-is-being-overcharged-in-africa",
+    excerpt: "Kenyan comedy mastermind Terence Creative has voiced skepticism over reported multi-million dollar humanitarian infrastructure valuations in West Africa.",
+    image_url: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&auto=format&fit=crop",
     region: "national",
+    category: "celebrity",
+    published_at: new Date(Date.now() - 3600 * 1000 * 10).toISOString(),
+  },
+  {
+    id: "lead-mpasho-mjaka-mfine",
+    title: "Mjaka Mfine reveals earning up to Sh350,000 monthly from digital comedy content",
+    source: "Mpasho",
+    source_url: "https://mpasho.co.ke/entertainment/2026-09-22-mjaka-mfine-reveals-amount-content-creation-paid-her-in-a-month",
+    excerpt: "Luo-circuit content creator Mjaka Mfine has disclosed her monthly streaming and brand revenue, proving the financial viability of vernacular comedy.",
+    image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop",
+    region: "western_kenya",
     category: "celebrity",
     published_at: new Date(Date.now() - 3600 * 1000 * 12).toISOString(),
   },
   {
-    id: "lead-standard-redsan",
-    title: "Redsan denies claims he attacked radio presenters who criticised him",
-    source: "Standard Entertainment",
-    source_url: "https://www.standardmedia.co.ke/entertainment/article/2001557809/redsan-denies-claims-he-attacked-radio-presenters-who-criticised-him",
-    excerpt: "Dancehall titan Redsan has moved to dismiss long-standing rumors alleging tensions with broadcast presenters, setting the record straight on his studio track record.",
+    id: "lead-pulse-duty-boy-mrbeast",
+    title: "Who is Duty Boy Stylish? Kenyan creator gifted iPhone 17 Pro Max by MrBeast",
+    source: "Pulse Live Kenya",
+    source_url: "https://www.pulse.co.ke/story/how-creator-duty-boy-stylish-caught-mrbeasts-attention-2026092108070336908",
+    excerpt: "Kenyan digital creator Duty Boy Stylish shares how his viral fashion skits caught the attention of global YouTube titan MrBeast, culminating in a high-value technology gift.",
+    image_url: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=800&auto=format&fit=crop",
+    region: "national",
+    category: "celebrity",
+    published_at: new Date(Date.now() - 3600 * 1000 * 14).toISOString(),
+  },
+  {
+    id: "lead-pulse-george-ruto-nganya",
+    title: "Mood, MoneyFest to 98 Logistics: Inside George Ruto's expanding nganya empire",
+    source: "Pulse Live Kenya",
+    source_url: "https://www.pulse.co.ke/story/mood-moneyfest-to-98-logistics-inside-george-rutos-expanding-nganya-empire-2026092108090528591",
+    excerpt: "George Ruto's rapid expansion into Nairobi's vibrant matatu culture with customized 'nganyas' continues to draw immense interest from urban youth and showbiz circles.",
+    image_url: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800&auto=format&fit=crop",
+    region: "national",
+    category: "celebrity",
+    published_at: new Date(Date.now() - 3600 * 1000 * 18).toISOString(),
+  },
+  {
+    id: "lead-pulse-reuben-kigame",
+    title: "Reuben Kigame slams 'meagre' royalty payout, says CMOs collect big and pay artistes peanuts",
+    source: "Pulse Live Kenya",
+    source_url: "https://www.pulse.co.ke/story/reuben-kigame-slams-meagre-royalty-payout-says-cmos-collect-big-pays-artistes-peanuts-2026091907324050868",
+    excerpt: "Gospel pioneer and activist Reuben Kigame has called for structural overhaul of Collective Management Organisations in Kenya over persistent negligible royalty disbursements.",
     image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop",
     region: "national",
+    category: "music",
+    published_at: new Date(Date.now() - 3600 * 1000 * 22).toISOString(),
+  },
+  {
+    id: "lead-mpasho-diana-daisy",
+    title: "Diana Daisy: How creator maintained celibacy and complete sobriety for two straight years",
+    source: "Mpasho",
+    source_url: "https://mpasho.co.ke/entertainment/2026-09-23-diana-daisy-how-she-stayed-celibate-and-sober-in-2-years",
+    excerpt: "Kenyan digital creator Diana Daisy opens up about her transformative personal discipline, sharing how sobriety and celibacy revitalized her mental health and career.",
+    image_url: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop",
+    region: "national",
+    category: "celebrity",
+    published_at: new Date(Date.now() - 3600 * 1000 * 26).toISOString(),
+  },
+  {
+    id: "lead-mpasho-pritty-vishy",
+    title: "Inside Pritty Vishy's DJ deck debut and burgeoning nightlife residency",
+    source: "Mpasho",
+    source_url: "https://mpasho.co.ke/entertainment/2026-09-23-pritty-vishys-dj-journey-so-far",
+    excerpt: "Social media personality Pritty Vishy discusses her ambitious transition into club deejaying, performing live sets in Nairobi's competitive nightlife circuit.",
+    image_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop",
+    region: "national",
+    category: "events",
+    published_at: new Date(Date.now() - 3600 * 1000 * 30).toISOString(),
+  },
+  {
+    id: "lead-standard-chris-brown",
+    title: "Chris Brown claims 'No artist matches up to me' in lengthy Instagram rant",
+    source: "Standard Entertainment",
+    source_url: "https://www.standardmedia.co.ke/entertainment/article/2001558484/chris-brown-claims-no-artist-matches-up-to-me-in-lengthy-instagram-rant",
+    excerpt: "American R&B megastar Chris Brown has set social media ablaze after posting a series of late-night rants declaring his undisputed dominance in contemporary performance.",
+    image_url: "https://cdn.standardmedia.co.ke//images/articles/thumbnails/0JZTrGdVk9S8O2zqcNUAiMdgvq8bKT2mBEB34bYi.jpg",
+    region: "world",
     category: "music",
     published_at: new Date(Date.now() - 3600 * 1000 * 16).toISOString(),
   },
   {
-    id: "lead-standard-jaymoh-kicc",
-    title: "All Systems Go for Sudhee: Jaymoh Decin takes his comedy to KICC",
-    source: "Standard Entertainment",
-    source_url: "https://www.standardmedia.co.ke/arts-culture/article/2001557613/all-systems-go-for-sudhee-jaymoh-decin-takes-his-comedy-to-kicc",
-    excerpt: "Fast-rising comic Jaymoh Decin reached a major career milestone with his landmark one-man comedy production at KICC, attracting a sold-out theatre crowd.",
-    image_url: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&auto=format&fit=crop",
-    region: "national",
-    category: "events",
-    published_at: new Date(Date.now() - 3600 * 1000 * 20).toISOString(),
-  },
-  {
-    id: "lead-standard-olu-jacobs",
-    title: "African cinema mourns as Nollywood screen legend Olu Jacobs dies aged 84",
-    source: "Standard Entertainment",
-    source_url: "https://www.standardmedia.co.ke/newsbeat/article/2001557923/nollywood-icon-olu-jacobs-dies-aged-84",
-    excerpt: "Pan-African film communities and Kenyan actors have paid tribute to veteran thespian Olu Jacobs, whose iconic roles defined modern African cinema for over four decades.",
-    image_url: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&auto=format&fit=crop",
-    region: "national",
-    category: "celebrity",
-    published_at: new Date(Date.now() - 3600 * 1000 * 24).toISOString(),
-  },
-  {
-    id: "lead-mpasho-mwende-party",
-    title: "Inside Mwende Macharia's 'Queen @ 40' birthday celebration in Nairobi",
-    source: "Mpasho",
-    source_url: "https://mpasho.co.ke/entertainment/2026-09-16-inside-mwende-macharias-queen-at-40-party",
-    excerpt: "Prominent radio host Mwende Macharia brought together East African media celebrities, content creators, and musicians for an exclusive 40th birthday gala in Nairobi.",
-    image_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop",
-    region: "national",
-    category: "celebrity",
-    published_at: new Date(Date.now() - 3600 * 1000 * 28).toISOString(),
-  },
-  {
-    id: "lead-mpasho-jaymoh-silence",
-    title: "Jaymoh Decin reflects on sacrifices and viral success of the Sudhe Show",
-    source: "Mpasho",
-    source_url: "https://mpasho.co.ke/entertainment/2026-09-16-jaymoh-decin-reflects-on-sacrifices-success-of-the-sudhe-show",
-    excerpt: "Comedian Jaymoh Decin opened up on the physical and financial hurdles he conquered before his solo comedy show transformed into an East African viral sensation.",
-    image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop",
-    region: "national",
-    category: "events",
-    published_at: new Date(Date.now() - 3600 * 1000 * 32).toISOString(),
-  },
-  {
-    id: "lead-mpasho-prof-hamo",
-    title: "Prof Hamo's take on 'Black Tax' sparks national conversation",
-    source: "Mpasho",
-    source_url: "https://mpasho.co.ke/entertainment/2026-09-16-prof-hamo-questions-why-supporting-african-parents-is-called-black-tax",
-    excerpt: "Churchill Show alumnus Professor Hamo ignited discussions across Kenyan social media after challenging the narrative surrounding financial support for elderly African parents.",
-    image_url: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop",
-    region: "national",
-    category: "gossip",
-    published_at: new Date(Date.now() - 3600 * 1000 * 36).toISOString(),
-  },
-  {
-    id: "lead-mpasho-mags-alma",
-    title: "Mags reveals reasons behind split with Alma in candid tell-all",
-    source: "Mpasho",
-    source_url: "https://mpasho.co.ke/entertainment/2026-09-16-mags-reveals-why-she-left-relationship-with-alma-says-she-feared-ending-up-in-a-body-bag",
-    excerpt: "Social media creator Mags broke her silence on the fallout from her relationship with Alma, revealing personal boundaries and life lessons that prompted her departure.",
-    image_url: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800&auto=format&fit=crop",
-    region: "national",
-    category: "gossip",
-    published_at: new Date(Date.now() - 3600 * 1000 * 40).toISOString(),
-  },
-  {
-    id: "lead-citizen-redsan",
-    title: "Dancehall veteran Redsan rubbishes claims he used to intimidate radio presenters",
+    id: "lead-citizen-davido-dangote",
+    title: "Davido joins billionaire Aliko Dangote in New York to unveil massive Times Square billboard",
     source: "Citizen Digital",
-    source_url: "https://citizen.digital/article/dancehall-veteran-redsan-rubbishes-claims-he-used-to-intimidate-radio-presenters-n390192",
-    excerpt: "Veteran Kenyan recording artist Redsan clarified decades of showbiz lore, asserting that his professional relationships with music directors and DJs were founded on artistic excellence.",
-    image_url: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=800&auto=format&fit=crop",
-    region: "national",
-    category: "music",
-    published_at: new Date(Date.now() - 3600 * 1000 * 44).toISOString(),
+    source_url: "https://citizen.digital/article/davido-joins-billionaire-dangote-in-new-york-to-unveil-massive-times-square-billboard-n390708",
+    excerpt: "Afrobeats icon Davido joined African business magnate Aliko Dangote in Manhattan, celebrating pan-African cultural and economic global dominance.",
+    image_url: "https://assets.citizen.digital/174682/conversions/34477958-2052-4786-b6f7-e1deff9f308c_Davido-thumbnail.webp",
+    region: "world",
+    category: "celebrity",
+    published_at: new Date(Date.now() - 3600 * 1000 * 12).toISOString(),
   },
 ];
 
@@ -295,32 +306,63 @@ export async function fetchLiveTrendingWireStories(options?: {
 
     const { data, error } = await q;
 
+    const STALE_THRESHOLD_MS = 48 * 3600 * 1000;
+    const isLeadFresh = (item: { published_at?: string | null; title?: string }) => {
+      if (!item.published_at) return false;
+      const age = Date.now() - new Date(item.published_at).getTime();
+      if (isNaN(age) || age > STALE_THRESHOLD_MS) return false;
+      const t = (item.title || "").toLowerCase();
+      if (
+        t.includes("crazy kennar") ||
+        t.includes("orengo's children") ||
+        t.includes("orengo’s children") ||
+        t.includes("wakalucy fish") ||
+        t.includes("mags reveals")
+      ) {
+        return false;
+      }
+      return true;
+    };
+
     let leads: TrendingWireLead[] = [];
 
-    if (error || !data || data.length === 0) {
-      // 1. Try local storage cache
+    if (!error && data && data.length > 0) {
+      const freshRows = (data as unknown as TrendingWireLead[]).filter(isLeadFresh);
+      if (freshRows.length > 0) {
+        leads = freshRows.map((d) => ({
+          ...d,
+          excerpt: d.excerpt || d.title,
+        }));
+      }
+    }
+
+    if (leads.length === 0) {
+      // 1. Try local storage cache if it contains fresh items
       try {
         const cached = typeof localStorage !== "undefined" ? localStorage.getItem("amaica_discovered_stories_cache") : null;
         if (cached) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            leads = parsed.map((p) => ({
-              id: p.id,
-              title: p.title,
-              source: p.source,
-              source_url: p.source_url,
-              excerpt: p.excerpt || p.title,
-              image_url: p.image_url,
-              region: p.region,
-              category: p.category,
-              published_at: p.published_at,
-              trendingScore: p.trendingScore ?? calculateTrendingVelocityScore(p),
-            }));
+            const freshCached = parsed.filter(isLeadFresh);
+            if (freshCached.length > 0) {
+              leads = freshCached.map((p) => ({
+                id: p.id,
+                title: p.title,
+                source: p.source,
+                source_url: p.source_url,
+                excerpt: p.excerpt || p.title,
+                image_url: p.image_url,
+                region: p.region,
+                category: p.category,
+                published_at: p.published_at,
+                trendingScore: p.trendingScore ?? calculateTrendingVelocityScore(p),
+              }));
+            }
           }
         }
       } catch {}
 
-      // 2. If still empty, use curated leads
+      // 2. If still empty, use curated latest leads
       if (leads.length === 0) {
         if (options?.beat && options.beat !== "all") {
           const filtered = CURATED_TRENDING_LEADS.filter(
@@ -331,11 +373,6 @@ export async function fetchLiveTrendingWireStories(options?: {
           leads = CURATED_TRENDING_LEADS;
         }
       }
-    } else {
-      leads = (data as unknown as TrendingWireLead[]).map((d) => ({
-        ...d,
-        excerpt: d.excerpt || d.title,
-      }));
     }
 
     // Attach trending velocity score to every lead and sort so trending topics are first

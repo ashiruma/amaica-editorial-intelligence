@@ -142,9 +142,38 @@ export default function Discover() {
       console.warn("Network or database unreachable when querying discovered_stories:", err);
     }
 
-    if (dbStories.length > 0) {
+    // Filter out stale stories older than 48 hours or with old September 15 titles
+    const STALE_THRESHOLD_MS = 48 * 3600 * 1000;
+    const freshDbStories = dbStories.filter((s) => {
+      if (!s.published_at) return false;
+      const age = Date.now() - new Date(s.published_at).getTime();
+      if (isNaN(age) || age > STALE_THRESHOLD_MS) return false;
+      const titleLower = s.title.toLowerCase();
+      if (
+        titleLower.includes("crazy kennar") ||
+        titleLower.includes("orengo's children") ||
+        titleLower.includes("orengo’s children") ||
+        titleLower.includes("wakalucy fish") ||
+        titleLower.includes("mags reveals")
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    // Asynchronously archive stale stories in Supabase so they don't persist
+    try {
+      supabase
+        .from("discovered_stories")
+        .update({ status: "archived" })
+        .lt("published_at", new Date(Date.now() - STALE_THRESHOLD_MS).toISOString())
+        .then(() => {})
+        .catch(() => {});
+    } catch { /* ignore */ }
+
+    if (freshDbStories.length > 0) {
       // Calculate trending velocity score for each story and sort descending (trending topics first!)
-      const scoredStories = dbStories
+      const scoredStories = freshDbStories
         .map((s) => ({
           ...s,
           trendingScore: calculateTrendingVelocityScore({
@@ -162,69 +191,160 @@ export default function Discover() {
         safeSetItem("amaica_discovered_stories_cache", JSON.stringify(scoredStories));
       } catch { /* ignore */ }
     } else {
-      // 1. Try local cache first
+      // 1. Try local cache if it contains fresh stories
+      let usedCache = false;
       try {
         const cached = safeGetItem("amaica_discovered_stories_cache");
         if (cached) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setStories(parsed);
-            return;
+            const freshCached = parsed.filter((s: Story) => {
+              const age = Date.now() - new Date(s.published_at || s.created_at).getTime();
+              const titleLower = (s.title || "").toLowerCase();
+              return !isNaN(age) && age <= STALE_THRESHOLD_MS && !titleLower.includes("crazy kennar") && !titleLower.includes("orengo");
+            });
+            if (freshCached.length > 0) {
+              setStories(freshCached);
+              usedCache = true;
+            }
           }
         }
       } catch { /* ignore */ }
 
-      // 2. Seed with live trending entertainment wire leads so the newsroom is never blank
-      try {
-        const liveLeads = await fetchLiveTrendingWireStories();
-        const mappedStories: Story[] = liveLeads.map((l) => ({
-          id: l.id,
-          title: l.title,
-          source: l.source,
-          source_url: l.source_url,
-          excerpt: l.excerpt,
-          image_url: l.image_url,
-          region: l.region,
-          category: l.category,
-          status: "new",
-          published_at: l.published_at || new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          highlights: [l.excerpt],
-          preview_summary: l.excerpt,
-          trendingScore: l.trendingScore ?? calculateTrendingVelocityScore(l),
-        })).sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
-        setStories(mappedStories);
+      // 2. Seed with latest live trending entertainment wire leads (from today/yesterday)
+      if (!usedCache) {
         try {
-          safeSetItem("amaica_discovered_stories_cache", JSON.stringify(mappedStories));
-        } catch { /* ignore */ }
+          const liveLeads = await fetchLiveTrendingWireStories();
+          const mappedStories: Story[] = liveLeads.map((l) => ({
+            id: l.id,
+            title: l.title,
+            source: l.source,
+            source_url: l.source_url,
+            excerpt: l.excerpt,
+            image_url: l.image_url,
+            region: l.region,
+            category: l.category,
+            status: "new",
+            published_at: l.published_at || new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            highlights: [l.excerpt],
+            preview_summary: l.excerpt,
+            trendingScore: l.trendingScore ?? calculateTrendingVelocityScore(l),
+          })).sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
+          setStories(mappedStories);
+          try {
+            safeSetItem("amaica_discovered_stories_cache", JSON.stringify(mappedStories));
+          } catch { /* ignore */ }
+        } catch (fallbackErr) {
+          console.warn("Could not load fallback trending wire stories:", fallbackErr);
+        }
+      }
+    }
+  };
 
-        // Seed authentic stories to Supabase for persistence across newsroom sessions if connected
+  const discover = async (silentParam: boolean | unknown = false) => {
+    const silent = typeof silentParam === "boolean" ? silentParam : false;
+    setDiscovering(true);
+    if (!silent) {
+      toast.info("⚡ Live Scanning Pulse Live, Mpasho, Standard Media & Citizen Digital...");
+    }
+    try {
+      // Proactively run the real-time Kenyan entertainment portal scanner directly
+      const livePortals = await scrapeKenyanEntertainmentPortals(silent ? undefined : (msg) => toast.info(msg));
+      if (livePortals.length > 0) {
+        const mappedLive: Story[] = livePortals.map((p) => ({
+          id: p.id,
+          title: p.title,
+          source: p.source,
+          source_url: p.source_url,
+          excerpt: p.excerpt,
+          image_url: p.image_url,
+          region: p.region,
+          category: p.category,
+          status: "new",
+          published_at: p.published_at || new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          highlights: [p.excerpt],
+          preview_summary: p.excerpt,
+          trendingScore: calculateTrendingVelocityScore(p),
+        }));
+
+        // Immediately update state and localStorage cache so news leads appear in the UI immediately
+        setStories((prev) => {
+          const freshUrls = new Set(mappedLive.map((s) => s.source_url));
+          // Filter out stale stories (>48h) or old September 15 stories from prev
+          const freshPrev = prev.filter((s) => {
+            if (freshUrls.has(s.source_url)) return false;
+            const age = Date.now() - new Date(s.published_at || s.created_at).getTime();
+            const titleLower = (s.title || "").toLowerCase();
+            return (
+              !isNaN(age) &&
+              age <= 48 * 3600 * 1000 &&
+              !titleLower.includes("crazy kennar") &&
+              !titleLower.includes("orengo's children") &&
+              !titleLower.includes("orengo’s children") &&
+              !titleLower.includes("wakalucy fish") &&
+              !titleLower.includes("mags reveals")
+            );
+          });
+          const merged = [...mappedLive, ...freshPrev].sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
+          try {
+            safeSetItem("amaica_discovered_stories_cache", JSON.stringify(merged));
+            safeSetItem("amaica_last_portal_scrape_time", String(Date.now()));
+          } catch {}
+          return merged;
+        });
+
+        // Persist fresh stories to Supabase and archive stale rows
         try {
           await supabase.from("discovered_stories").upsert(
-            mappedStories.map((s) => ({
-              title: s.title,
-              source: s.source,
-              source_url: s.source_url,
-              excerpt: s.excerpt,
-              image_url: s.image_url,
-              region: s.region,
-              category: s.category,
+            livePortals.map((p) => ({
+              title: p.title,
+              source: p.source,
+              source_url: p.source_url,
+              excerpt: p.excerpt,
+              image_url: p.image_url,
+              region: p.region,
+              category: p.category,
               status: "new",
-              published_at: s.published_at,
+              published_at: p.published_at || new Date().toISOString(),
             })),
             { onConflict: "source_url" }
           );
-        } catch (seedErr) {
-          console.warn("Could not seed discovered_stories:", seedErr);
+
+          await supabase
+            .from("discovered_stories")
+            .update({ status: "archived" })
+            .lt("published_at", new Date(Date.now() - 48 * 3600 * 1000).toISOString());
+        } catch (upsertErr) {
+          console.warn("Could not upsert live scraped stories:", upsertErr);
         }
-      } catch (fallbackErr) {
-        console.warn("Could not load fallback trending wire stories:", fallbackErr);
+
+        if (!silent) {
+          toast.success(`Discovered ${livePortals.length} fresh breaking entertainment stories!`);
+        }
+      } else {
+        if (!silent) {
+          toast.info("Feeds are up to date with the freshest stories");
+        }
       }
+    } catch (e) {
+      if (!silent) {
+        toast.error(e instanceof Error ? e.message : "Discovery encountered an issue");
+      }
+    } finally {
+      setDiscovering(false);
     }
   };
 
   useEffect(() => {
     load();
+    // Auto-trigger fresh portal scan on mount if last scan was > 30 minutes ago
+    const lastScrape = safeGetItem("amaica_last_portal_scrape_time");
+    const lastTime = lastScrape ? parseInt(lastScrape, 10) : 0;
+    if (Date.now() - lastTime > 30 * 60 * 1000) {
+      discover(true);
+    }
   }, [user]);
 
   // Live-poll write_article_attempts for the currently-writing story so the bulk
@@ -298,90 +418,6 @@ export default function Discover() {
       </div>
     );
   }
-
-  const discover = async () => {
-    setDiscovering(true);
-    try {
-      let insertedCount = 0;
-
-      // 1. Try Supabase edge function first
-      try {
-        const { data, error } = await supabase.functions.invoke("discover-news");
-        if (!error && typeof data?.inserted === "number") {
-          insertedCount = data.inserted;
-        }
-      } catch (edgeErr) {
-        console.warn("Edge function discover-news unavailable, initiating real-time portal scanner:", edgeErr);
-      }
-
-      // 2. If edge function inserted 0 stories, seamlessly run real-time portal scanner
-      if (insertedCount === 0) {
-        toast.info("Scanning Pulse Live, Standard Media, Mpasho & Citizen Digital for breaking stories...");
-        const livePortals = await scrapeKenyanEntertainmentPortals((msg) => toast.info(msg));
-        if (livePortals.length > 0) {
-          const mappedLive: Story[] = livePortals.map((p) => ({
-            id: p.id,
-            title: p.title,
-            source: p.source,
-            source_url: p.source_url,
-            excerpt: p.excerpt,
-            image_url: p.image_url,
-            region: p.region,
-            category: p.category,
-            status: "new",
-            published_at: p.published_at,
-            created_at: new Date().toISOString(),
-            highlights: [p.excerpt],
-            preview_summary: p.excerpt,
-            trendingScore: calculateTrendingVelocityScore(p),
-          }));
-
-          // Immediately update state and localStorage cache so news leads appear in the UI immediately
-          setStories((prev) => {
-            const existingUrls = new Set(prev.map((s) => s.source_url));
-            const fresh = mappedLive.filter((s) => !existingUrls.has(s.source_url));
-            const merged = [...fresh, ...prev].sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
-            try {
-              safeSetItem("amaica_discovered_stories_cache", JSON.stringify(merged));
-            } catch {}
-            return merged;
-          });
-
-          try {
-            await supabase.from("discovered_stories").upsert(
-              livePortals.map((p) => ({
-                title: p.title,
-                source: p.source,
-                source_url: p.source_url,
-                excerpt: p.excerpt,
-                image_url: p.image_url,
-                region: p.region,
-                category: p.category,
-                status: "new",
-                published_at: p.published_at,
-              })),
-              { onConflict: "source_url" }
-            );
-          } catch (upsertErr) {
-            console.warn("Could not upsert live scraped stories:", upsertErr);
-          }
-          insertedCount = livePortals.length;
-        }
-      }
-
-      if (insertedCount > 0) {
-        toast.success(`Discovered ${insertedCount} authentic entertainment stories`);
-      } else {
-        toast.info("Feeds are up to date with the freshest stories");
-      }
-      await load();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Discovery encountered an issue");
-      await load();
-    } finally {
-      setDiscovering(false);
-    }
-  };
 
   const handleInstantIngest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -779,12 +815,13 @@ export default function Discover() {
 
             {/* Standard Discover */}
             <button
-              onClick={discover}
+              onClick={() => discover(false)}
               disabled={discovering || autoGenerating}
-              className="bg-primary text-primary-foreground px-4 py-2.5 rounded text-sm font-medium hover:bg-primary-mid transition flex items-center gap-2 disabled:opacity-50"
+              title="Scrape Pulse Live Kenya, Mpasho, Standard Media, and Citizen Digital for fresh breaking stories"
+              className="bg-primary text-primary-foreground px-4 py-2.5 rounded text-sm font-medium hover:bg-primary-mid transition flex items-center gap-2 disabled:opacity-50 shadow-sm"
             >
               <RefreshCw size={14} className={discovering ? "animate-spin" : ""} />
-              {discovering ? "Scanning feeds..." : "Discover new stories"}
+              {discovering ? "Scanning Live Portals..." : "⚡ Scan Live News Sites"}
             </button>
           </div>
         </div>
