@@ -195,7 +195,7 @@ export function HumanizeWorkspaceView({
                       : "bg-card text-ink-mid border-border hover:bg-muted"
                   }`}
                 >
-                  {isChecked ? "✓ " : "+ "}
+                  {isChecked ? "x " : "+ "}
                   {ctrl.label}
                 </button>
               );

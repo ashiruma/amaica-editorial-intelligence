@@ -628,7 +628,7 @@ export default function DiscoveryAdmin() {
 
   const runNow = async () => {
     setBusy(true);
-    toast.info("⚡ Live Scanning Pulse Live, Mpasho, Standard Media & Citizen Digital...");
+    toast.info("Live Scanning Pulse Live, Mpasho, Standard Media & Citizen Digital...");
 
     try {
       let remoteSuccess = false;
@@ -809,7 +809,7 @@ export default function DiscoveryAdmin() {
             className="bg-primary text-primary-foreground px-4 py-2.5 rounded text-sm font-medium hover:bg-primary-mid transition flex items-center gap-2 disabled:opacity-50 shadow-sm"
           >
             <RefreshCw size={14} className={busy ? "animate-spin" : ""} />
-            {busy ? "Scanning live news sites…" : "⚡ Run discovery now"}
+            {busy ? "Scanning live news sites…" : "Run discovery now"}
           </button>
         </div>
 

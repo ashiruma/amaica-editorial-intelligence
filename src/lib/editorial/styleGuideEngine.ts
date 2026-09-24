@@ -18,6 +18,13 @@ interface StyleGuideRule {
 
 const AMAICA_STYLE_RULES: StyleGuideRule[] = [
   {
+    id: "style-zero-emoji",
+    ruleTitle: "Zero-Emoji Mandate",
+    pattern: /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1FA70}-\u{1FAFF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F900}-\u{1F9FF}]/u,
+    preferredReplacement: "Remove all emojis completely",
+    explanation: "Zero-Emoji Policy: Emojis are strictly forbidden anywhere in editorial work. Journalism is professional work, not casual entertainment.",
+  },
+  {
     id: "style-weasel-reports",
     ruleTitle: "Direct Source Attribution",
     pattern: /\b(?:according to reports|sources say|unconfirmed reports indicate)\b/gi,

@@ -5,7 +5,14 @@ import { useAuth, type AppRole } from "@/lib/auth";
 import { Masthead } from "@/components/Masthead";
 import { toast } from "sonner";
 import { useMinWordCount, DEFAULT_MIN_WORD_COUNT } from "@/hooks/useNewsroomSettings";
-import { ShieldCheck, ShieldAlert, Clock, Check, X, UserCheck } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Clock, Check, X, UserCheck, Globe, RefreshCw, KeyRound, ExternalLink } from "lucide-react";
+import {
+  getWordPressConfig,
+  saveWordPressConfig,
+  testWordPressConnection,
+  type WordPressConfig,
+  type WordPressTestResult,
+} from "@/lib/wordpress/wordpressConnector";
 import {
   getLocalRequests,
   approveAccessRequest,
@@ -30,6 +37,35 @@ export default function Admin() {
   const { minWordCount, refresh: refreshSettings } = useMinWordCount();
   const [minWordInput, setMinWordInput] = useState<string>("");
   const [savingSetting, setSavingSetting] = useState(false);
+
+  // WordPress Connectors State
+  const [wpConfig, setWpConfig] = useState<WordPressConfig>(getWordPressConfig());
+  const [wpTesting, setWpTesting] = useState(false);
+  const [wpTestResult, setWpTestResult] = useState<WordPressTestResult | null>(null);
+  const [showWpKey, setShowWpKey] = useState(false);
+
+  const handleTestWp = async () => {
+    setWpTesting(true);
+    try {
+      const res = await testWordPressConnection(wpConfig);
+      setWpTestResult(res);
+      if (res.ok) {
+        toast.success(`WordPress connection verified (${res.latencyMs}ms)`);
+      } else {
+        toast.error(`WordPress test failed: ${res.message}`);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Connection test failed");
+    } finally {
+      setWpTesting(false);
+    }
+  };
+
+  const handleSaveWp = () => {
+    const saved = saveWordPressConfig(wpConfig);
+    setWpConfig(saved);
+    toast.success("WordPress connector settings saved");
+  };
 
   useEffect(() => { setMinWordInput(String(minWordCount)); }, [minWordCount]);
 
@@ -275,6 +311,139 @@ export default function Admin() {
               {savingSetting ? "Saving…" : "Save"}
             </button>
             <span className="text-[11px] text-ink-light">Default is {DEFAULT_MIN_WORD_COUNT}. Applies to editor checks and bulk preview.</span>
+          </div>
+        </div>
+
+        {/* 3. WordPress Connectors & Publishing Gateway */}
+        <div className="bg-card border border-border rounded-lg shadow-card p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-border flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Globe className="text-primary w-5 h-5" />
+              <h2 className="font-display text-lg font-bold text-foreground">
+                WordPress Connectors &amp; Publishing Gateway
+              </h2>
+              <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                Multi-Channel Gateway
+              </span>
+            </div>
+            <div className="text-xs text-ink-light font-mono">
+              Zero-Emoji Sanitization: Active
+            </div>
+          </div>
+
+          <p className="text-xs text-ink-mid leading-relaxed">
+            WireOps Desk connects directly to your WordPress publication to push validated, 0% AI, zero-emoji drafts into WordPress for pending editorial review or instant publishing.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-ink-light mb-1 font-medium">Target WordPress Site / Domain</label>
+              <input
+                type="text"
+                value={wpConfig.siteUrl}
+                onChange={(e) => setWpConfig({ ...wpConfig, siteUrl: e.target.value })}
+                placeholder="e.g. theashirumanow.wordpress.com or mydomain.com"
+                className="w-full text-sm bg-background border border-border rounded px-3 py-2 font-mono"
+              />
+              <span className="text-[10px] text-ink-light mt-1 block">
+                Default: <code className="text-primary">theashirumanow.wordpress.com</code>
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs text-ink-light mb-1 font-medium">Platform Architecture</label>
+              <select
+                value={wpConfig.type}
+                onChange={(e) => setWpConfig({ ...wpConfig, type: e.target.value as any })}
+                className="w-full text-sm bg-background border border-border rounded px-3 py-2"
+              >
+                <option value="wordpress_com">WordPress.com Cloud (REST API Gateway)</option>
+                <option value="self_hosted">Self-Hosted WordPress (wp-json REST API)</option>
+              </select>
+              <span className="text-[10px] text-ink-light mt-1 block">
+                WordPress.com uses public API gateway; self-hosted uses core REST endpoints.
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs text-ink-light mb-1 font-medium">
+                {wpConfig.type === "wordpress_com" ? "WordPress.com API Key / Bearer Token" : "Application Password / Token"}
+              </label>
+              <div className="relative">
+                <input
+                  type={showWpKey ? "text" : "password"}
+                  value={wpConfig.apiKey || ""}
+                  onChange={(e) => setWpConfig({ ...wpConfig, apiKey: e.target.value })}
+                  placeholder={wpConfig.type === "wordpress_com" ? "Optional fallback token (or set via Supabase Secrets)" : "Application Password"}
+                  className="w-full text-sm bg-background border border-border rounded px-3 py-2 pr-16 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowWpKey(!showWpKey)}
+                  className="absolute right-2 top-2 text-[11px] text-ink-light hover:text-foreground font-medium px-1"
+                >
+                  {showWpKey ? "Hide" : "Show"}
+                </button>
+              </div>
+              <span className="text-[10px] text-ink-light mt-1 block">
+                Primary credentials load from Supabase Edge Secrets (<code className="text-foreground">WORDPRESS_COM_API_KEY</code>). Client fallback stores securely in browser.
+              </span>
+            </div>
+
+            {wpConfig.type === "self_hosted" && (
+              <div>
+                <label className="block text-xs text-ink-light mb-1 font-medium">WordPress Username</label>
+                <input
+                  type="text"
+                  value={wpConfig.username || ""}
+                  onChange={(e) => setWpConfig({ ...wpConfig, username: e.target.value })}
+                  placeholder="e.g. admin or editor_user"
+                  className="w-full text-sm bg-background border border-border rounded px-3 py-2"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs text-ink-light mb-1 font-medium">Default Push Status</label>
+              <select
+                value={wpConfig.defaultStatus}
+                onChange={(e) => setWpConfig({ ...wpConfig, defaultStatus: e.target.value as any })}
+                className="w-full text-sm bg-background border border-border rounded px-3 py-2"
+              >
+                <option value="pending">Pending Review (Recommended - safety review in WP admin)</option>
+                <option value="draft">Draft</option>
+                <option value="publish">Direct Publish (Instant Live)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Test Status Banner */}
+          {wpTestResult && (
+            <div className={`p-3 rounded border text-xs font-mono flex items-start gap-2 ${wpTestResult.ok ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300" : "bg-destructive/10 border-destructive/30 text-destructive"}`}>
+              {wpTestResult.ok ? <Check size={14} className="mt-0.5 flex-shrink-0" /> : <X size={14} className="mt-0.5 flex-shrink-0" />}
+              <div>
+                <div className="font-bold">{wpTestResult.ok ? "WordPress Endpoint Verified" : "WordPress Connection Alert"} ({wpTestResult.latencyMs}ms)</div>
+                <div className="mt-0.5">{wpTestResult.message}</div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              onClick={handleTestWp}
+              disabled={wpTesting}
+              className="bg-muted hover:bg-muted/80 text-foreground border border-border px-3.5 py-2 rounded text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw size={13} className={wpTesting ? "animate-spin" : ""} />
+              {wpTesting ? "Pinging Endpoint..." : "Test WordPress Connection"}
+            </button>
+
+            <button
+              onClick={handleSaveWp}
+              className="bg-primary hover:bg-primary-mid text-primary-foreground px-4 py-2 rounded text-xs font-semibold transition cursor-pointer"
+            >
+              Save WordPress Settings
+            </button>
           </div>
         </div>
 

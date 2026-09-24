@@ -17,6 +17,8 @@
  * 9. Commonly confused word repairs (has lead to -> has led to)
  */
 
+import { stripEmojis, hasEmojis } from "@/lib/articleValidation";
+
 export interface GrammarlyAudit {
   score: number; // 0 - 100 (targeted >= 99)
   correctness: number;
@@ -348,6 +350,12 @@ export function perfectArticleGrammar(rawText: string): {
   const improvements: string[] = [];
   let text = rawText;
 
+  // 0. Zero-Emoji Mandate: "NO EMOJIs anywhere in my work"
+  if (hasEmojis(text)) {
+    text = stripEmojis(text);
+    improvements.push("Purged unprofessional emojis to enforce clean journalistic copy.");
+  }
+
   // 1. Repair broken participial past tense replacements (". This maked", ". This leaved", etc.)
   const brokenPastTenseRegex = /\. This ([a-z]+)ed\b/gi;
   text = text.replace(brokenPastTenseRegex, (match, base) => {
@@ -566,6 +574,12 @@ export function auditGrammarlyScore(text: string): GrammarlyAudit {
   let clarityDeductions = 0;
   let engagementDeductions = 0;
   let deliveryDeductions = 0;
+
+  // Check for emojis (strictly prohibited in professional newsroom copy)
+  if (hasEmojis(text)) {
+    correctnessDeductions += 25;
+    deliveryDeductions += 30;
+  }
 
   // Check for broken verb forms
   if (/\b(?:maked|leaved|taked|gived|setted)\b/i.test(text)) correctnessDeductions += 15;

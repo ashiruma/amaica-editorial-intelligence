@@ -43,9 +43,7 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
               <NavLink to="/newsroom/legends" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Legends</NavLink>
               <NavLink to="/newsroom/discovery" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Autonomous Discovery</NavLink>
               <NavLink to="/newsroom/health" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Health</NavLink>
-              <NavLink to="/newsroom/ai-detector" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>AI Intelligence</NavLink>
-              <NavLink to="/newsroom/editorial-policy" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Editorial Policy</NavLink>
-              <NavLink to="/newsroom/style-guide" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Style guide</NavLink>
+              <NavLink to="/newsroom/editorial-policy" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Editorial Policy &amp; Style</NavLink>
               {isAdmin && (
                 <NavLink to="/newsroom/admin" className={({ isActive }) => isActive ? "text-accent font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"}>Admin</NavLink>
               )}
@@ -93,8 +91,7 @@ export function Masthead({ variant = "newsroom" }: { variant?: "newsroom" | "pub
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/discovery" className="py-1.5 text-primary-foreground/90 hover:text-accent">Discovery</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/health" className="py-1.5 text-primary-foreground/90 hover:text-accent">Scraper Health</NavLink>
                 <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/ai-detector" className="py-1.5 text-accent font-semibold">AI Intelligence</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/editorial-policy" className="py-1.5 text-primary-foreground/90 hover:text-accent font-medium">Editorial Policy</NavLink>
-                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/style-guide" className="py-1.5 text-primary-foreground/90 hover:text-accent">Style Guide</NavLink>
+                <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/editorial-policy" className="py-1.5 text-primary-foreground/90 hover:text-accent font-medium">Editorial Policy &amp; Style</NavLink>
                 {isAdmin && (
                   <NavLink onClick={() => setMobileOpen(false)} to="/newsroom/admin" className="py-1.5 text-accent font-medium">Admin Clearance</NavLink>
                 )}

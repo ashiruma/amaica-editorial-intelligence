@@ -41,7 +41,7 @@ const App = () => (
             <Route path="/article/:id" element={<RequireNewsroomAuth><PublicArticle /></RequireNewsroomAuth>} />
             <Route path="/legends/:id" element={<RequireNewsroomAuth><LegendPage /></RequireNewsroomAuth>} />
             <Route path="/editorial-policy" element={<Navigate to="/newsroom/editorial-policy" replace />} />
-            <Route path="/style-guide" element={<Navigate to="/newsroom/style-guide" replace />} />
+            <Route path="/style-guide" element={<Navigate to="/newsroom/editorial-policy" replace />} />
             <Route path="/auth" element={<Navigate to="/newsroom/auth" replace />} />
             <Route path="/newsroom/auth" element={<NewsroomAuth />} />
             <Route path="/newsroom/login" element={<NewsroomAuth />} />
@@ -59,7 +59,7 @@ const App = () => (
             <Route path="/newsroom/detector" element={<RequireNewsroomAuth><AiDetectorStudio /></RequireNewsroomAuth>} />
             <Route path="/newsroom/ai-detector" element={<RequireNewsroomAuth><AiDetectorStudio /></RequireNewsroomAuth>} />
             <Route path="/newsroom/editorial-policy" element={<RequireNewsroomAuth><EditorialPolicy /></RequireNewsroomAuth>} />
-            <Route path="/newsroom/style-guide" element={<RequireNewsroomAuth><StyleGuide /></RequireNewsroomAuth>} />
+            <Route path="/newsroom/style-guide" element={<Navigate to="/newsroom/editorial-policy" replace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

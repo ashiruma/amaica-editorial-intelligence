@@ -39,7 +39,7 @@ import {
   auditGrammarlyScore,
 } from "./grammarlyPerfectionEngine";
 import { detectCategory, detectRegion } from "@/lib/localScraper";
-import { countWords } from "@/lib/articleValidation";
+import { countWords, stripEmojis } from "@/lib/articleValidation";
 
 export interface TrendingWireLead {
   id: string;
@@ -630,10 +630,12 @@ export async function repurposeWireStory(options: {
 
   onProgress?.("Repurposing into Amaica Media continuous inverted-pyramid prose...");
 
-  // Step 2: Synthesize journalistic story (natural flow, no formulaic outline headers)
+  // Step 2: Synthesize journalistic story (natural flow, zero emojis, no formulaic outline headers)
+  const cleanTitle = stripEmojis(scrapedTitle || `News Update from ${domain}`);
+  const cleanContent = stripEmojis(scrapedContent);
   const synthesized = synthesizeNaturalAmaicaStory(
-    scrapedTitle || `News Update from ${domain}`,
-    scrapedContent,
+    cleanTitle,
+    cleanContent,
     domain,
     region,
     category
@@ -669,9 +671,9 @@ export async function repurposeWireStory(options: {
 
   onProgress?.("Applying Grammarly 99%+ copy-editing perfection polish...");
   const perfected = perfectArticleHeadlineLedeBody(compliance.headline, compliance.lede, compliance.body);
-  const finalHeadline = perfected.headline;
-  const finalLede = perfected.lede;
-  const finalBody = perfected.body;
+  const finalHeadline = stripEmojis(perfected.headline);
+  const finalLede = stripEmojis(perfected.lede);
+  const finalBody = stripEmojis(perfected.body);
   const grammarlyAudit = auditGrammarlyScore(finalBody);
 
   const fullText = `${finalHeadline}\n\n${finalLede}\n\n${finalBody}`;

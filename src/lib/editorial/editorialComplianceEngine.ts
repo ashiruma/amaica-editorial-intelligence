@@ -25,6 +25,8 @@ import {
   type Issue,
   type SourceRef,
   noteText,
+  stripEmojis,
+  hasEmojis,
 } from "@/lib/articleValidation";
 import {
   dissolveFormulaicHeaders,
@@ -444,8 +446,18 @@ export function ensureEditorialCompliance(input: ComplianceInput): ComplianceRes
   const region = input.region || "national";
   const category = input.category || "celebrity";
 
-  // 1. Headline Remediation
+  // 0. Zero-Emoji Mandate: "NO EMOJIs anywhere in my work"
   let headline = (input.headline || "").trim();
+  let lede = (input.lede || "").trim();
+  let body = (input.body || "").trim();
+  if (hasEmojis(headline) || hasEmojis(lede) || hasEmojis(body)) {
+    headline = stripEmojis(headline);
+    lede = stripEmojis(lede);
+    body = stripEmojis(body);
+    fixedIssues.push("Purged all emojis to enforce zero-emoji editorial policy.");
+  }
+
+  // 1. Headline Remediation
   if (headline.length < 10) {
     if (input.lede && input.lede.trim().length >= 15) {
       headline = input.lede.trim().split(/[.?!]/)[0].slice(0, 80).trim();
@@ -456,10 +468,9 @@ export function ensureEditorialCompliance(input: ComplianceInput): ComplianceRes
   }
 
   // 2. Lede Remediation
-  let lede = (input.lede || "").trim();
   if (lede.length < 30) {
-    if (input.body && input.body.trim().length >= 30) {
-      const firstSentence = input.body.trim().split(/(?<=[.!?])\s+/)[0];
+    if (body.length >= 30) {
+      const firstSentence = body.split(/(?<=[.!?])\s+/)[0];
       lede = firstSentence.length >= 30 ? firstSentence : `${headline} as confirmed by regional entertainment organizers in Nairobi today.`;
     } else {
       lede = `${headline} following official confirmations by regional entertainment coordinators in Nairobi on Thursday.`;
@@ -469,8 +480,9 @@ export function ensureEditorialCompliance(input: ComplianceInput): ComplianceRes
   }
 
   // 3. Formulaic Outline Headings Dissolution
-  let body = dissolveFormulaicHeaders(input.body || "");
-  if (body !== (input.body || "")) {
+  const originalBody = body;
+  body = dissolveFormulaicHeaders(body);
+  if (body !== originalBody) {
     fixedIssues.push("Dissolved formulaic outline headings (## Background, ## Quotes, etc.) into narrative prose.");
   }
 
@@ -772,6 +784,21 @@ export function ensureEditorialCompliance(input: ComplianceInput): ComplianceRes
   if (perfected.improvements.length > 0) {
     fixedIssues.push(`Applied ${perfected.improvements.length} Grammarly 99%+ copy-editing perfection polish(es).`);
   }
+
+  // Final Zero-Emoji Assurance
+  headline = stripEmojis(headline);
+  lede = stripEmojis(lede);
+  body = stripEmojis(body);
+
+  // Re-run validation so approvable reflects the finalized text
+  issues = validateArticle({
+    headline,
+    lede,
+    body,
+    sources,
+    template_type: input.template_type,
+    min_word_count: minWords,
+  });
 
   const finalWords = countWords(body);
   const finalParas = extractParagraphs(body).length;

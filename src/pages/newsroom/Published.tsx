@@ -55,7 +55,7 @@ export default function Published() {
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           {([
             ["all", "All Live"],
-            ["western_gossip", "🔥 Western Gossip"],
+            ["western_gossip", "Western Gossip"],
             ["western_kenya", "Western Kenya"],
             ["gossip", "All Gossip (Udaku)"],
           ] as const).map(([key, label]) => (

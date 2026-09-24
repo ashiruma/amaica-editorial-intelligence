@@ -50,6 +50,17 @@ export const TARGET_WORDS_BY_TEMPLATE: Record<string, { min: number; ideal: numb
 
 const MIN_PARAGRAPHS = 6;
 const MIN_QUOTES = 2;
+export const EMOJI_REGEX = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1FA70}-\u{1FAFF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F900}-\u{1F9FF}\u{200D}\u{FE0F}]/gu;
+
+export function stripEmojis(text: string): string {
+  if (!text) return "";
+  return text.replace(EMOJI_REGEX, "").replace(/[ \t]{2,}/g, " ").trim();
+}
+
+export function hasEmojis(text: string): boolean {
+  if (!text) return false;
+  return /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1FA70}-\u{1FAFF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F900}-\u{1F9FF}]/u.test(text);
+}
 
 export function countWords(text: string): number {
   return (text.trim().match(/\b[\w'’-]+\b/g) || []).length;
@@ -245,6 +256,17 @@ export function validateArticle(input: ArticleCheckInput): Issue[] {
         suggestion: "For each source, add 2–4 bullet notes naming the specific facts used (names, dates, prices, quotes).",
       });
     }
+  }
+
+  // Zero-Emoji Mandate: "NO EMOJIs anywhere in my work"
+  const allArticleText = `${input.headline || ""} ${input.lede || ""} ${body}`;
+  if (hasEmojis(allArticleText)) {
+    issues.push({
+      id: "zero-emoji-violation",
+      severity: "error",
+      message: "Zero-Emoji Rule: Emojis are strictly prohibited in professional journalistic copy",
+      suggestion: "Purge all emojis from headline, lede, and body. Professional journalism allows zero emojis.",
+    });
   }
 
   // Hype words ban

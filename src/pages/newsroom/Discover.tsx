@@ -79,7 +79,7 @@ export default function Discover() {
       safeSetItem("amaica_autopilot_enabled", String(next));
     } catch { /* ignore */ }
     if (next) {
-      toast.success("⚡ Newsroom Auto-Pilot activated: Monitoring reference sites & auto-drafting viral stories");
+      toast.success("Newsroom Auto-Pilot activated: Monitoring reference sites & auto-drafting viral stories");
     } else {
       toast.info("Newsroom Auto-Pilot paused");
     }
@@ -246,7 +246,7 @@ export default function Discover() {
     const silent = typeof silentParam === "boolean" ? silentParam : false;
     setDiscovering(true);
     if (!silent) {
-      toast.info("⚡ Live Scanning Pulse Live, Mpasho, Standard Media & Citizen Digital...");
+      toast.info("Live Scanning Pulse Live, Mpasho, Standard Media & Citizen Digital...");
     }
     try {
       // Proactively run the real-time Kenyan entertainment portal scanner directly
@@ -390,7 +390,7 @@ export default function Discover() {
     const runAutoPilotCycle = async () => {
       if (autoGenerating || discovering) return;
       try {
-        console.log("⚡ Auto-Pilot: Scanning reference portals for fresh trending news...");
+        console.log("Auto-Pilot: Scanning reference portals for fresh trending news...");
         await handleAutoGenerateTrending(2);
       } catch (err) {
         console.warn("Auto-Pilot cycle warning:", err);
@@ -810,7 +810,7 @@ export default function Discover() {
               <Zap size={14} className={autoGenerating ? "animate-spin text-amber-500" : "text-amber-500 fill-amber-500"} />
               {autoGenerating
                 ? `Auto-Drafting (${autoGenProgress?.current || 1}/${autoGenProgress?.total || 3})...`
-                : "⚡ Auto-Generate Trending Stories"}
+                : "Auto-Generate Trending Stories"}
             </button>
 
             {/* Standard Discover */}
@@ -821,7 +821,7 @@ export default function Discover() {
               className="bg-primary text-primary-foreground px-4 py-2.5 rounded text-sm font-medium hover:bg-primary-mid transition flex items-center gap-2 disabled:opacity-50 shadow-sm"
             >
               <RefreshCw size={14} className={discovering ? "animate-spin" : ""} />
-              {discovering ? "Scanning Live Portals..." : "⚡ Scan Live News Sites"}
+              {discovering ? "Scanning Live Portals..." : "Scan Live News Sites"}
             </button>
           </div>
         </div>
@@ -870,15 +870,15 @@ export default function Discover() {
             </button>
           </form>
           <p className="text-xs text-ink-light mt-2 flex items-center gap-1.5">
-            <span className="text-primary font-bold">💡 Tip:</span>
+            <span className="text-primary font-bold">Tip:</span>
             <span>Accepts direct article URLs or portal homepages (automatically resolves and ingests the top breaking entertainment/gossip story).</span>
           </p>
         </div>
 
         <div className="flex gap-1 mb-6 border-b border-border flex-wrap">
           {([
-            ["all", "🔥 Trending First (All)"],
-            ["trending", "⚡ Top Trending"],
+            ["all", "Trending First (All)"],
+            ["trending", "Top Trending"],
             ["western_circuit", "Western Circuit"],
             ["music", "Music & Afrobeats"],
             ["celebrity", "Celebrity & Showbiz"],

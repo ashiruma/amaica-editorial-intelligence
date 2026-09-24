@@ -283,10 +283,10 @@ export function BatchForensicsView({ onOpenInStudio }: BatchForensicsViewProps) 
               <Gauge className="w-3.5 h-3.5 text-primary" />
             </div>
             <div className="text-xl font-bold font-mono-amaica text-foreground mt-1 flex items-baseline gap-1">
-              ⚡ {progress?.storiesPerHour ? progress.storiesPerHour.toLocaleString() : "640+"}
+              {progress?.storiesPerHour ? progress.storiesPerHour.toLocaleString() : "640+"}
               <span className="text-[11px] font-normal text-ink-light">stories/hr</span>
             </div>
-            <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">✓ SLA &gt;50/hr Exceeded</span>
+            <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">SLA &gt;50/hr Exceeded</span>
           </div>
 
           <div className="bg-muted/40 border border-border rounded p-3">
@@ -398,7 +398,7 @@ export function BatchForensicsView({ onOpenInStudio }: BatchForensicsViewProps) 
                 onClick={() => setSearchQuery("")}
                 className="absolute right-2.5 top-2 text-[10px] text-ink-light hover:text-foreground cursor-pointer"
               >
-                ✕
+                x
               </button>
             )}
           </div>
@@ -529,7 +529,7 @@ export function BatchForensicsView({ onOpenInStudio }: BatchForensicsViewProps) 
                         )}
                         {story.humanizedContent && (
                           <span className="px-1.5 py-0.2 rounded-sm bg-accent/20 text-accent-foreground text-[10px] font-semibold">
-                            ✨ Humanized (now {story.humanizedAiProbability}%)
+                            Humanized (now {story.humanizedAiProbability}%)
                           </span>
                         )}
                       </div>

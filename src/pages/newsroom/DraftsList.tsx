@@ -100,7 +100,7 @@ export default function DraftsList() {
           {([
             ["all", "All Stories"],
             ["review", "⏳ In Review Queue"],
-            ["western_gossip", "🔥 Western Gossip"],
+            ["western_gossip", "Western Gossip"],
             ["western_kenya", "Western Kenya"],
             ["gossip", "All Gossip (Udaku)"],
           ] as const).map(([key, label]) => (

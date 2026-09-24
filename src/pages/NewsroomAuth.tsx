@@ -376,7 +376,7 @@ export default function NewsroomAuth() {
                         }}
                         className="w-full bg-accent text-accent-foreground font-semibold py-2 px-3 rounded text-xs hover:bg-accent/90 transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                       >
-                        <ShieldCheck size={14} /> ⚡ Instant Access as Administrator
+                        <ShieldCheck size={14} /> Instant Access as Administrator
                       </button>
                     </div>
 

@@ -14,6 +14,7 @@ import {
   auditGrammarlyScore,
 } from "@/lib/editorial/grammarlyPerfectionEngine";
 import { auditEditorialPolicy, morphStoryWithPolicy, type PolicyAuditResult } from "@/lib/editorial/policyGovernanceEngine";
+import { publishArticleToWordPress } from "@/lib/wordpress/wordpressConnector";
 import {
   Bot,
   ChevronUp,
@@ -448,25 +449,28 @@ export default function DraftEditor() {
     }
     setWpBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke("publish-wordpress", {
-        body: {
-          headline: draft.headline,
-          body: draft.body,
-          lede: draft.lede,
-          byline: draft.byline,
-          hero_image_url: draft.hero_image_url,
-          status: "pending",
-        },
+      const result = await publishArticleToWordPress({
+        headline: draft.headline,
+        body: draft.body,
+        lede: draft.lede,
+        byline: draft.byline,
+        hero_image_url: draft.hero_image_url,
+        category: draft.category,
+        status: "pending",
       });
-      if (error) throw error;
+
+      if (!result.success || !result.post_url) {
+        throw new Error(result.error || "WordPress publish failed");
+      }
+
       await updateDraftContent(draft.id, {
-        wordpress_post_url: data.post_url,
-        wordpress_post_id: String(data.post_id),
+        wordpress_post_url: result.post_url,
+        wordpress_post_id: String(result.post_id || ""),
         wordpress_published_at: new Date().toISOString(),
       } as any);
-      setDraft((prev) => prev ? { ...prev, wordpress_post_url: data.post_url } : null);
-      toast.success("Published to WordPress");
-      await recordAudit("wordpress_push", draft.status, draft.status, `Pushed to WordPress (pending review): ${data.post_url}`);
+      setDraft((prev) => prev ? { ...prev, wordpress_post_url: result.post_url } : null);
+      toast.success("Published to WordPress (0% emojis verified)");
+      await recordAudit("wordpress_push", draft.status, draft.status, `Pushed to WordPress (pending review): ${result.post_url}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "WordPress publish failed");
     } finally {
@@ -814,7 +818,7 @@ export default function DraftEditor() {
                 onChange={(e) => update({ category: e.target.value })}
                 className="w-full text-xs bg-card border border-border rounded px-2.5 py-1.5 font-medium outline-none focus:border-primary"
               >
-                <option value="gossip">🔥 Gossip (Udaku ya Showbiz)</option>
+                <option value="gossip">Gossip (Udaku ya Showbiz)</option>
                 <option value="celebrity">Celebrity & Culture</option>
                 <option value="music">Music & Benga</option>
                 <option value="events">Concerts & Events</option>
@@ -829,9 +833,9 @@ export default function DraftEditor() {
                 onChange={(e) => update({ region: e.target.value })}
                 className="w-full text-xs bg-card border border-border rounded px-2.5 py-1.5 font-medium outline-none focus:border-primary"
               >
-                <option value="western_kenya">📍 Western Kenya (Kakamega, Kisumu, Bungoma, Busia...)</option>
-                <option value="national">🇰🇪 National (Kenya Wide)</option>
-                <option value="world">🌍 World (East Africa & Global)</option>
+                <option value="western_kenya">Western Kenya (Kakamega, Kisumu, Bungoma, Busia...)</option>
+                <option value="national">National (Kenya Wide)</option>
+                <option value="world">World (East Africa & Global)</option>
               </select>
             </div>
           </div>
@@ -920,7 +924,7 @@ export default function DraftEditor() {
                 {issues.map((i) => (
                   <li key={i.id} className="text-xs">
                     <div className={`font-medium ${i.severity === "error" ? "text-destructive" : "text-accent-foreground"}`}>
-                      {i.severity === "error" ? "✗" : "!"} {i.message}
+                      {i.severity === "error" ? "x" : "!"} {i.message}
                     </div>
                     <div className="text-ink-light pl-3">→ {i.suggestion}</div>
                   </li>

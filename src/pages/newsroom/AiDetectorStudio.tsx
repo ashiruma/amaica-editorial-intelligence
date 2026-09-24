@@ -746,8 +746,8 @@ export default function AiDetectorStudio() {
         <div className="flex gap-1 mb-6 border-b border-border flex-wrap">
           {[
             { id: "analyze", label: "Single Story Studio" },
-            { id: "bulk", label: "⚡ Bulk Review (50+/hr)", badge: "SLA >50/hr" },
-            { id: "humanize", label: "✨ Fact-Locked Humanize" },
+            { id: "bulk", label: "Bulk Review (50+/hr)", badge: "SLA >50/hr" },
+            { id: "humanize", label: "Fact-Locked Humanize" },
             { id: "editorial", label: "Editorial Quality" },
             { id: "newsroom", label: "Desk Workflow" },
             { id: "reports", label: "Audit Reports" },
