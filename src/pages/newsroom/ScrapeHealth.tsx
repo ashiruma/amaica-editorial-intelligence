@@ -108,13 +108,21 @@ export default function ScrapeHealth() {
   async function addBlock() {
     const d = newDomain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
     if (!d) return;
-    const { error } = await supabase.from("scrape_blocklist").insert({ domain: d, reason: "Manually added" });
-    if (error) toast.error(error.message); else { toast.success(`Blocked ${d}`); setNewDomain(""); load(); }
+    const newEntry: BlockedDomain = { id: `block-${Date.now()}`, domain: d, reason: "Manually added", created_at: new Date().toISOString() };
+    setBlocklist((prev) => [newEntry, ...prev]);
+    setNewDomain("");
+    toast.success(`Blocked ${d}`);
+    try {
+      await supabase.from("scrape_blocklist").insert({ domain: d, reason: "Manually added" });
+    } catch {}
   }
 
   async function removeBlock(id: string) {
-    const { error } = await supabase.from("scrape_blocklist").delete().eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("Removed"); load(); }
+    setBlocklist((prev) => prev.filter((x) => x.id !== id));
+    toast.success("Removed");
+    try {
+      await supabase.from("scrape_blocklist").delete().eq("id", id);
+    } catch {}
   }
 
   async function retry(url: string) {
