@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { detectCategory, detectRegion } from "@/lib/localScraper";
+import { SSRFValidator } from "@/lib/scraper/ipValidator";
 
 export interface ScrapedStoryResult {
   success: boolean;
@@ -320,6 +321,11 @@ export async function scrapeStoryResilient(
   const norm = normalizeUrl(inputUrl);
   if (!norm) {
     throw new Error("Please enter a valid web URL.");
+  }
+
+  const ssrfCheck = SSRFValidator.validateUrl(norm);
+  if (!ssrfCheck.isValid) {
+    throw new Error(`SSRF Blocked: ${ssrfCheck.reason}`);
   }
 
   const isHome = isPortalHomepage(norm);
