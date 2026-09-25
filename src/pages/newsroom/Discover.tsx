@@ -1,7 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Masthead } from "@/components/Masthead";
 import { LegendOfDay } from "@/components/LegendOfDay";
+import { LiveIntelligenceMonitor } from "@/components/intelligence/LiveIntelligenceMonitor";
+import { StoryCluster, StorySignal } from "@/types/intelligence";
+import { StoryClusteringEngine } from "@/lib/clustering/storyClusteringEngine";
 import { useAuth } from "@/lib/auth";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -72,6 +75,34 @@ export default function Discover() {
   const [retryStatus, setRetryStatus] = useState<Record<string, RetryStatus>>({});
   const [customUrl, setCustomUrl] = useState("");
   const [ingesting, setIngesting] = useState(false);
+  const [deskView, setDeskView] = useState<"clusters" | "single_wire">("clusters");
+
+  const liveClusters = useMemo(() => {
+    let currentClusters: StoryCluster[] = [];
+    for (const s of stories) {
+      const sig: StorySignal = {
+        id: s.id,
+        source_id: s.source,
+        external_url: s.source_url,
+        canonical_url: s.source_url,
+        raw_title: s.title,
+        raw_text: s.excerpt || s.title,
+        excerpt: s.excerpt,
+        hero_image_url: s.image_url,
+        detected_at: s.published_at || s.created_at,
+        content_hash: s.id,
+        lineage_type: "original_report",
+        created_at: s.created_at,
+      };
+      const res = StoryClusteringEngine.clusterSignal(sig, currentClusters);
+      if (res.isNewCluster) {
+        currentClusters.push(res.cluster);
+      } else {
+        currentClusters = currentClusters.map((c) => (c.id === res.cluster.id ? res.cluster : c));
+      }
+    }
+    return currentClusters;
+  }, [stories]);
 
   const toggleAutoPilot = () => {
     const next = !autoPilotEnabled;
@@ -887,39 +918,87 @@ export default function Discover() {
           </p>
         </div>
 
-        <div className="flex gap-1 mb-6 border-b border-border flex-wrap">
-          {([
-            ["all", "Trending First (All)"],
-            ["trending", "Top Trending"],
-            ["western_circuit", "Western Circuit"],
-            ["music", "Music & Afrobeats"],
-            ["celebrity", "Celebrity & Showbiz"],
-            ["nganyas", "Nganyas & Matatus"],
-            ["politics", "Politics & Civic"],
-            ["western_gossip", "Western Gossip"],
-            ["festivals", "Festivals & Nightlife"],
-          ] as const).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={`px-4 py-2 text-[13px] border-b-2 -mb-px transition font-medium ${
-                filter === key
-                  ? key === "trending"
-                    ? "border-amber-500 text-amber-600 dark:text-amber-400 font-semibold"
-                    : key === "western_gossip"
-                    ? "border-rose-600 text-rose-600 font-semibold"
-                    : "border-primary text-primary font-semibold"
-                  : key === "trending"
-                  ? "border-transparent text-amber-600/80 hover:text-amber-600"
-                  : key === "western_gossip"
-                  ? "border-transparent text-rose-600/80 hover:text-rose-600"
-                  : "border-transparent text-ink-light hover:text-foreground"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+        {/* Newsroom View Mode Toggle */}
+        <div className="flex items-center gap-2 mb-6 border-b border-border pb-3">
+          <button
+            onClick={() => setDeskView("clusters")}
+            className={`text-xs px-3.5 py-2 rounded-md font-semibold transition flex items-center gap-1.5 ${
+              deskView === "clusters"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Multi-Source Intelligence Clusters ({liveClusters.length})
+          </button>
+          <button
+            onClick={() => setDeskView("single_wire")}
+            className={`text-xs px-3.5 py-2 rounded-md font-semibold transition flex items-center gap-1.5 ${
+              deskView === "single_wire"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Individual Wire Leads ({stories.length})
+          </button>
         </div>
+
+        {deskView === "clusters" ? (
+          <LiveIntelligenceMonitor
+            clusters={liveClusters}
+            onDraftCluster={(cluster) => {
+              const mainSig = cluster.signals?.[0];
+              const targetStory = stories.find((s) => s.id === mainSig?.id) || {
+                id: cluster.id,
+                title: cluster.working_headline,
+                source: cluster.primary_location,
+                source_url: mainSig?.external_url || "https://wireops.desk",
+                excerpt: mainSig?.excerpt || null,
+                image_url: mainSig?.hero_image_url || null,
+                region: cluster.county === "Kakamega" ? "western_kenya" : "national",
+                category: cluster.category || "community",
+                status: "new",
+                published_at: cluster.last_signal_at,
+                created_at: cluster.created_at,
+              };
+              writeDraft(targetStory);
+            }}
+            onRefresh={() => discover(false)}
+          />
+        ) : (
+          <>
+            <div className="flex gap-1 mb-6 border-b border-border flex-wrap">
+              {([
+                ["all", "Trending First (All)"],
+                ["trending", "Top Trending"],
+                ["western_circuit", "Western Circuit"],
+                ["music", "Music & Afrobeats"],
+                ["celebrity", "Celebrity & Showbiz"],
+                ["nganyas", "Nganyas & Matatus"],
+                ["politics", "Politics & Civic"],
+                ["western_gossip", "Western Gossip"],
+                ["festivals", "Festivals & Nightlife"],
+              ] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setFilter(key)}
+                  className={`px-4 py-2 text-[13px] border-b-2 -mb-px transition font-medium ${
+                    filter === key
+                      ? key === "trending"
+                        ? "border-amber-500 text-amber-600 dark:text-amber-400 font-semibold"
+                        : key === "western_gossip"
+                        ? "border-rose-600 text-rose-600 font-semibold"
+                        : "border-primary text-primary font-semibold"
+                      : key === "trending"
+                      ? "border-transparent text-amber-600/80 hover:text-amber-600"
+                      : key === "western_gossip"
+                      ? "border-transparent text-rose-600/80 hover:text-rose-600"
+                      : "border-transparent text-ink-light hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
 
         {filtered.length > 0 && (
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap bg-muted/40 border border-border rounded px-3 py-2">
@@ -1020,6 +1099,8 @@ export default function Discover() {
               </article>
             ))}
           </div>
+        )}
+          </>
         )}
       </main>
 

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Crown, Plus, Sparkles } from "lucide-react";
 import { SEED_LEGENDS } from "@/lib/editorial/seedLegends";
+import { KenyanLegendsDesk } from "@/components/legends/KenyanLegendsDesk";
 
 type Legend = { id: string; name: string; country: string | null; era: string | null; field: string | null; impact: string | null; active: boolean };
 type Feature = { id: string; feature_date: string; headline: string; legends: { name: string } | null };
