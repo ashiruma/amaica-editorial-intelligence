@@ -40,6 +40,7 @@ import {
 } from "./grammarlyPerfectionEngine";
 import { detectCategory, detectRegion } from "@/lib/localScraper";
 import { countWords, stripEmojis } from "@/lib/articleValidation";
+import { sanitizeUntrustedInput } from "@/lib/security/promptSandbox";
 
 export interface TrendingWireLead {
   id: string;
@@ -670,9 +671,9 @@ export async function repurposeWireStory(options: {
 
   onProgress?.("Repurposing into Amaica Media continuous inverted-pyramid prose...");
 
-  // Step 2: Synthesize journalistic story (natural flow, zero emojis, no formulaic outline headers)
-  const cleanTitle = stripEmojis(scrapedTitle || `News Update from ${domain}`);
-  const cleanContent = stripEmojis(scrapedContent);
+  // Step 2: Synthesize journalistic story (natural flow, zero emojis, prompt sandboxed, no formulaic outline headers)
+  const cleanTitle = stripEmojis(sanitizeUntrustedInput(scrapedTitle || `News Update from ${domain}`));
+  const cleanContent = stripEmojis(sanitizeUntrustedInput(scrapedContent));
   const synthesized = synthesizeNaturalAmaicaStory(
     cleanTitle,
     cleanContent,

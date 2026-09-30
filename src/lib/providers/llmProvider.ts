@@ -367,3 +367,23 @@ Further corroboration is underway with regional administrative coordinators. Upd
     };
   }
 }
+
+/**
+ * Ergonomic helper providing a streamlined interface for LLM completion.
+ */
+export function getLlmProvider() {
+  return {
+    isConfigured: () => LLMProviderFactory.getConfiguredProviders().length > 0,
+    callModel: async (options: { prompt: string; temperature?: number; maxTokens?: number }) => {
+      const resp = await LLMProviderFactory.complete(
+        [{ role: "user", content: options.prompt }],
+        {
+          temperature: options.temperature,
+          maxTokens: options.maxTokens,
+        }
+      );
+      return { text: resp.content };
+    },
+  };
+}
+

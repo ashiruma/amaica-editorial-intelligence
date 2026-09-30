@@ -1,0 +1,3 @@
+Built WireOps Desk — an AI-powered newsroom intelligence platform for Kenyan journalists. Turnitin-grade AI forensics, 0% AI footprint humanization, anti-hallucination guard, and a full editorial wire workflow from ingestion to publication. No fabricated endings. No AI flags. Just the story.
+
+wireops-desk.vercel.app

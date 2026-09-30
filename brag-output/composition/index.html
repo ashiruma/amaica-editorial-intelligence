@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WireOps Desk — Brag</title>
+  <meta name="hf-width" content="1280" />
+  <meta name="hf-height" content="720" />
+  <meta name="hf-duration" content="22" />
+  <meta name="hf-fps" content="30" />
+  <!-- GSAP via CDN (Hyperframes bundles it but also accepts local CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 1280px;
+      height: 720px;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: #0d1a1b;
+    }
+
+    /* ─── ROOT COMPOSITION WRAPPER ─── */
+    #wireops-root {
+      position: relative;
+      width: 1280px;
+      height: 720px;
+      overflow: hidden;
+    }
+
+    /* ─── SHARED ─── */
+    .clip {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1280px; height: 720px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* Hyperframes runtime hides clips outside their time window */
+    }
+
+    /* ─── SCENE 1 — HOOK ─── */
+    #scene-hook {
+      background: #0d1a1b;
+      flex-direction: column;
+    }
+
+    #hook-line {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 52px;
+      font-weight: 700;
+      color: #ffffff;
+      text-align: center;
+      max-width: 920px;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+      /* Hidden characters revealed via clip-path / opacity per char */
+    }
+
+    /* Individual character spans */
+    .hc {
+      display: inline;
+      opacity: 0;
+    }
+
+    .hc.failed-word {
+      color: #E8391D;
+    }
+
+    #hook-cursor {
+      display: inline-block;
+      width: 3px;
+      height: 54px;
+      background: #ffffff;
+      vertical-align: middle;
+      margin-left: 2px;
+      opacity: 0;
+    }
+
+    /* ─── SCENE 2 — FORENSICS PANEL ─── */
+    #scene-forensics {
+      background: #f5f9f9;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .forensics-panel {
+      background: #ffffff;
+      border: 1px solid #c8dada;
+      border-radius: 8px;
+      padding: 32px 36px;
+      width: 680px;
+      box-shadow: 0 8px 24px -8px rgba(26, 79, 82, 0.18);
+    }
+
+    .forensics-header {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: #1A4F52;
+      margin-bottom: 20px;
+    }
+
+    .verdict-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 0;
+      border-bottom: 1px solid #edf3f3;
+      opacity: 0;
+    }
+    .verdict-row:last-of-type { border-bottom: none; }
+
+    .verdict-label {
+      font-size: 15px;
+      font-weight: 500;
+      color: #1a2f30;
+    }
+
+    .verdict-bar-wrap {
+      height: 5px;
+      background: #E5F0F0;
+      border-radius: 3px;
+      width: 110px;
+      margin-top: 5px;
+      overflow: hidden;
+    }
+    .verdict-bar {
+      height: 100%;
+      border-radius: 3px;
+      width: 0%;
+    }
+    .bar-amber { background: #F59E0B; }
+    .bar-red   { background: #E8391D; }
+
+    .verdict-badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+    .badge-amber { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+    .badge-red   { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+
+    .ai-banner {
+      margin-top: 20px;
+      background: #FEE2E2;
+      border: 1px solid #FCA5A5;
+      border-radius: 6px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      opacity: 0;
+    }
+    .ai-banner-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #E8391D;
+      flex-shrink: 0;
+    }
+    .ai-banner-text {
+      font-size: 14px;
+      font-weight: 700;
+      color: #991B1B;
+      letter-spacing: 0.03em;
+    }
+
+    /* ─── SCENE 3 — HUMANIZER ─── */
+    #scene-humanizer {
+      background: #f5f9f9;
+      gap: 28px;
+    }
+
+    .humanizer-panel {
+      width: 530px;
+      height: 340px;
+      background: #ffffff;
+      border: 1px solid #c8dada;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 4px 16px rgba(26, 79, 82, 0.10);
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+    }
+
+    .panel-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      color: #1A4F52;
+      margin-bottom: 14px;
+    }
+
+    .draft-line {
+      height: 11px;
+      border-radius: 3px;
+      margin-bottom: 9px;
+      background: #E5F0F0;
+    }
+    .draft-line.flagged {
+      background: linear-gradient(90deg, #FEE2E2 0%, #FEE2E2 62%, #E5F0F0 62%);
+      position: relative;
+    }
+    .draft-line.flagged::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0;
+      width: 62%;
+      height: 2px;
+      background: #E8391D;
+      border-radius: 1px;
+    }
+    .draft-line.clean-line {
+      background: linear-gradient(90deg, #D1FAE5 0%, #D1FAE5 82%, #E5F0F0 82%);
+      opacity: 0;
+    }
+
+    .stamp {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0) rotate(-8deg);
+      background: #065F46;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 13px 26px;
+      border-radius: 6px;
+      opacity: 0;
+      box-shadow: 0 0 0 4px rgba(6, 95, 70, 0.18);
+    }
+
+    .entity-stat {
+      position: absolute;
+      bottom: 18px; left: 24px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #065F46;
+      background: #D1FAE5;
+      padding: 4px 10px;
+      border-radius: 4px;
+      opacity: 0;
+    }
+
+    /* ─── SCENE 4 — WIRE ─── */
+    #scene-wire {
+      background: #f5f9f9;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .wire-stat {
+      font-family: Georgia, serif;
+      font-size: 38px;
+      font-weight: 700;
+      color: #1A4F52;
+      letter-spacing: -0.5px;
+      opacity: 0;
+    }
+
+    .wire-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      width: 900px;
+    }
+
+    .wire-card {
+      background: #ffffff;
+      border: 1px solid #c8dada;
+      border-radius: 6px;
+      padding: 14px;
+      height: 120px;
+      position: relative;
+      opacity: 0;
+      box-shadow: 0 2px 8px rgba(26, 79, 82, 0.06);
+    }
+    .wire-card.highlighted {
+      border-color: #F5B800;
+      box-shadow: 0 0 0 2px rgba(245,184,0,0.25), 0 4px 16px rgba(26,79,82,0.14);
+    }
+    .wire-source {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      color: #1A4F52;
+      margin-bottom: 6px;
+    }
+    .wire-headline {
+      font-size: 10px;
+      font-weight: 600;
+      color: #1a2f30;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .wire-badge {
+      position: absolute;
+      bottom: 9px; left: 14px;
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 5px;
+      border-radius: 3px;
+      background: #E0F2F1;
+      color: #1A4F52;
+    }
+
+    /* ─── SCENE 5 — OUTRO ─── */
+    #scene-outro {
+      background: #1A4F52;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .outro-wordmark {
+      font-family: Georgia, serif;
+      font-size: 54px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+      opacity: 0;
+    }
+    .outro-line {
+      font-size: 18px;
+      color: rgba(255,255,255,0.88);
+      font-weight: 400;
+      text-align: center;
+      margin-bottom: 6px;
+      opacity: 0;
+    }
+    .outro-line.strong {
+      font-weight: 600;
+      color: #ffffff;
+      font-size: 21px;
+      margin-bottom: 10px;
+    }
+    .outro-url {
+      font-size: 13px;
+      color: rgba(255,255,255,0.52);
+      letter-spacing: 0.04em;
+      margin-top: 8px;
+      opacity: 0;
+    }
+
+    @keyframes dot-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%       { transform: scale(1.7); opacity: 0.55; }
+    }
+  </style>
+</head>
+<body>
+
+  <!--
+    ROOT COMPOSITION WRAPPER
+    data-composition-id  — required by Hyperframes contract
+    data-width / data-height — required
+  -->
+  <div id="wireops-root"
+       data-composition-id="wireops-brag"
+       data-width="1280"
+       data-height="720">
+
+    <!-- ═══ SCENE 1 — HOOK (0–3.5s) ════════════════════════════════════ -->
+    <div id="scene-hook" class="clip"
+         data-start="0" data-duration="3.5">
+      <div id="hook-line">
+        <!-- Characters injected by GSAP init below -->
+        <span id="hook-cursor"></span>
+      </div>
+    </div>
+
+    <!-- ═══ SCENE 2 — FORENSICS (3.5–9s) ═══════════════════════════════ -->
+    <div id="scene-forensics" class="clip"
+         data-start="3.5" data-duration="5.5">
+      <div id="fp" class="forensics-panel">
+        <div class="forensics-header">AI Forensics Report</div>
+
+        <div id="vr1" class="verdict-row">
+          <div>
+            <div class="verdict-label">Perplexity Score</div>
+            <div class="verdict-bar-wrap"><div id="vr1-bar" class="verdict-bar bar-amber"></div></div>
+          </div>
+          <div class="verdict-badge badge-amber">Elevated</div>
+        </div>
+
+        <div id="vr2" class="verdict-row">
+          <div>
+            <div class="verdict-label">Burstiness Pattern</div>
+            <div class="verdict-bar-wrap"><div id="vr2-bar" class="verdict-bar bar-amber"></div></div>
+          </div>
+          <div class="verdict-badge badge-amber">Uniform</div>
+        </div>
+
+        <div id="vr3" class="verdict-row">
+          <div>
+            <div class="verdict-label">Formulaic Transitions</div>
+            <div class="verdict-bar-wrap"><div id="vr3-bar" class="verdict-bar bar-red"></div></div>
+          </div>
+          <div class="verdict-badge badge-red">Detected</div>
+        </div>
+
+        <div id="ai-banner" class="ai-banner">
+          <div class="ai-banner-dot" id="ai-dot"></div>
+          <div class="ai-banner-text">High AI Confidence Detected</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SCENE 3 — HUMANIZER (9–15s) ════════════════════════════════ -->
+    <div id="scene-humanizer" class="clip"
+         data-start="9" data-duration="6">
+
+      <div id="hp-left" class="humanizer-panel">
+        <div class="panel-label">Original Draft — AI Detected</div>
+        <div class="draft-line flagged" style="width:88%"></div>
+        <div class="draft-line" style="width:70%"></div>
+        <div class="draft-line flagged" style="width:95%"></div>
+        <div class="draft-line" style="width:60%"></div>
+        <div class="draft-line flagged" style="width:82%"></div>
+        <div class="draft-line" style="width:72%"></div>
+        <div class="draft-line flagged" style="width:78%"></div>
+        <div class="draft-line" style="width:55%"></div>
+      </div>
+
+      <div id="hp-right" class="humanizer-panel">
+        <div class="panel-label">Humanized Copy</div>
+        <div id="cl1" class="draft-line clean-line" style="width:88%"></div>
+        <div id="cl2" class="draft-line" style="width:70%;opacity:0"></div>
+        <div id="cl3" class="draft-line clean-line" style="width:95%"></div>
+        <div id="cl4" class="draft-line" style="width:60%;opacity:0"></div>
+        <div id="cl5" class="draft-line clean-line" style="width:82%"></div>
+        <div id="cl6" class="draft-line" style="width:72%;opacity:0"></div>
+        <div id="cl7" class="draft-line clean-line" style="width:78%"></div>
+        <div id="cl8" class="draft-line" style="width:55%;opacity:0"></div>
+        <div id="stamp" class="stamp">0% AI Footprint</div>
+        <div id="entity-stat" class="entity-stat">100% Entity Preservation</div>
+      </div>
+
+    </div>
+
+    <!-- ═══ SCENE 4 — WIRE (15–19s) ════════════════════════════════════ -->
+    <div id="scene-wire" class="clip"
+         data-start="15" data-duration="4">
+      <div id="wire-stat" class="wire-stat">50+ stories / hour</div>
+      <div class="wire-grid">
+        <div id="wc1" class="wire-card">
+          <div class="wire-source">Tuko</div>
+          <div class="wire-headline">Gospel star Willy Paul launches surprise album with Nairobi collab</div>
+          <div class="wire-badge">Entertainment</div>
+        </div>
+        <div id="wc2" class="wire-card highlighted">
+          <div class="wire-source">Nation</div>
+          <div class="wire-headline">Kakamega governor opens new county arts hub ahead of cultural festival</div>
+          <div class="wire-badge">Western Kenya</div>
+        </div>
+        <div id="wc3" class="wire-card">
+          <div class="wire-source">Mpasho</div>
+          <div class="wire-headline">Eldoret Sacco unveils new fleet for the Nairobi corridor</div>
+          <div class="wire-badge">Breaking</div>
+        </div>
+        <div id="wc4" class="wire-card">
+          <div class="wire-source">Citizen</div>
+          <div class="wire-headline">Kakamega cultural festival set to draw over 40,000 attendees this weekend</div>
+          <div class="wire-badge">Western Kenya</div>
+        </div>
+        <div id="wc5" class="wire-card">
+          <div class="wire-source">Standard</div>
+          <div class="wire-headline">Kenyan film sector registers fastest growth quarter in five years</div>
+          <div class="wire-badge">Entertainment</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SCENE 5 — OUTRO (19–22s) ═══════════════════════════════════ -->
+    <div id="scene-outro" class="clip"
+         data-start="19" data-duration="3">
+      <div id="outro-wordmark" class="outro-wordmark">WireOps Desk</div>
+      <div id="outro-l1" class="outro-line">Built for Kenyan newsrooms.</div>
+      <div id="outro-l2" class="outro-line strong">No hallucinations. No AI flags. Just the story.</div>
+      <div id="outro-url" class="outro-url">wireops-desk.vercel.app</div>
+    </div>
+
+  </div><!-- /#wireops-root -->
+
+  <!-- ═══════════════════════════════════════════
+       AUDIO
+  ═══════════════════════════════════════════ -->
+  <!-- Music bed: track-index 10, 0.30 volume -->
+  <audio id="bg-music"
+         data-start="0" data-duration="22"
+         data-track-index="10" data-volume="0.30"
+         src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"></audio>
+
+  <!-- Scene 2 verdict row SFX (beat-locked / beat-grid) -->
+  <audio id="sfx-vr1"
+         data-start="8.73" data-duration="0.8"
+         data-track-index="11" data-volume="0.65"
+         src="assets/sfx/interface/drop_001.ogg"></audio>
+  <audio id="sfx-vr2"
+         data-start="9.28" data-duration="0.8"
+         data-track-index="12" data-volume="0.60"
+         src="assets/sfx/interface/drop_001.ogg"></audio>
+  <audio id="sfx-vr3"
+         data-start="9.82" data-duration="0.8"
+         data-track-index="13" data-volume="0.62"
+         src="assets/sfx/interface/drop_002.ogg"></audio>
+
+  <!-- Scene 3: stamp (beat-locked 13.11s) -->
+  <audio id="sfx-stamp"
+         data-start="13.10" data-duration="1.5"
+         data-track-index="14" data-volume="0.70"
+         src="assets/sfx/impact/impactBell_heavy_000.ogg"></audio>
+
+  <!-- Scene 5: outro bong -->
+  <audio id="sfx-outro"
+         data-start="19.60" data-duration="1.2"
+         data-track-index="15" data-volume="0.55"
+         src="assets/sfx/interface/bong_001.ogg"></audio>
+
+  <!-- ═══════════════════════════════════════════
+       GSAP TIMELINE (deterministic — no wall-clock)
+  ═══════════════════════════════════════════ -->
+  <script>
+  (function () {
+    // ── Helpers
+    function q(sel) { return document.querySelector(sel); }
+    function qa(sel) { return Array.from(document.querySelectorAll(sel)); }
+
+    // ── Build hook line character spans
+    const HOOK_TEXT = 'Your AI copy just failed Turnitin.';
+    const FAILED_START = HOOK_TEXT.indexOf('failed');
+    const FAILED_END   = FAILED_START + 'failed'.length;
+    const hookLine = q('#hook-line');
+    const cursor   = q('#hook-cursor');
+    hookLine.insertBefore(document.createTextNode(''), cursor); // ensure cursor is last
+
+    const charSpans = [];
+    for (let i = 0; i < HOOK_TEXT.length; i++) {
+      const sp = document.createElement('span');
+      sp.className = 'hc' + (i >= FAILED_START && i < FAILED_END ? ' failed-word' : '');
+      sp.textContent = HOOK_TEXT[i];
+      sp.style.opacity = '0';
+      hookLine.insertBefore(sp, cursor);
+      charSpans.push(sp);
+    }
+
+    // ── Master GSAP timeline (label-based, position-based — deterministic)
+    const tl = gsap.timeline({ paused: true });
+
+    // ════════════════════════════════════
+    // SCENE 1 — HOOK (0–3.5s)
+    // ════════════════════════════════════
+    // Cursor blinks in at t=0
+    tl.to('#hook-cursor', { opacity: 1, duration: 0.1 }, 0);
+
+    // Characters type on: one every 0.072s
+    const CHAR_DUR = 0.072;
+    charSpans.forEach((sp, i) => {
+      tl.to(sp, { opacity: 1, duration: 0.05 }, i * CHAR_DUR + 0.05);
+    });
+
+    // Cursor hides after typing ends
+    const typeEndTime = HOOK_TEXT.length * CHAR_DUR + 0.2;
+    tl.to('#hook-cursor', { opacity: 0, duration: 0.15 }, typeEndTime);
+
+    // Red glow intensifies on "failed" word after typing (at ~2.8s)
+    tl.to('.failed-word', {
+      textShadow: '0 0 20px rgba(232,57,29,0.72), 0 0 42px rgba(232,57,29,0.38)',
+      duration: 0.45,
+      ease: 'power2.inOut',
+    }, 2.75);
+
+    // Scene hook fades to 0 at 3.5s (hard cut)
+    tl.to('#scene-hook', { opacity: 0, duration: 0.05 }, 3.45);
+
+    // ════════════════════════════════════
+    // SCENE 2 — FORENSICS (3.5–9s)
+    // ════════════════════════════════════
+    // Panel slides in from right
+    tl.fromTo('#fp',
+      { opacity: 0, x: 60 },
+      { opacity: 1, x: 0, duration: 0.55, ease: 'power3.out' },
+      3.5
+    );
+
+    // Verdict rows — beat-locked/beat-grid:
+    //   vr1: global 8.73s → tl 8.73
+    //   vr2: global 9.28s → tl 9.28
+    //   vr3: global 9.82s → tl 9.82
+    // (these are global times because the whole video is one GSAP timeline)
+    tl.to('#vr1', { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }, 8.73); // beat-locked 8.74s
+    tl.to('#vr1-bar', { width: '74%', duration: 0.55, ease: 'power2.out' }, 8.83);
+
+    tl.to('#vr2', { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }, 9.28); // beat-grid 9.29s
+    tl.to('#vr2-bar', { width: '68%', duration: 0.55, ease: 'power2.out' }, 9.38);
+
+    tl.to('#vr3', { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }, 9.82); // beat-grid 9.83s
+    tl.to('#vr3-bar', { width: '89%', duration: 0.55, ease: 'power2.out' }, 9.92);
+
+    // AI Banner
+    tl.to('#ai-banner', { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 7.0);
+    // Dot pulse: finite repeat so the timeline has a bounded duration.
+    // Window 7.1–9.0s = ~1.9s. One yoyo half-cycle = 0.45s. repeat:3 = 4 half-cycles = 1.8s.
+    tl.to('#ai-dot', {
+      scale: 1.7, opacity: 0.55,
+      repeat: 3, yoyo: true,
+      duration: 0.45, ease: 'power1.inOut'
+    }, 7.1);
+
+    // Scene forensics crossfade out
+    tl.to('#scene-forensics', { opacity: 0, duration: 0.4, ease: 'power2.inOut' }, 8.6);
+
+    // ════════════════════════════════════
+    // SCENE 3 — HUMANIZER (9–15s)
+    // ════════════════════════════════════
+    // Both panels rise in
+    tl.fromTo(['#hp-left','#hp-right'],
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out', stagger: 0.08 },
+      9.1
+    );
+
+    // Clean lines appear sequentially (every 0.22s from 10.1s)
+    const cleanLineIds = ['#cl1','#cl2','#cl3','#cl4','#cl5','#cl6','#cl7','#cl8'];
+    cleanLineIds.forEach((id, i) => {
+      tl.to(id, { opacity: 1, duration: 0.22, ease: 'power1.out' }, 10.1 + i * 0.22);
+    });
+
+    // Left panel fades to 40% at 12.5s
+    tl.to('#hp-left', { opacity: 0.4, duration: 0.5, ease: 'power2.inOut' }, 12.5);
+
+    // Stamp drops — beat-locked 13.11s
+    tl.to('#stamp', {
+      opacity: 1,
+      scale: 1,
+      rotation: -8,
+      duration: 0.38,
+      ease: 'back.out(1.7)',
+      transformOrigin: '50% 50%',
+    }, 13.10); // beat-locked
+
+    // Entity stat
+    tl.to('#entity-stat', { opacity: 1, duration: 0.3, ease: 'power2.out' }, 13.70);
+
+    // Crossfade out
+    tl.to('#scene-humanizer', { opacity: 0, duration: 0.4, ease: 'power2.inOut' }, 14.6);
+
+    // ════════════════════════════════════
+    // SCENE 4 — WIRE (15–19s)
+    // ════════════════════════════════════
+    // Stat label
+    tl.fromTo('#wire-stat',
+      { opacity: 0, y: -10 },
+      { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' },
+      15.3
+    );
+
+    // Wire cards — beat-grid: 15.29, 15.84, 16.38, 16.93, 17.47 (global)
+    const cardIds = ['#wc1','#wc2','#wc3','#wc4','#wc5'];
+    const cardTimes = [15.29, 15.84, 16.38, 16.93, 17.47];
+    cardIds.forEach((id, i) => {
+      tl.fromTo(id,
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out' },
+        cardTimes[i]
+      );
+    });
+
+    // Crossfade out
+    tl.to('#scene-wire', { opacity: 0, duration: 0.4, ease: 'power2.inOut' }, 18.6);
+
+    // ════════════════════════════════════
+    // SCENE 5 — OUTRO (19–22s)
+    // ════════════════════════════════════
+    // Wordmark
+    tl.to('#outro-wordmark', { opacity: 1, duration: 0.5, ease: 'power2.out' }, 19.2);
+
+    // Line 1
+    tl.fromTo('#outro-l1',
+      { opacity: 0, y: 8 },
+      { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' },
+      19.9
+    );
+
+    // Line 2 — near strong cue 17.47s (which in the video lands as part of scene 5 visually)
+    //          target: 20.5s into the composition
+    tl.fromTo('#outro-l2',
+      { opacity: 0, y: 8 },
+      { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' },
+      20.5
+    );
+
+    // URL
+    tl.fromTo('#outro-url',
+      { opacity: 0 },
+      { opacity: 1, duration: 0.4, ease: 'power2.out' },
+      21.0
+    );
+
+    // Music fade-out: handled by Hyperframes audio system via data-duration on bg-music
+    // For the GSAP side, nothing extra needed — the audio contract handles it.
+
+    // ════════════════════════════════════
+    // WINDOW.__TIMELINES REGISTRATION
+    // Required by Hyperframes contract
+    // ════════════════════════════════════
+    window.__timelines = window.__timelines || {};
+    window.__timelines['wireops-brag'] = tl;
+
+    // ── Play (Hyperframes will also call tl.seek() for frame capture)
+    tl.play();
+
+  }());
+  </script>
+
+</body>
+</html>
