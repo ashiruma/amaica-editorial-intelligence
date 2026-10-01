@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
 import { isUserApprovedByAdmin } from "@/lib/accessRequests";
+import { getHighestRole, hasPermission, type NewsroomRole, type NewsroomAction } from "@/lib/security/rbacEngine";
+export * from "@/lib/security/rbacEngine";
 
 export type AppRole = "admin" | "editor" | "writer";
 
@@ -287,11 +289,16 @@ export function useAuth() {
   const isAdmin = Boolean(user && (roles.includes("admin") || isExplicitAdmin(user.email)));
   const isEditor = Boolean(user && (isAdmin || roles.includes("editor") || isUserApprovedByAdmin(user.email)));
   const isWriter = Boolean(user && (isEditor || roles.includes("writer")));
+  const newsroomRole: NewsroomRole = getHighestRole(roles);
+  const canPerform = (action: NewsroomAction, context?: { isOwner?: boolean }) =>
+    hasPermission(roles, action, context);
 
   return {
     session,
     user,
     roles,
+    newsroomRole,
+    canPerform,
     loading,
     isAuthenticated: Boolean(user),
     isEditor,
