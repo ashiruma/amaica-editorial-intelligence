@@ -17,6 +17,8 @@ import { auditEditorialPolicy, morphStoryWithPolicy, type PolicyAuditResult } fr
 import { publishArticleToWordPress } from "@/lib/wordpress/wordpressConnector";
 import { HumanizerControlPanel } from "@/components/editor/HumanizerControlPanel";
 import { StylebookCheckModal } from "@/components/editor/StylebookCheckModal";
+import { PublishPreflightModal } from "@/components/publishing/PublishPreflightModal";
+import type { PublishArticleResponse } from "@/lib/publishing/publisherService";
 import {
   Bot,
   ChevronUp,
@@ -85,7 +87,7 @@ type Draft = {
 export default function DraftEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, loading, isEditor } = useAuth();
+  const { user, loading, isEditor, roles } = useAuth();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
   const [imgBusy, setImgBusy] = useState(false);
@@ -93,6 +95,7 @@ export default function DraftEditor() {
   const [fixBusy, setFixBusy] = useState(false);
   const [showHumanizerPanel, setShowHumanizerPanel] = useState(false);
   const [showStylebookModal, setShowStylebookModal] = useState(false);
+  const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const { minWordCount } = useMinWordCount();
 
@@ -481,6 +484,31 @@ export default function DraftEditor() {
     } finally {
       setWpBusy(false);
     }
+  };
+
+  const handlePublishSuccess = async (response: PublishArticleResponse) => {
+    if (!draft) return;
+    if (response.channel === "wordpress" && response.postUrl) {
+      await updateDraftContent(draft.id, {
+        wordpress_post_url: response.postUrl,
+        wordpress_post_id: String(response.postId || ""),
+        wordpress_published_at: new Date().toISOString(),
+        status: "published",
+      } as any);
+      setDraft((prev) => (prev ? { ...prev, status: "published", wordpress_post_url: response.postUrl } : null));
+    } else {
+      await updateDraftContent(draft.id, {
+        status: "published",
+        published_at: new Date().toISOString(),
+      } as any);
+      setDraft((prev) => (prev ? { ...prev, status: "published" } : null));
+    }
+    await recordAudit(
+      "publish",
+      draft.status,
+      "published",
+      `Published via ${response.channel.toUpperCase()}: ${response.postUrl || ""}`
+    );
   };
 
   const autoFix = async () => {
@@ -1244,12 +1272,22 @@ export default function DraftEditor() {
               </button>
             )}
             {draft.status !== "published" && (
-              <button disabled={busy} onClick={() => save("published")} className="bg-destructive text-destructive-foreground px-4 py-2 rounded text-sm font-medium hover:opacity-90 transition flex items-center gap-1.5 disabled:opacity-50">
-                <Send size={14} /> {isEditor ? "Publish" : "Self-publish"}
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setPublishModalOpen(true)}
+                className="bg-destructive text-destructive-foreground px-4 py-2 rounded text-sm font-medium hover:opacity-90 transition flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <ShieldCheck size={14} /> {isEditor ? "Pre-Flight & Publish" : "Publish Gate"}
               </button>
             )}
-            <button disabled={wpBusy} onClick={publishToWordPress} className="bg-foreground text-background px-4 py-2 rounded text-sm font-medium hover:opacity-90 transition flex items-center gap-1.5 disabled:opacity-50">
-              <Globe size={14} /> {wpBusy ? "Pushing…" : "Publish to WordPress"}
+            <button
+              type="button"
+              disabled={wpBusy}
+              onClick={() => setPublishModalOpen(true)}
+              className="bg-foreground text-background px-4 py-2 rounded text-sm font-medium hover:opacity-90 transition flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <Globe size={14} /> Multi-Channel Publish
             </button>
             <button onClick={remove} className="ml-auto text-destructive hover:bg-red-light px-3 py-2 rounded text-sm flex items-center gap-1.5">
               <Trash2 size={14} /> Delete
@@ -1373,6 +1411,32 @@ export default function DraftEditor() {
             setShowStylebookModal(false);
           }}
           onClose={() => setShowStylebookModal(false)}
+        />
+      )}
+
+      {/* Pre-Flight Publishing Gatekeeper Modal */}
+      {publishModalOpen && draft && user && (
+        <PublishPreflightModal
+          open={publishModalOpen}
+          onOpenChange={setPublishModalOpen}
+          article={{
+            id: draft.id,
+            headline: draft.headline,
+            lede: draft.lede,
+            body: draft.body || "",
+            byline: draft.byline,
+            category: draft.category,
+            region: draft.region,
+            hero_image_url: draft.hero_image_url,
+            template_type: draft.template_type,
+          }}
+          currentUser={{
+            id: user.id,
+            displayName: (user as any).displayName || user.email?.split("@")[0] || "Editor",
+            roles: roles,
+          }}
+          verificationStatus="verified"
+          onPublishSuccess={handlePublishSuccess}
         />
       )}
     </div>
