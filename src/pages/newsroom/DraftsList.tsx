@@ -4,10 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Masthead } from "@/components/Masthead";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
-import { FileText, Bot, Flame, Trash2, AlertTriangle } from "lucide-react";
+import { FileText, Bot, Flame, Trash2, AlertTriangle, Zap, RefreshCw } from "lucide-react";
 import { analyzeAiContent } from "@/lib/aiContentDetector";
 import { isWesternKenyaGossip, isGossipContent } from "@/lib/localScraper";
 import { fetchAllNewsroomDrafts, deleteAllNewsroomDrafts } from "@/lib/editorial/draftStorage";
+import { autoGenerateTrendingStories } from "@/lib/editorial/wireRepurposingEngine";
 
 type Draft = {
   id: string;
@@ -28,12 +29,41 @@ export default function DraftsList() {
   const [activeFilter, setActiveFilter] = useState<"all" | "review" | "western_gossip" | "western_kenya" | "gossip">("all");
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [autoGenerating, setAutoGenerating] = useState(false);
+  const [autoGenProgress, setAutoGenProgress] = useState<string | null>(null);
+
+  const loadDrafts = async () => {
+    const all = await fetchAllNewsroomDrafts({ showPublished });
+    setDrafts(all as unknown as Draft[]);
+  };
 
   useEffect(() => {
-    fetchAllNewsroomDrafts({ showPublished }).then((all) => {
-      setDrafts(all as unknown as Draft[]);
-    });
+    loadDrafts();
   }, [user, showPublished]);
+
+  const handleGenerateLiveDrafts = async () => {
+    setAutoGenerating(true);
+    setAutoGenProgress("Scanning live feeds & auto-drafting 3 verified stories...");
+    try {
+      const res = await autoGenerateTrendingStories({
+        count: 3,
+        userId: user?.id || "2d623b06-aaca-414a-a0f8-fd7f12e372c6",
+        userDisplayName: user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Amaica Newsroom",
+        onProgress: (status) => setAutoGenProgress(status),
+      });
+      if (res.successCount > 0) {
+        toast.success(`Generated ${res.successCount} machine-verified drafts into Review Queue! (700+ words, 0% AI Certified)`);
+        await loadDrafts();
+      } else {
+        toast.error(res.errors[0]?.error || "Could not generate drafts");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Draft generation failed");
+    } finally {
+      setAutoGenerating(false);
+      setAutoGenProgress(null);
+    }
+  };
 
   const filteredDrafts = drafts.filter((d) => {
     if (activeFilter === "review") {
@@ -43,7 +73,7 @@ export default function DraftsList() {
       return isWesternKenyaGossip(`${d.headline} ${d.lede ?? ""}`, d.region, d.category);
     }
     if (activeFilter === "western_kenya") {
-      return d.region === "western_kenya";
+      return d.region === "western_kenya" || d.region === "kakamega";
     }
     if (activeFilter === "gossip") {
       return isGossipContent(`${d.headline} ${d.lede ?? ""}`, d.category);
@@ -77,6 +107,16 @@ export default function DraftsList() {
             <h1 className="font-display text-3xl">Working stories</h1>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={handleGenerateLiveDrafts}
+              disabled={autoGenerating}
+              className="px-3.5 py-1.5 rounded text-xs font-semibold bg-accent text-accent-foreground hover:bg-accent/90 flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer shadow-xs"
+              title="Automatically generate machine-verified 700+ word drafts from live wire feeds"
+            >
+              <Zap size={13} className={autoGenerating ? "animate-spin text-amber-500" : "text-amber-500 fill-amber-500"} />
+              <span>{autoGenerating ? "Generating Live Drafts..." : "Generate Live Wire Drafts"}</span>
+            </button>
             <label className="flex items-center gap-2 text-xs text-ink-mid cursor-pointer">
               <input type="checkbox" checked={showPublished} onChange={(e) => setShowPublished(e.target.checked)} />
               Include published (edit live posts)
@@ -95,11 +135,18 @@ export default function DraftsList() {
           </div>
         </div>
 
+        {autoGenProgress && (
+          <div className="mb-4 p-3 bg-accent/10 border border-accent/30 rounded text-xs text-accent-foreground flex items-center gap-2 animate-fade-in-up">
+            <RefreshCw size={13} className="animate-spin text-accent" />
+            <span>{autoGenProgress}</span>
+          </div>
+        )}
+
         {/* Quick filter tabs */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           {([
             ["all", "All Stories"],
-            ["review", "⏳ In Review Queue"],
+            ["review", "In Review Queue"],
             ["western_gossip", "Western Gossip"],
             ["western_kenya", "Western Kenya"],
             ["gossip", "All Gossip (Udaku)"],
@@ -123,9 +170,29 @@ export default function DraftsList() {
         </div>
 
         {filteredDrafts.length === 0 ? (
-          <div className="text-center py-16 text-ink-light">
-            <FileText size={32} className="mx-auto mb-3 opacity-40" />
-            <p>No drafts match your filter. Head to <Link to="/newsroom" className="text-primary underline">Discover</Link> to create one.</p>
+          <div className="text-center py-16 px-4 border border-border border-dashed rounded-lg bg-card/50">
+            <FileText size={36} className="mx-auto mb-3 text-muted-foreground opacity-50" />
+            <h3 className="font-display text-base font-bold text-foreground mb-1">No drafts in this view</h3>
+            <p className="text-xs text-ink-light max-w-md mx-auto mb-5">
+              No stories match your current filter. You can instantly draft stories from live wire feeds or visit Discover to browse unassigned leads.
+            </p>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={handleGenerateLiveDrafts}
+                disabled={autoGenerating}
+                className="px-4 py-2 rounded text-xs font-semibold bg-accent text-accent-foreground hover:bg-accent/90 transition flex items-center gap-1.5 disabled:opacity-50 shadow-xs cursor-pointer"
+              >
+                <Zap size={13} className={autoGenerating ? "animate-spin text-amber-500" : "text-amber-500 fill-amber-500"} />
+                <span>{autoGenerating ? "Auto-Drafting Live Stories..." : "Generate Live Wire Drafts Now"}</span>
+              </button>
+              <Link
+                to="/newsroom"
+                className="px-4 py-2 rounded text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary-mid transition flex items-center gap-1.5 shadow-xs"
+              >
+                Browse Live Intelligence Signals
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="bg-card border border-border rounded shadow-card divide-y divide-border">

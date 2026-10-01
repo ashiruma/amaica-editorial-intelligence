@@ -240,13 +240,13 @@ Deno.serve(async (req) => {
       .order("priority", { ascending: false }).order("name");
     if (fErr) throw fErr;
     const DEFAULT_TOP_FEEDS = [
-      { id: "feed-mpasho", kind: "rss", name: "Mpasho", url: "https://mpasho.co.ke/feed/", region: "national", priority: 10, weight: 1.2 },
-      { id: "feed-pulselive", kind: "rss", name: "Pulse Live Kenya", url: "https://www.pulselive.co.ke/entertainment/rss", region: "national", priority: 10, weight: 1.1 },
-      { id: "feed-tuko", kind: "rss", name: "Tuko Entertainment", url: "https://www.tuko.co.ke/entertainment/rss/", region: "national", priority: 9, weight: 1.0 },
-      { id: "feed-citizen", kind: "rss", name: "Citizen Digital", url: "https://citizen.digital/entertainment/feed", region: "national", priority: 9, weight: 1.0 },
-      { id: "feed-thestar", kind: "rss", name: "The Star Sasa", url: "https://www.the-star.co.ke/sasa/rss", region: "national", priority: 8, weight: 0.9 },
-      { id: "feed-kenyans", kind: "rss", name: "Kenyans.co.ke", url: "https://www.kenyans.co.ke/feeds/entertainment", region: "national", priority: 8, weight: 0.9 },
-      { id: "feed-ghafla", kind: "rss", name: "Ghafla Kenya", url: "https://www.ghafla.com/ke/feed/", region: "national", priority: 7, weight: 0.8 },
+      { id: "feed-kakamega-news", kind: "rss", name: "Kakamega Live News", url: "https://news.google.com/rss/search?q=Kakamega+news&hl=en-KE&gl=KE&ceid=KE:en", region: "kakamega", priority: 12, weight: 1.4 },
+      { id: "feed-western-wire", kind: "rss", name: "Western Kenya Wire", url: "https://news.google.com/rss/search?q=Western+Kenya&hl=en-KE&gl=KE&ceid=KE:en", region: "western_kenya", priority: 11, weight: 1.3 },
+      { id: "feed-standard-ent", kind: "rss", name: "Standard Entertainment", url: "https://www.standardmedia.co.ke/rss/entertainment.php", region: "national", priority: 10, weight: 1.2 },
+      { id: "feed-standard-head", kind: "rss", name: "Standard Media Headlines", url: "https://www.standardmedia.co.ke/rss/headlines.php", region: "national", priority: 10, weight: 1.2 },
+      { id: "feed-kenya-ent-live", kind: "rss", name: "Kenya Entertainment Live", url: "https://news.google.com/rss/search?q=Kenya+entertainment&hl=en-KE&gl=KE&ceid=KE:en", region: "national", priority: 9, weight: 1.1 },
+      { id: "feed-ghafla", kind: "rss", name: "Ghafla Kenya", url: "https://www.ghafla.com/ke/feed/", region: "national", priority: 8, weight: 1.0 },
+      { id: "feed-national-breaking", kind: "rss", name: "Kenya National Breaking", url: "https://news.google.com/rss?hl=en-KE&gl=KE&ceid=KE:en", region: "national", priority: 8, weight: 1.0 },
     ];
 
     const dbRss = (feeds || []).filter((f) => f.kind === "rss" && f.url);

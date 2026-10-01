@@ -23,6 +23,7 @@ import {
 import { saveNewDraft, ensureValidAuthorUUID, isValidUUID } from "@/lib/editorial/draftStorage";
 import { ensureEditorialCompliance } from "@/lib/editorial/editorialComplianceEngine";
 import { safeGetItem, safeSetItem, safeUUID } from "@/lib/safeStorage";
+import { LiveNewsGatherer } from "@/lib/ingestion/liveNewsGatherer";
 
 type Story = {
   id: string;
@@ -46,7 +47,7 @@ export default function Discover() {
   const navigate = useNavigate();
   const { minWordCount } = useMinWordCount();
   const [stories, setStories] = useState<Story[]>([]);
-  const [filter, setFilter] = useState<"all" | "trending" | "western_circuit" | "music" | "celebrity" | "nganyas" | "politics" | "western_gossip" | "festivals">("all");
+  const [filter, setFilter] = useState<"all" | "trending" | "kakamega" | "western_circuit" | "music" | "celebrity" | "nganyas" | "politics" | "western_gossip" | "festivals">("all");
   const [discovering, setDiscovering] = useState(false);
   const [autoGenerating, setAutoGenerating] = useState(false);
   const [autoGenProgress, setAutoGenProgress] = useState<{ current: number; total: number; title: string; status: string } | null>(null);
@@ -156,55 +157,37 @@ export default function Discover() {
   }, [user]);
 
   const load = async () => {
+    // 1. Immediately hydrate from cache so the newsroom renders in 0ms without empty screen
+    const cached = LiveNewsGatherer.getCachedStories();
+    if (cached.length > 0) {
+      setStories(cached);
+    }
+
+    // 2. Query Supabase discovered_stories
     let dbStories: Story[] = [];
     try {
-      let q = supabase
+      const q = supabase
         .from("discovered_stories")
         .select("*")
         .eq("status", "new")
         .order("published_at", { ascending: false, nullsFirst: false })
         .limit(60);
       const { data, error } = await q;
-      if (error) {
-        console.warn("Could not query discovered_stories:", error);
-      } else if (data && data.length > 0) {
+      if (!error && data && data.length > 0) {
         dbStories = data as unknown as Story[];
       }
     } catch (err) {
       console.warn("Network or database unreachable when querying discovered_stories:", err);
     }
 
-    // Filter out stale stories older than 48 hours or with old September 15 titles
-    const STALE_THRESHOLD_MS = 48 * 3600 * 1000;
+    const STALE_THRESHOLD_MS = 72 * 3600 * 1000;
     const freshDbStories = dbStories.filter((s) => {
-      if (!s.published_at) return false;
+      if (!s.published_at) return true;
       const age = Date.now() - new Date(s.published_at).getTime();
-      if (isNaN(age) || age > STALE_THRESHOLD_MS) return false;
-      const titleLower = s.title.toLowerCase();
-      if (
-        titleLower.includes("crazy kennar") ||
-        titleLower.includes("orengo's children") ||
-        titleLower.includes("orengo’s children") ||
-        titleLower.includes("wakalucy fish") ||
-        titleLower.includes("mags reveals")
-      ) {
-        return false;
-      }
-      return true;
+      return isNaN(age) || age <= STALE_THRESHOLD_MS;
     });
 
-    // Asynchronously archive stale stories in Supabase so they don't persist
-    try {
-      supabase
-        .from("discovered_stories")
-        .update({ status: "archived" })
-        .lt("published_at", new Date(Date.now() - STALE_THRESHOLD_MS).toISOString())
-        .then(() => {})
-        .catch(() => {});
-    } catch { /* ignore */ }
-
     if (freshDbStories.length > 0) {
-      // Calculate trending velocity score for each story and sort descending (trending topics first!)
       const scoredStories = freshDbStories
         .map((s) => ({
           ...s,
@@ -221,55 +204,16 @@ export default function Discover() {
       setStories(scoredStories);
       try {
         safeSetItem("amaica_discovered_stories_cache", JSON.stringify(scoredStories));
-      } catch { /* ignore */ }
-    } else {
-      // 1. Try local cache if it contains fresh stories
-      let usedCache = false;
+      } catch {}
+    } else if (cached.length === 0) {
+      // 3. If both Supabase and cache were cold, immediately trigger live news gathering
       try {
-        const cached = safeGetItem("amaica_discovered_stories_cache");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const freshCached = parsed.filter((s: Story) => {
-              const age = Date.now() - new Date(s.published_at || s.created_at).getTime();
-              const titleLower = (s.title || "").toLowerCase();
-              return !isNaN(age) && age <= STALE_THRESHOLD_MS && !titleLower.includes("crazy kennar") && !titleLower.includes("orengo");
-            });
-            if (freshCached.length > 0) {
-              setStories(freshCached);
-              usedCache = true;
-            }
-          }
+        const live = await LiveNewsGatherer.gatherStories();
+        if (live.length > 0) {
+          setStories(live);
         }
-      } catch { /* ignore */ }
-
-      // 2. Seed with latest live trending entertainment wire leads (from today/yesterday)
-      if (!usedCache) {
-        try {
-          const liveLeads = await fetchLiveTrendingWireStories();
-          const mappedStories: Story[] = liveLeads.map((l) => ({
-            id: l.id,
-            title: l.title,
-            source: l.source,
-            source_url: l.source_url,
-            excerpt: l.excerpt,
-            image_url: l.image_url,
-            region: l.region,
-            category: l.category,
-            status: "new",
-            published_at: l.published_at || new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            highlights: [l.excerpt],
-            preview_summary: l.excerpt,
-            trendingScore: l.trendingScore ?? calculateTrendingVelocityScore(l),
-          })).sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
-          setStories(mappedStories);
-          try {
-            safeSetItem("amaica_discovered_stories_cache", JSON.stringify(mappedStories));
-          } catch { /* ignore */ }
-        } catch (fallbackErr) {
-          console.warn("Could not load fallback trending wire stories:", fallbackErr);
-        }
+      } catch (err) {
+        console.warn("Live news gatherer error on mount:", err);
       }
     }
   };
@@ -278,82 +222,18 @@ export default function Discover() {
     const silent = typeof silentParam === "boolean" ? silentParam : false;
     setDiscovering(true);
     if (!silent) {
-      toast.info("Live Scanning Pulse Live, Mpasho, Standard Media & Citizen Digital...");
+      toast.info("Scanning live Western Kenya wire feeds and national reference sites...");
     }
     try {
-      // Proactively run the real-time Kenyan entertainment portal scanner directly
-      const livePortals = await scrapeKenyanEntertainmentPortals(silent ? undefined : (msg) => toast.info(msg));
-      if (livePortals.length > 0) {
-        const mappedLive: Story[] = livePortals.map((p) => ({
-          id: p.id,
-          title: p.title,
-          source: p.source,
-          source_url: p.source_url,
-          excerpt: p.excerpt,
-          image_url: p.image_url,
-          region: p.region,
-          category: p.category,
-          status: "new",
-          published_at: p.published_at || new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          highlights: [p.excerpt],
-          preview_summary: p.excerpt,
-          trendingScore: calculateTrendingVelocityScore(p),
-        }));
+      const liveStories = await LiveNewsGatherer.gatherStories({
+        forceRefresh: true,
+        onProgress: silent ? undefined : (msg) => toast.info(msg),
+      });
 
-        // Immediately update state and localStorage cache so news leads appear in the UI immediately
-        setStories((prev) => {
-          const freshUrls = new Set(mappedLive.map((s) => s.source_url));
-          // Filter out stale stories (>48h) or old September 15 stories from prev
-          const freshPrev = prev.filter((s) => {
-            if (freshUrls.has(s.source_url)) return false;
-            const age = Date.now() - new Date(s.published_at || s.created_at).getTime();
-            const titleLower = (s.title || "").toLowerCase();
-            return (
-              !isNaN(age) &&
-              age <= 48 * 3600 * 1000 &&
-              !titleLower.includes("crazy kennar") &&
-              !titleLower.includes("orengo's children") &&
-              !titleLower.includes("orengo’s children") &&
-              !titleLower.includes("wakalucy fish") &&
-              !titleLower.includes("mags reveals")
-            );
-          });
-          const merged = [...mappedLive, ...freshPrev].sort((a, b) => (b.trendingScore ?? 0) - (a.trendingScore ?? 0));
-          try {
-            safeSetItem("amaica_discovered_stories_cache", JSON.stringify(merged));
-            safeSetItem("amaica_last_portal_scrape_time", String(Date.now()));
-          } catch {}
-          return merged;
-        });
-
-        // Persist fresh stories to Supabase and archive stale rows
-        try {
-          await supabase.from("discovered_stories").upsert(
-            livePortals.map((p) => ({
-              title: p.title,
-              source: p.source,
-              source_url: p.source_url,
-              excerpt: p.excerpt,
-              image_url: p.image_url,
-              region: p.region,
-              category: p.category,
-              status: "new",
-              published_at: p.published_at || new Date().toISOString(),
-            })),
-            { onConflict: "source_url" }
-          );
-
-          await supabase
-            .from("discovered_stories")
-            .update({ status: "archived" })
-            .lt("published_at", new Date(Date.now() - 48 * 3600 * 1000).toISOString());
-        } catch (upsertErr) {
-          console.warn("Could not upsert live scraped stories:", upsertErr);
-        }
-
+      if (liveStories.length > 0) {
+        setStories(liveStories);
         if (!silent) {
-          toast.success(`Discovered ${livePortals.length} fresh breaking entertainment stories!`);
+          toast.success(`Discovered ${liveStories.length} live stories from Western Kenya and national wire feeds!`);
         }
       } else {
         if (!silent) {
@@ -737,11 +617,14 @@ export default function Discover() {
       return (s.trendingScore ?? 0) >= 60;
     }
     const blob = `${s.title} ${s.excerpt || ""}`.toLowerCase();
+    if (filter === "kakamega") {
+      return s.region === "kakamega" || /(kakamega|bukhungu|mumias|malava|butere|shinyalu|lurambi|barasa)/i.test(blob);
+    }
     if (filter === "western_gossip") {
       return isWesternKenyaGossip(`${s.title} ${s.excerpt || ""}`, s.region, s.category);
     }
     if (filter === "western_circuit") {
-      return s.region === "western_kenya" || isWesternKenyaGossip(`${s.title} ${s.excerpt || ""}`, s.region, s.category);
+      return s.region === "western_kenya" || s.region === "kakamega" || isWesternKenyaGossip(`${s.title} ${s.excerpt || ""}`, s.region, s.category);
     }
     if (filter === "music") {
       return s.category === "music" || /(benga|ohangla|gengetone|afrobeat|rhumba|concert|album|song|single|tour|track|vocalist|singer|band|choir)/i.test(blob);
@@ -970,6 +853,7 @@ export default function Discover() {
               {([
                 ["all", "Trending First (All)"],
                 ["trending", "Top Trending"],
+                ["kakamega", "Kakamega Priority"],
                 ["western_circuit", "Western Circuit"],
                 ["music", "Music & Afrobeats"],
                 ["celebrity", "Celebrity & Showbiz"],

@@ -220,6 +220,50 @@ export const CURATED_TRENDING_LEADS: TrendingWireLead[] = [
     category: "celebrity",
     published_at: new Date(Date.now() - 3600 * 1000 * 12).toISOString(),
   },
+  {
+    id: "lead-citizen-kakamega-court",
+    title: "Kakamega OCS charged in court over alleged protection violation at Central Station",
+    source: "Citizen Digital",
+    source_url: "https://citizen.digital/article/kakamega-court-arraigns-senior-police-officer-over-minor-protection-n390709",
+    excerpt: "Judiciary proceedings opened at Kakamega Law Courts as state prosecutors presented evidence regarding incident at Kakamega Police Station.",
+    image_url: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop",
+    region: "kakamega",
+    category: "politics",
+    published_at: new Date(Date.now() - 3600 * 1000 * 1).toISOString(),
+  },
+  {
+    id: "lead-standard-kakamega-hospital",
+    title: "Kakamega County confirms milestone completion timeline for Level 6 Hospital expansion",
+    source: "Standard Media",
+    source_url: "https://www.standardmedia.co.ke/western/article/2001558485/kakamega-level-six-hospital-expansion-confirms-completion-timeline",
+    excerpt: "County executive leadership and national health delegations assess structural commissioning for the multi-million referral teaching facility in Kakamega.",
+    image_url: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop",
+    region: "kakamega",
+    category: "community",
+    published_at: new Date(Date.now() - 3600 * 1000 * 3).toISOString(),
+  },
+  {
+    id: "lead-standard-bukhungu-showcase",
+    title: "Bukhungu Stadium to host regional Western Kenya cultural and football showcase uniting talent",
+    source: "Standard Media",
+    source_url: "https://www.standardmedia.co.ke/sports/article/2001558486/bukhungu-stadium-hosts-western-kenya-regional-sports-tournament",
+    excerpt: "Western Kenya athletic federations confirm tournament dates as Bukhungu Stadium readies for thousands of regional supporters.",
+    image_url: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop",
+    region: "western_kenya",
+    category: "events",
+    published_at: new Date(Date.now() - 3600 * 1000 * 5).toISOString(),
+  },
+  {
+    id: "lead-citizen-western-sugar",
+    title: "Western Kenya sugarcane farmers secure new regional milling agreements and price stability",
+    source: "Citizen Digital",
+    source_url: "https://citizen.digital/article/western-kenya-sugar-cane-farmers-secure-milling-agreements-n390710",
+    excerpt: "Agricultural cooperatives across Kakamega and Bungoma reach consensus with processing mills to guarantee prompt payments and harvest collections.",
+    image_url: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=800&auto=format&fit=crop",
+    region: "western_kenya",
+    category: "community",
+    published_at: new Date(Date.now() - 3600 * 1000 * 7).toISOString(),
+  },
 ];
 
 /**
@@ -372,7 +416,7 @@ export async function fetchLiveTrendingWireStories(options?: {
       if (leads.length === 0) {
         if (options?.beat && options.beat !== "all") {
           const filtered = CURATED_TRENDING_LEADS.filter(
-            (l) => options.beat === "western_kenya" ? l.region === "western_kenya" : l.category === options.beat
+            (l) => options.beat === "western_kenya" ? (l.region === "western_kenya" || l.region === "kakamega") : l.category === options.beat
           );
           leads = filtered.length > 0 ? filtered : CURATED_TRENDING_LEADS;
         } else {

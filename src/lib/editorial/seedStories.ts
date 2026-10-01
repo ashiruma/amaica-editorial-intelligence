@@ -167,4 +167,70 @@ Rather than simple product placements, savvy creators are now negotiating equity
       { url: "https://mpasho.co.ke", title: "Mpasho Showbiz", notes: ["Industry commercial reports and brand agency data"] },
     ],
   },
+  {
+    id: "draft-kakamega-court-proceedings-2026",
+    author_id: "2d623b06-aaca-414a-a0f8-fd7f12e372c6",
+    source_story_id: null,
+    headline: "Kakamega Court Begins High-Profile Proceedings Regarding Station Integrity and Minor Protection",
+    lede: "State prosecutors in Kakamega have formally submitted evidentiary filings before the resident magistrate in connection with ongoing inquiries into administrative compliance at Kakamega Central Police Station.",
+    body: `
+Kakamega Law Courts witnessed heightened activity on Wednesday morning as regional legal representatives and independent oversight monitors assembled for preliminary case management directions regarding senior command conduct in Kakamega Central.
+
+The legal filings follow parallel investigations initiated by administrative authorities seeking to establish comprehensive timelines surrounding events recorded at the station facility over the weekend. Chief state counsel confirmed that witness depositions and forensic medical reports have been entered into the judicial registry under sealed protective orders.
+
+Independent human rights groups operating within Western Kenya have dispatched observer delegations to monitor proceedings, emphasizing the necessity for complete procedural transparency and child welfare safeguards throughout the trial timeline.
+
+Senior judicial officials scheduled formal substantive hearings for late next week, directing all parties to file outstanding documentary evidence before the registry registrar.
+    `.trim(),
+    category: "community",
+    region: "kakamega",
+    template_type: "breaking",
+    hero_image_url: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80",
+    social_image_url: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80",
+    byline: "Amaica Newsroom",
+    whatsapp_post: "Kakamega Court opens proceedings regarding administrative compliance and child protection.",
+    twitter_post: "Kakamega Law Courts open preliminary hearings on station integrity and minor protection.",
+    instagram_post: "Kakamega judicial proceedings underway.",
+    facebook_post: "Formal hearings open at Kakamega Law Courts.",
+    status: "review",
+    published_at: null,
+    created_at: new Date(Date.now() - 3600 * 1000 * 3).toISOString(),
+    updated_at: new Date(Date.now() - 3600 * 1000 * 1).toISOString(),
+    sources: [
+      { url: "https://citizen.digital/article/kakamega-court-arraigns-senior-police-officer-over-minor-protection-n390709", title: "Citizen Digital Western Desk", notes: ["Court filing verification and legal registry records"] },
+    ],
+  },
+  {
+    id: "draft-western-bukhungu-tournament-2026",
+    author_id: "2d623b06-aaca-414a-a0f8-fd7f12e372c6",
+    source_story_id: null,
+    headline: "Bukhungu Stadium Announces Landmark Regional Tournament Uniting Western Kenya Sports and Creative Talents",
+    lede: "Sports coordinators and cultural federations across Kakamega, Bungoma, and Vihiga have unveiled an ambitious multi-county tournament scheduled to take center stage at Bukhungu Stadium.",
+    body: `
+Preparations have commenced in Kakamega Town as regional sports federations and creative industry directors confirmed the official launch of the Western Regional Championship tournament scheduled at Bukhungu Stadium next month.
+
+The championship is designed as an integrated showcase combining youth football competition with live evening cultural performances, bringing together talent from across Kakamega, Vihiga, Bungoma, and Busia counties. Over thirty community athletic squads have registered for the preliminary knockout stages.
+
+Hospitality stakeholders and transport saccos in Kakamega report advance bookings from regional supporters, with county sports officers confirming that security, ticketing, and pitch preparations remain ahead of schedule.
+
+Organizers noted that revenue proceeds from gate collections will directly fund grassroots sports academies and creative youth training hubs throughout Western Kenya.
+    `.trim(),
+    category: "events",
+    region: "western_kenya",
+    template_type: "breaking",
+    hero_image_url: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&auto=format&fit=crop&q=80",
+    social_image_url: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&auto=format&fit=crop&q=80",
+    byline: "Amaica Newsroom",
+    whatsapp_post: "Bukhungu Stadium announces Western Regional Tournament uniting athletics and creative talent.",
+    twitter_post: "Bukhungu Stadium readies for landmark Western Kenya sports and cultural championship.",
+    instagram_post: "Bukhungu Stadium announces multi-county championship.",
+    facebook_post: "Regional talent converges on Bukhungu Stadium for Western championship.",
+    status: "review",
+    published_at: null,
+    created_at: new Date(Date.now() - 3600 * 1000 * 6).toISOString(),
+    updated_at: new Date(Date.now() - 3600 * 1000 * 2).toISOString(),
+    sources: [
+      { url: "https://www.standardmedia.co.ke/sports/article/2001558486/bukhungu-stadium-hosts-western-kenya-regional-sports-tournament", title: "Standard Sports Desk", notes: ["Tournament registry and stadium coordination committee"] },
+    ],
+  },
 ];
