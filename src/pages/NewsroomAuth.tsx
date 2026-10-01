@@ -5,6 +5,7 @@ import { useAuth, ADMIN_MASTER_PASSCODE, isExplicitAdmin, verifyAdminPasscode } 
 import {
   submitNewsroomAccessRequest,
   getRequestStatusForEmail,
+  checkOnlineClearanceStatus,
   isUserApprovedByAdmin,
 } from "@/lib/accessRequests";
 import { toast } from "sonner";
@@ -89,6 +90,28 @@ export default function NewsroomAuth() {
     }
   }, [user, loading, isAdmin, isEditor, navigate, next]);
 
+  // Live polling for clearance approval while in pending state
+  useEffect(() => {
+    if (!pendingApproval || !pendingUserEmail) return;
+
+    void checkOnlineClearanceStatus(pendingUserEmail).then((res) => {
+      if (res.approved || res.status === "approved") {
+        toast.success("Administrator clearance granted! Entering newsroom...");
+        navigate(next, { replace: true });
+      }
+    });
+
+    const interval = setInterval(async () => {
+      const res = await checkOnlineClearanceStatus(pendingUserEmail);
+      if (res.approved || res.status === "approved") {
+        toast.success("Administrator clearance granted! Entering newsroom...");
+        navigate(next, { replace: true });
+      }
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [pendingApproval, pendingUserEmail, navigate, next]);
+
   // Handle Standard Sign In
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,9 +146,9 @@ export default function NewsroomAuth() {
       }
 
       if (error) {
-        // If Supabase authentication fails, check if this is an approved local staff account
-        const approved = isUserApprovedByAdmin(signInEmail);
-        if (approved) {
+        // If Supabase authentication fails, check online clearance for this staff account
+        const onlineCheck = await checkOnlineClearanceStatus(signInEmail);
+        if (onlineCheck.approved || onlineCheck.status === "approved" || isUserApprovedByAdmin(signInEmail)) {
           signInAsLocal(signInEmail, "editor");
           toast.success("Authenticated as approved newsroom staff!");
           navigate(next);
@@ -133,8 +156,7 @@ export default function NewsroomAuth() {
         }
 
         // Check if there is an existing pending request
-        const status = getRequestStatusForEmail(signInEmail);
-        if (status.status === "pending") {
+        if (onlineCheck.status === "pending" || getRequestStatusForEmail(signInEmail).status === "pending") {
           setPendingApproval(true);
           setPendingUserEmail(signInEmail);
           toast.info("Your clearance request is currently pending review by the Administrator.");
@@ -148,7 +170,8 @@ export default function NewsroomAuth() {
 
       // Check if user is approved
       const email = data.user.email || signInEmail;
-      if (isUserApprovedByAdmin(email)) {
+      const onlineCheck = await checkOnlineClearanceStatus(email);
+      if (onlineCheck.approved || onlineCheck.status === "approved" || isUserApprovedByAdmin(email)) {
         toast.success("Signed in successfully. Welcome to the newsroom!");
         navigate(next);
       } else {
@@ -281,11 +304,13 @@ export default function NewsroomAuth() {
               <div className="flex flex-col sm:flex-row gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    const status = getRequestStatusForEmail(pendingUserEmail);
-                    if (status.status === "approved") {
+                  onClick={async () => {
+                    const status = await checkOnlineClearanceStatus(pendingUserEmail);
+                    if (status.approved || status.status === "approved") {
                       toast.success("Clearance approved! Entering newsroom...");
                       navigate(next);
+                    } else if (status.status === "rejected") {
+                      toast.error("Your clearance request was declined by the Administrator.");
                     } else {
                       toast.info("Your request is still awaiting review by the Administrator.");
                     }

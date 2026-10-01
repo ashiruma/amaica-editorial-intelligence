@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import {
   submitNewsroomAccessRequest,
   getRequestStatusForEmail,
+  checkOnlineClearanceStatus,
   isUserApprovedByAdmin,
   type AccessRequest,
 } from "@/lib/accessRequests";
@@ -42,13 +43,43 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
     request?: AccessRequest;
   }>({ status: "none" });
 
+  const [checkingStatus, setCheckingStatus] = useState(false);
+
   useEffect(() => {
-    if (user?.email) {
-      setEmail(user.email);
-      const status = getRequestStatusForEmail(user.email);
+    const targetEmail = user?.email || email;
+    if (targetEmail) {
+      if (!email && user?.email) setEmail(user.email);
+      const status = getRequestStatusForEmail(targetEmail);
       setRequestInfo(status);
+
+      void checkOnlineClearanceStatus(targetEmail).then((res) => {
+        if (res.approved || res.status === "approved") {
+          setRequestInfo({ status: "approved", request: res.request });
+        } else if (res.status !== "none") {
+          setRequestInfo({ status: res.status, request: res.request });
+        }
+      });
     }
   }, [user]);
+
+  // Real-time polling when pending clearance
+  useEffect(() => {
+    const targetEmail = email || user?.email;
+    if (!targetEmail || requestInfo.status !== "pending") return;
+
+    const interval = setInterval(async () => {
+      const res = await checkOnlineClearanceStatus(targetEmail);
+      if (res.approved || res.status === "approved") {
+        toast.success("Clearance granted by Administrator! Entering newsroom...");
+        setRequestInfo({ status: "approved", request: res.request });
+        setTimeout(() => window.location.reload(), 600);
+      } else if (res.status === "rejected") {
+        setRequestInfo({ status: "rejected", request: res.request });
+      }
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [email, user, requestInfo.status]);
 
   // Loading state
   if (loading) {
@@ -127,17 +158,29 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
     }
   };
 
-  const handleCheckStatus = () => {
-    const status = getRequestStatusForEmail(email || user?.email);
-    if (status.status === "approved") {
-      toast.success("Access approved! Reloading newsroom workspace...");
-      window.location.reload();
-    } else if (status.status === "pending") {
-      toast.info("Your request is still pending review by the Administrator.");
-    } else if (status.status === "rejected") {
-      toast.error("Your access request was declined by the Administrator.");
-    } else {
-      toast.info("No access request found for this email.");
+  const handleCheckStatus = async () => {
+    const targetEmail = email || user?.email;
+    if (!targetEmail) {
+      toast.info("Please provide your email to check clearance status.");
+      return;
+    }
+    setCheckingStatus(true);
+    try {
+      const status = await checkOnlineClearanceStatus(targetEmail);
+      if (status.approved || status.status === "approved") {
+        toast.success("Clearance approved! Reloading newsroom workspace...");
+        setRequestInfo({ status: "approved", request: status.request });
+        setTimeout(() => window.location.reload(), 600);
+      } else if (status.status === "pending") {
+        toast.info("Your request is still pending review by the Administrator.");
+      } else if (status.status === "rejected") {
+        toast.error("Your access request was declined by the Administrator.");
+        setRequestInfo({ status: "rejected", request: status.request });
+      } else {
+        toast.info("No access request found for this email.");
+      }
+    } finally {
+      setCheckingStatus(false);
     }
   };
 
@@ -189,9 +232,11 @@ export function RequireNewsroomAuth({ children, requireAdmin = false }: RequireN
                 <button
                   type="button"
                   onClick={handleCheckStatus}
+                  disabled={checkingStatus}
                   className="flex-1 bg-primary text-primary-foreground font-semibold py-2.5 px-4 rounded text-xs hover:bg-primary-mid transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                 >
-                  <Clock size={13} /> Check Approval Status
+                  <Clock size={13} className={checkingStatus ? "animate-spin" : ""} />
+                  {checkingStatus ? "Checking Clearance..." : "Check Approval Status"}
                 </button>
                 <button
                   type="button"

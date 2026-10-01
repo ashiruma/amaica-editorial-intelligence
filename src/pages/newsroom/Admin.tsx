@@ -15,6 +15,7 @@ import {
 } from "@/lib/wordpress/wordpressConnector";
 import {
   getLocalRequests,
+  fetchNewsroomAccessRequests,
   approveAccessRequest,
   rejectAccessRequest,
   type AccessRequest,
@@ -33,6 +34,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<UserRow[]>([]);
   const [requests, setRequests] = useState<AccessRequest[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
   const [busy, setBusy] = useState(false);
   const { minWordCount, refresh: refreshSettings } = useMinWordCount();
   const [minWordInput, setMinWordInput] = useState<string>("");
@@ -90,8 +92,19 @@ export default function Admin() {
     }
   };
 
-  const loadRequests = () => {
-    setRequests(getLocalRequests());
+  const loadRequests = async (showToast = false) => {
+    setLoadingRequests(true);
+    try {
+      const live = await fetchNewsroomAccessRequests();
+      setRequests(live);
+      if (showToast) {
+        toast.success("Permission requests updated from live registry");
+      }
+    } catch {
+      setRequests(getLocalRequests());
+    } finally {
+      setLoadingRequests(false);
+    }
   };
 
   const load = async () => {
@@ -114,11 +127,16 @@ export default function Admin() {
     } catch (err) {
       console.warn("Could not query profiles or user_roles:", err);
     }
-    loadRequests();
+    await loadRequests();
   };
 
   useEffect(() => {
-    loadRequests();
+    void loadRequests();
+    // Live cross-device poll: refresh clearance queue every 12 seconds
+    const interval = setInterval(() => {
+      void loadRequests();
+    }, 12000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -149,14 +167,14 @@ export default function Admin() {
   const handleApprove = async (id: string, email: string) => {
     await approveAccessRequest(id, user?.email || "ashiruma");
     toast.success(`Approved newsroom clearance for ${email}!`);
-    loadRequests();
+    await loadRequests();
     await load();
   };
 
   const handleReject = async (id: string, email: string) => {
-    await rejectAccessRequest(id);
+    await rejectAccessRequest(id, user?.email || "ashiruma");
     toast.info(`Declined clearance for ${email}`);
-    loadRequests();
+    await loadRequests();
     await load();
   };
 
@@ -211,6 +229,16 @@ export default function Admin() {
                   All Clear
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => void loadRequests(true)}
+                disabled={loadingRequests}
+                className="ml-2 inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded border border-border bg-muted/60 hover:bg-muted text-ink-mid hover:text-foreground transition cursor-pointer"
+                title="Refresh requests from live central clearance registry"
+              >
+                <RefreshCw className={`w-3 h-3 ${loadingRequests ? "animate-spin text-primary" : ""}`} />
+                <span>{loadingRequests ? "Syncing..." : "Refresh"}</span>
+              </button>
             </div>
             <p className="text-xs text-ink-light">
               Only contributors you approve here can access the newsroom workspace.
