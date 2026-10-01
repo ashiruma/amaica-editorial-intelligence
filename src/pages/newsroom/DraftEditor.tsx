@@ -15,11 +15,14 @@ import {
 } from "@/lib/editorial/grammarlyPerfectionEngine";
 import { auditEditorialPolicy, morphStoryWithPolicy, type PolicyAuditResult } from "@/lib/editorial/policyGovernanceEngine";
 import { publishArticleToWordPress } from "@/lib/wordpress/wordpressConnector";
+import { HumanizerControlPanel } from "@/components/editor/HumanizerControlPanel";
+import { StylebookCheckModal } from "@/components/editor/StylebookCheckModal";
 import {
   Bot,
   ChevronUp,
   ChevronDown,
   Sparkles,
+  BookOpen,
   Check,
   Copy,
   ShieldCheck,
@@ -88,6 +91,8 @@ export default function DraftEditor() {
   const [imgBusy, setImgBusy] = useState(false);
   const [wpBusy, setWpBusy] = useState(false);
   const [fixBusy, setFixBusy] = useState(false);
+  const [showHumanizerPanel, setShowHumanizerPanel] = useState(false);
+  const [showStylebookModal, setShowStylebookModal] = useState(false);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const { minWordCount } = useMinWordCount();
 
@@ -338,9 +343,9 @@ export default function DraftEditor() {
         setSources(compliance.sources);
       }
 
-      // Guarantee ultra 0% AI humanized output on save/publish
-      let finalBody = candidateBody ? humanizeText(candidateBody, "ultra").humanizedText : candidateBody;
-      let finalLede = candidateLede ? humanizeText(candidateLede, "ultra").humanizedText : candidateLede;
+      // Editorial text is preserved as written; humanization is strictly initiated by explicit editor action
+      let finalBody = candidateBody;
+      let finalLede = candidateLede;
       let finalHeadline = draft.headline;
 
       // Guarantee Grammarly 99%+ copy-editing perfection on save/publish
@@ -671,6 +676,28 @@ export default function DraftEditor() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setShowHumanizerPanel(!showHumanizerPanel)}
+                  className={`text-xs px-2.5 py-1 rounded font-semibold transition flex items-center gap-1 cursor-pointer ${
+                    showHumanizerPanel
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-muted text-ink-mid hover:text-foreground"
+                  }`}
+                  title="Open Human-Initiated Editorial Humanizer Control Panel (Strict Human-in-the-Loop)"
+                >
+                  <Wand2 size={11} aria-hidden="true" />
+                  <span>Humanizer Tool</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowStylebookModal(true)}
+                  className="text-xs px-2.5 py-1 rounded font-semibold transition flex items-center gap-1 bg-muted text-ink-mid hover:text-foreground cursor-pointer"
+                  title="Open Kenyan English Editorial Stylebook Checker"
+                >
+                  <BookOpen size={11} aria-hidden="true" />
+                  <span>Kenyan Stylebook</span>
+                </button>
+                <button
+                  type="button"
                   onClick={sendToIntelligence}
                   className="text-xs px-2.5 py-1 rounded font-semibold transition flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white shadow-xs cursor-pointer"
                   title="Open in AI Intelligence segment for advanced forensic scanning, QuillBot modes, and sentence-by-sentence fixing"
@@ -807,6 +834,20 @@ export default function DraftEditor() {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Humanizer Precision Control Panel (Explicit Editor Trigger Only) */}
+          {showHumanizerPanel && (
+            <HumanizerControlPanel
+              originalText={draft.body || ""}
+              editorId={user?.id || "editor-session"}
+              editorName={user?.email || "Newsroom Editor"}
+              onApplyToEditor={(humanizedText) => {
+                update({ body: humanizedText });
+                setShowHumanizerPanel(false);
+              }}
+              onClose={() => setShowHumanizerPanel(false)}
+            />
           )}
 
           {/* Section Category and Region Selector */}
@@ -1308,6 +1349,32 @@ export default function DraftEditor() {
           </div>
         </aside>
       </main>
+
+      {/* Kenyan English Editorial Stylebook Check Modal */}
+      {showStylebookModal && draft && (
+        <StylebookCheckModal
+          text={`${draft.headline}\n\n${draft.lede || ""}\n\n${draft.body || ""}`}
+          onApplyCorrectedText={(corrected) => {
+            const parts = corrected.split(/\n{2,}/);
+            if (parts.length >= 3) {
+              update({
+                headline: parts[0].trim(),
+                lede: parts[1].trim(),
+                body: parts.slice(2).join("\n\n").trim(),
+              });
+            } else if (parts.length === 2) {
+              update({
+                headline: parts[0].trim(),
+                body: parts[1].trim(),
+              });
+            } else {
+              update({ body: corrected });
+            }
+            setShowStylebookModal(false);
+          }}
+          onClose={() => setShowStylebookModal(false)}
+        />
+      )}
     </div>
   );
 }
