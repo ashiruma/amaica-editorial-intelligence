@@ -81,10 +81,9 @@ export function isTransitToConcertHallucination(
   if (CONCERT_EVENT_REGEX.test(paragraphText)) {
     // Check if the primary evidence packet actually mentions concerts or music events
     if (packet) {
-      const packetText = [
-        ...packet.confirmedFacts,
-        ...packet.claims.map((c) => c.claimText),
-      ].join(" ");
+      const facts = ((packet as any).confirmed_facts || (packet as any).confirmedFacts || []).map((f: any) => typeof f === "string" ? f : f.fact || "");
+      const claims = ((packet as any).claims || (packet as any).unverified_claims || []).map((c: any) => typeof c === "string" ? c : c.claimText || c.text || "");
+      const packetText = [...facts, ...claims].join(" ");
       if (CONCERT_EVENT_REGEX.test(packetText)) {
         // Legitimate crossover corroborated by primary sources
         return false;
@@ -144,10 +143,9 @@ export function auditArticleHallucinations(
       // Check if evidence packet explicitly corroborates this crossover
       let corroboratedInDossier = false;
       if (packet) {
-        const dossierContent = [
-          ...packet.confirmedFacts,
-          ...packet.claims.map((c) => c.claimText),
-        ].join(" ").toLowerCase();
+        const facts = ((packet as any).confirmed_facts || (packet as any).confirmedFacts || []).map((f: any) => typeof f === "string" ? f : f.fact || "");
+        const claims = ((packet as any).claims || (packet as any).unverified_claims || []).map((c: any) => typeof c === "string" ? c : c.claimText || c.text || "");
+        const dossierContent = [...facts, ...claims].join(" ").toLowerCase();
         if (paraBeat === "music" && /\b(song|album|music|singer|artist)\b/.test(dossierContent)) {
           corroboratedInDossier = true;
         }
@@ -169,7 +167,8 @@ export function auditArticleHallucinations(
   });
 
   // 3. Grounding verification against ResearchPacket
-  if (packet && packet.confirmedFacts.length > 0) {
+  const confirmedFactsList = ((packet as any)?.confirmed_facts || (packet as any)?.confirmedFacts || []);
+  if (packet && confirmedFactsList.length > 0) {
     // Check if concluding paragraph mentions specific events or assertions completely absent from dossier
     const lastPara = paragraphs[paragraphs.length - 1] || "";
     if (CONCERT_EVENT_REGEX.test(lastPara) && primaryBeat === "matatu_transport") {

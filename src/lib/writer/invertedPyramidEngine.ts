@@ -110,7 +110,9 @@ export function synthesizeInvertedPyramidOffline(input: InvertedPyramidInput): I
   // 1. Lede Paragraph (35-45 words)
   const primaryActor = input.keyActors && input.keyActors.length > 0
     ? input.keyActors[0]
-    : input.researchPacket?.primaryActors[0] || "";
+    : (input.researchPacket as any)?.primaryActors?.[0] ||
+      (input.researchPacket as any)?.key_entities?.[0]?.name ||
+      "";
 
   const lede = craftJournalisticLede({
     headline,
@@ -121,12 +123,20 @@ export function synthesizeInvertedPyramidOffline(input: InvertedPyramidInput): I
 
   // 2. Second Paragraph: Context & Quotes
   const quotesList = [...(input.quotes || [])];
-  if (input.researchPacket?.lockedQuotes) {
-    for (const lq of input.researchPacket.lockedQuotes) {
+  if ((input.researchPacket as any)?.lockedQuotes) {
+    for (const lq of (input.researchPacket as any).lockedQuotes) {
       quotesList.push({
         speaker: lq.speaker,
         title: lq.context,
         quote: lq.quoteText,
+      });
+    }
+  } else if ((input.researchPacket as any)?.direct_quotes) {
+    for (const dq of (input.researchPacket as any).direct_quotes) {
+      quotesList.push({
+        speaker: dq.speaker,
+        title: undefined,
+        quote: dq.quote,
       });
     }
   }
@@ -152,6 +162,11 @@ export function synthesizeInvertedPyramidOffline(input: InvertedPyramidInput): I
     const factsText = input.confirmedFacts.slice(0, 3).join(". ") + ".";
     bodyParagraphs.push(
       `Primary investigative documentation confirms several key elements surrounding the situation. ${factsText} Regulatory oversight agencies have verified that all involved entities must adhere strictly to statutory provisions established under Kenyan law.`
+    );
+  } else if ((input.researchPacket as any)?.confirmed_facts && (input.researchPacket as any).confirmed_facts.length > 0) {
+    const factsText = (input.researchPacket as any).confirmed_facts.slice(0, 3).map((f: any) => typeof f === "string" ? f : f.fact).join(". ") + ".";
+    bodyParagraphs.push(
+      `Primary evidence assembled by newsroom investigators validates the underlying chronology. ${factsText} Administrative oversight bodies have reiterated that verified compliance documentation must guide subsequent institutional decisions.`
     );
   } else if (input.researchPacket?.confirmedFacts && input.researchPacket.confirmedFacts.length > 0) {
     const factsText = input.researchPacket.confirmedFacts.slice(0, 3).join(". ") + ".";
