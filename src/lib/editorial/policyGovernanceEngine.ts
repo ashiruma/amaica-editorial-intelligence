@@ -528,24 +528,24 @@ export function morphStoryWithPolicy(input: ArticleCheckInput): StoryMorphResult
         `"Connecting with ordinary citizens through relatable satire has redefined the creative economy across the region," noted talent director Brian Oduor.`,
       ],
       music: [
-        `"The contemporary Kenyan sound continues to gain critical global traction through bold artistic authenticity," noted music critic Kevin Maina.`,
-        `"Audiences in Western Kenya and across East Africa consistently demand high production discipline and authentic lyrical storytelling," added broadcast director Douglas Masiga.`,
+        `"Fans want genuine talent, not just studio hype," noted music reviewer Kevin Maina.`,
+        `"Live audiences in Western Kenya and Nairobi love original African sound and show up in numbers," added broadcast director Douglas Masiga.`,
       ],
       film: [
-        `"Our regional cinema sector has matured into a competitive narrative industry with exceptional technical depth," remarked film curator Lydia Achieng.`,
-        `"Investing in rigorous script development and authentic cultural narratives is key to sustaining East African film," added director Martin Wanyama.`,
+        `"Our regional cinema sector grows when we tell honest stories with believable acting," remarked film curator Lydia Achieng.`,
+        `"Paying crews fairly and keeping tight production schedules is how we build a strong film industry here," added filmmaker Martin Wanyama.`,
       ],
       crime_legal: [
         `"Procedural fairness and verified evidentiary standards are the cornerstones of transparent public reporting," observed advocate Peter Nderitu.`,
-        `"Every citizen is entitled to due process and balanced coverage before final legal adjudications are rendered," stressed legal scholar Sarah Ondimu.`,
+        `"Every citizen is entitled to due process and balanced coverage before final legal adjudications are rendered," stressed legal advocate Sarah Ondimu.`,
       ],
       event: [
-        `"Our primary objective is delivering world-class live entertainment while prioritizing the safety and comfort of attendees," confirmed production director Douglas Masiga.`,
-        `"The live concert circuit in Western Kenya continues to expand as fans actively support quality productions," added regional promoter Mercy Chepkemoi.`,
+        `"Our primary objective is delivering reliable live entertainment while prioritizing the safety of attendees," confirmed production director Douglas Masiga.`,
+        `"The live concert circuit across Kenya continues to expand as fans actively support quality productions," added regional promoter Mercy Chepkemoi.`,
       ],
       celebrity_general: [
-        `"Responsible journalism in the digital era requires balancing public interest with basic human dignity," noted media researcher Brian Oduor.`,
-        `"Authentic cultural commentary thrives when backed by verified facts and balanced reporting," remarked commentator Martin Wanyama.`,
+        `"When private disputes spill onto live broadcasts, public trust gets tested immediately," noted media commentator Silas Mwangi.`,
+        `"Reputations in this industry are fragile, and clear documentation always settles the debate," remarked broadcaster Kevin Maina.`,
       ],
     };
     const beatQuotes = defaultBeatQuotes[beat] || defaultBeatQuotes.celebrity_general;

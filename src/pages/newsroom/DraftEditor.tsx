@@ -15,7 +15,7 @@ import {
 } from "@/lib/editorial/grammarlyPerfectionEngine";
 import { auditEditorialPolicy, morphStoryWithPolicy, type PolicyAuditResult } from "@/lib/editorial/policyGovernanceEngine";
 import { publishArticleToWordPress } from "@/lib/wordpress/wordpressConnector";
-import { HumanizerControlPanel } from "@/components/editor/HumanizerControlPanel";
+import { HumanizerModal } from "@/components/editorial/HumanizerModal";
 import { StylebookCheckModal } from "@/components/editor/StylebookCheckModal";
 import { PublishPreflightModal } from "@/components/publishing/PublishPreflightModal";
 import type { PublishArticleResponse } from "@/lib/publishing/publisherService";
@@ -864,19 +864,7 @@ export default function DraftEditor() {
             </div>
           )}
 
-          {/* Humanizer Precision Control Panel (Explicit Editor Trigger Only) */}
-          {showHumanizerPanel && (
-            <HumanizerControlPanel
-              originalText={draft.body || ""}
-              editorId={user?.id || "editor-session"}
-              editorName={user?.email || "Newsroom Editor"}
-              onApplyToEditor={(humanizedText) => {
-                update({ body: humanizedText });
-                setShowHumanizerPanel(false);
-              }}
-              onClose={() => setShowHumanizerPanel(false)}
-            />
-          )}
+
 
           {/* Section Category and Region Selector */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-muted/40 border border-border rounded">
@@ -1411,6 +1399,23 @@ export default function DraftEditor() {
             setShowStylebookModal(false);
           }}
           onClose={() => setShowStylebookModal(false)}
+        />
+      )}
+
+      {/* Human-Initiated Editorial Humanizer Modal */}
+      {showHumanizerPanel && draft && (
+        <HumanizerModal
+          isOpen={showHumanizerPanel}
+          onClose={() => setShowHumanizerPanel(false)}
+          originalText={draft.body || ""}
+          editorId={user?.id || "editor-session"}
+          editorName={user?.email || "Newsroom Editor"}
+          headline={draft.headline}
+          lede={draft.lede || undefined}
+          onApplyToEditor={(humanizedText) => {
+            update({ body: humanizedText });
+            setShowHumanizerPanel(false);
+          }}
         />
       )}
 

@@ -33,6 +33,8 @@ interface HumanizerControlPanelProps {
   originalText: string;
   editorId: string;
   editorName?: string;
+  headline?: string;
+  lede?: string;
   onApplyToEditor: (humanizedText: string) => void;
   onClose?: () => void;
 }
@@ -41,6 +43,8 @@ export function HumanizerControlPanel({
   originalText,
   editorId,
   editorName = "Newsroom Editor",
+  headline,
+  lede,
   onApplyToEditor,
   onClose,
 }: HumanizerControlPanelProps) {
@@ -88,6 +92,8 @@ export function HumanizerControlPanel({
       setIsProcessing(true);
       const res = executeHumanizer({
         text: originalText,
+        headline,
+        lede,
         style,
         initiatedByEditor: true,
         editorId,

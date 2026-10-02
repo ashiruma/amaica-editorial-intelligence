@@ -556,6 +556,34 @@ The singer last performed in Nairobi two years ago. Fans arrived early at the ve
       expect(postAnalysis.quillBotBreakdown.humanWrittenScore).toBe(100);
       expect(postAnalysis.flaggedPhrases).toHaveLength(0);
     });
+
+    it("flags the Sarah Mtalii & Simon Kabu QuillBot paragraphs as elevated/heavy AI and humanizes to 0% AI", () => {
+      const sarahMtaliiAiExcerpt = `The public milestone reflects the active nature of East Africa's media and creative sectors. Professionals throughout the region noted that adaptability, authentic audience engagement, and disciplined public communications remain essential factors in sustaining a meaningful public profile across modern multimedia channels. "Authentic storytelling remains the backbone of East African cultural journalism," noted media analyst Martin Wanyama. "Audiences respond warmly when public figures communicate with transparency."
+
+Media commentators in Nairobi point out that digital platforms have fundamentally transformed how regional audiences interact with public figures. Audiences now expect consistent engagement, transparent communication, and genuine professionalism. This made reputation resilience more critical than short-lived viral exposure.`;
+
+      // 1. Raw screenshot text is flagged by internal detector (matching QuillBot 86% AI detection)
+      const detection = analyzeAiContent(sarahMtaliiAiExcerpt);
+      expect(detection.score).toBeGreaterThanOrEqual(60);
+      expect(detection.tier).toMatch(/elevated|heavy_ai/);
+      expect(detection.quillBotBreakdown.aiGeneratedScore).toBeGreaterThanOrEqual(50);
+      expect(detection.clicheCount).toBeGreaterThan(0);
+
+      // 2. Humanizer purges formulaic filler and synthetic quotes, reaching 0% AI
+      const humanized = humanizeText(sarahMtaliiAiExcerpt, "ultra");
+      expect(humanized.newScore).toBe(0);
+      expect(humanized.humanizedText).not.toContain("The public milestone reflects");
+      expect(humanized.humanizedText).not.toContain("sustaining a meaningful public profile");
+      expect(humanized.humanizedText).not.toContain("Authentic storytelling remains the backbone");
+      expect(humanized.humanizedText).not.toContain("reputation resilience more critical");
+
+      // 3. Post-humanization verification shows 100% human-written score
+      const postAnalysis = analyzeAiContent(humanized.humanizedText);
+      expect(postAnalysis.score).toBe(0);
+      expect(postAnalysis.quillBotBreakdown.aiGeneratedScore).toBe(0);
+      expect(postAnalysis.quillBotBreakdown.humanWrittenScore).toBe(100);
+      expect(postAnalysis.flaggedPhrases).toHaveLength(0);
+    });
   });
 });
 

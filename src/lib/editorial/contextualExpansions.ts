@@ -5,6 +5,7 @@
  * Generates context-rich, strictly on-topic inverted-pyramid expansion paragraphs
  * tailored specifically to the detected story beat so that stories NEVER drift
  * into unrelated subjects (such as concert logistics or stadium ticketing).
+ * Strictly enforces Zero-Emoji Workplace Standard.
  */
 
 import { StoryBeat, detectStoryBeat, extractSubjectFromTitle } from "./beatClassification";
@@ -22,139 +23,159 @@ export function generateContextualExpansionParagraphs(
   const candidatesByBeat: Record<StoryBeat, string[]> = {
     // ── 1. MATATU CULTURE, NGANYAS & URBAN TRANSPORT BEAT ────────────────────
     matatu_transport: [
-      `The development underscores the economic vitality and cultural significance of Kenya's matatu industry. Far from being merely a public transit mechanism, Nairobi's custom 'nganyas' represent a vibrant multi-million-shilling urban creative economy. Specialized fabricators, airbrush artists, and interior sound technicians collaborate to turn standard commercial vehicles into mobile cultural landmarks. Commuters actively seek out headline matatus on major city routes, creating sustained brand loyalty and steady route revenues for youth operating crews.`,
+      `Nairobi's custom matatus remain an essential urban economic powerhouse. Beyond everyday commuter transit, custom 'nganyas' support a bustling youth creative economy across city routes. Route 111 in Ngong, Route 125 in Rongai, and Route 58 in Buruburu operate as moving showcases of local airbrush artwork, custom upholstery, and sound engineering. Commuters actively track top builds on digital platforms. That loyal following translates into dependable daily returns for young fabrication crews.`,
 
-      `Urban transport observers in Nairobi note that investments in high-specification fleets create hundreds of direct and indirect employment opportunities for young people. From route conductors and digital ticketing crews to detailing specialists and sound engineers, the matatu ecosystem remains one of East Africa's largest youth employers. Industry stakeholders emphasize that maintaining high mechanical safety standards alongside eye-catching street aesthetics is essential for building sustainable fleet logistics brands.`,
+      `Transport analysts in Nairobi point out that custom fleets support hundreds of direct jobs across regional corridors. Mechanics, sound technicians, conductors, and digital booking staff all depend on the transit ecosystem. Safety remains a top priority. Sacco administrators insist that mechanical reliability and strict brake testing must match flashy exterior builds before vehicles enter daily passenger service.`,
 
-      `Regulators and transport SACCO executives continue to emphasize orderly route operations, passenger comfort, and strict road safety compliance. Modern fleet managers are investing in speed governance telematics, verified crew uniforms, and organized terminus scheduling to ensure passenger safety matches the visual appeal of custom vehicles. This focus on operational discipline is transforming informal transit into structured transport enterprises.`,
+      `Regulators continue pushing for orderly compliance across major commuter arteries. Modern saccos now install certified speed governors and enforce crew uniforms to maintain passenger confidence. Moving toward disciplined operations protects transit livelihoods while keeping commuters safe. Clean operating records also help vehicle owners negotiate competitive financing terms with local credit unions.`,
 
-      `Looking ahead, regional fleet operators plan to expand custom transport services across surrounding commuter corridors, linking Nairobi's central business district with growing satellite residential towns. Industry analysts view the continued professionalization of matatu branding as a positive evolution for urban transit culture. WireOps Desk will continue tracking developments across Kenya's urban transport sector.`,
+      `Inter-county fleets connect Nairobi directly with commercial hubs across Western Kenya, including Kakamega, Kisumu, and Bungoma. Modern shuttles offer parcel delivery alongside scheduled passenger departures. Mobile booking platforms help commuters reserve seats ahead of time. WireOps Desk will continue tracking verified developments across Kenya's transit sector.`,
 
-      `From a statutory compliance standpoint, transit operators must navigate rigorous licensing protocols administered by the National Transport and Safety Authority and relevant county government directorates. Vehicle inspection guidelines require thorough mechanical roadworthiness certifications, verified fire suppression equipment, and operational speed limitation devices before commercial transit permits are granted. Transport advocacy groups point out that operators who proactively integrate these statutory mandates foster long-term commuter confidence while mitigating route enforcement penalties.`,
+      `Fabrication workshops in Nairobi's Industrial Area and Kariobangi report steady demand for custom interior panels and sound dampening. Young welders and fiberglass artists spend weeks perfecting individual vehicle themes. Every new vehicle launch draws enthusiastic crowds of supporters. Industry veterans note that high-quality fabrications preserve vehicle durability over years of demanding road use.`,
 
-      `Beyond Nairobi's metropolitan routes, the growth of organized commuter fleets provides vital inter-county logistical links connecting the capital with commercial hubs across Western Kenya, including Kakamega, Kisumu, and Bungoma. Long-distance transit saccos are increasingly adopting modernized scheduling models, parcel distribution services, and structured driver rotation schedules to optimize safety across inter-county corridors. Sector analysts conclude that structured capital investments in high-capacity fleets will continue driving regional commerce throughout East Africa.`,
+      `Commuter welfare associations advocate for predictable fares and courteous passenger treatment during rush hours. Saccos that maintain fair rates build lasting relationships with daily travelers. Public transport remains the lifeblood of Nairobi commerce. Respecting passengers ensures sustainable business growth across competing transit routes.`,
     ],
 
     // ── 2. TRAGEDY, SEARCH & RESCUE, ACCIDENT BEAT ───────────────────────────
     tragedy_rescue: [
-      `The incident has drawn urgent attention to emergency response preparedness and water safety protocols across the county. Local authorities and community leaders commended the bravery of volunteer divers and first responders who mobilized swiftly under challenging river conditions. Regional disaster management teams noted that swift coordination between administrative security officers and local residents remains vital during critical search and recovery missions.`,
+      `The emergency mobilized local divers, humanitarian volunteers, and administrative officers across the affected county. First responders worked under demanding weather conditions to scour the river corridor and surrounding terrain. Rapid coordination between emergency units and nearby residents proved critical throughout the search operation.`,
 
-      `Community members and local leaders gathered near the site to offer support and solidarity to the affected family members during the recovery operation. Civic organizations in the region have urged county emergency management agencies to establish dedicated rescue stations equipped with modern diving apparatus, safety ropes, and certified life jackets along hazardous river stretches. Enhanced equipment access ensures local rescue teams can operate with greater safety during rapid-current emergencies.`,
+      `Community members gathered near the scene to offer comfort and practical assistance to the grieving family. Civic leaders urged county emergency departments to install sturdy safety barriers, warning markers, and certified life-saving gear at hazardous river crossings. Upgraded safety equipment saves lives during heavy seasonal rains.`,
 
-      `Public safety advocates called on county authorities to erect clear warning markers, secure footbridge crossings, and conduct public awareness campaigns along accident-prone riverbanks. Local administrators emphasized that community vigilance and early reporting to emergency lines save lives during seasonal flooding periods. Counseling support teams have also been mobilized to assist family members and first responders coping with emotional distress following the incident.`,
+      `Public safety advocates reiterated calls for visible caution signage and public education near known accident spots. Local administrators urged families and school children to steer clear of swollen rivers and fast-moving runoff. Mental health support teams have been mobilized to assist traumatized community members.`,
 
-      `Administrative officers confirmed that a detailed incident report will be submitted to regional disaster monitoring authorities to guide future emergency planning. Local leaders reiterated their commitment to improving rural emergency infrastructure and strengthening community-based first-response capabilities. WireOps Desk will provide verified follow-up reports as formal administrative updates are released.`,
+      `Disaster preparedness officials emphasize the need for regular county-level emergency drills and dedicated response funding. Equipping local stations with rapid rescue boats and trained personnel reduces response times during unexpected incidents. Proactive planning prevents avoidable tragedies.`,
+
+      `Administrative officers confirmed that a formal assessment report will be submitted to regional disaster coordination authorities. WireOps Desk will provide verified updates as official statements from emergency agencies are issued.`,
     ],
 
     // ── 3. POLITICS, CIVIC LEADERSHIP & GOVERNANCE BEAT ──────────────────────
     politics_governance: [
-      `The political development comes at a critical juncture as regional leaders and grassroots mobilization groups intensify their engagements across the county. Political commentators observe that direct public action and community presence increasingly define voter perceptions in local constituencies. Grassroots voters across Kenya are demanding accessible, hands-on leadership that addresses practical community challenges rather than remote political pronouncements.`,
+      `The political move comes as regional leaders intensify public engagements across the constituency. Grassroots voters in local wards are demanding responsive leadership that addresses everyday community concerns directly. Practical progress on the ground carries far more weight with voters than remote press statements.`,
 
-      `Discussions across local civic forums and constituency groups highlighted the growing importance of community-level service delivery and public accountability. Observers noted that aspirants who demonstrate personal courage, civic empathy, and practical solidarity during moments of community distress build enduring goodwill among local electorates. In the era of widespread social media reporting, public actions by political figures are scrutinized in real time by voters across the country.`,
+      `Civic discussions across local forums and community town halls reflected rising public scrutiny of county resource allocation. Grassroots constituents expect elected leaders to remain visible, accessible, and accountable. In an era of instant mobile communication, official pronouncements face immediate verification by citizens.`,
 
-      `Regional governance analysts point out that county leadership races are increasingly shaped by track records of direct community support and tangible public initiatives. With county assemblies and national parliamentarians facing elevated voter scrutiny, grassroots constituents are prioritizing leaders with proven records of responsiveness, transparent communication, and community empowerment.`,
+      `Local politics continues shifting toward verifiable service delivery and infrastructural development. Aspirants who demonstrate consistent track records earn enduring credibility with the electorate. Respectful public dialogue strengthens democratic institutions at both county and national levels.`,
 
-      `Looking forward, political observers anticipate intensified constituency tours, civic barazas, and grassroots consultations as leaders prepare for upcoming electoral cycles. WireOps Desk will continue providing balanced, fact-based political reporting as regional dynamics unfold.`,
+      `Community elders and civic organizations encourage constructive leadership that unites diverse groups behind shared local priorities. Addressing youth employment, healthcare access, and water supply issues forms the core of grassroots expectations. Leaders who deliver practical solutions earn lasting public trust.`,
+
+      `Civic observers in Nairobi and Western Kenya note that voters are paying closer attention to legislative debates and policy motions. Informed public participation holds institutions to higher governance benchmarks. WireOps Desk will maintain objective, verified coverage as regional political developments unfold.`,
     ],
 
     // ── 4. BUSINESS, HIGH-NET-WORTH & ENTREPRENEURSHIP BEAT ──────────────────
     business_wealth: [
-      `The high-profile development highlights the growing intersections of social media visibility, entrepreneurship, and wealth displays across contemporary African commerce. Business commentators observe that viral demonstrations of personal generosity and luxury asset acquisition frequently spark spirited public debate regarding economic priorities, commercial branding, and financial transparency in the digital era.`,
+      `The commercial announcement drew keen interest across Nairobi's corporate and investment communities. Market analysts noted that building lasting enterprises requires disciplined working capital management, prudent reinvestment, and transparent financial reporting. High-profile transactions naturally attract close scrutiny from regulators and industry peers.`,
 
-      `Financial advisors and enterprise mentors emphasize that sustainable wealth building requires disciplined asset management, strategic capital reinvestment, and resilient commercial diversification. While high-visibility gifts and luxury fleets draw massive digital engagement, long-term business sustainability depends on robust commercial operations, intellectual property control, and structured corporate governance.`,
+      `Financial advisors in Nairobi emphasize that long-term commercial resilience depends on clear corporate shareholding structures and enforceable commercial contracts. While flashy announcements make headlines, enduring enterprises thrive on sound corporate governance, regulatory compliance, and consistent customer delivery.`,
 
-      `Across regional digital networks, audiences continue to follow the milestones of prominent commercial figures with intense curiosity. Economic analysts noted that public curiosity often centers on understanding the entrepreneurial pathways that enable high-value investments. As youth unemployment remains a pressing concern across the continent, commercial figures who share practical enterprise lessons and support local job creation earn lasting respect from communities.`,
+      `Across the country, emerging entrepreneurs and small business operators track major commercial milestones with genuine interest. Successful founders who create local employment, pay suppliers promptly, and share hard-earned business lessons earn lasting respect within the business community.`,
 
-      `Looking ahead, industry analysts expect ${subjectLabel} to pursue further commercial ventures and strategic brand partnerships. WireOps Desk will continue tracking verified developments across regional enterprise and creator commerce.`,
+      `Corporate governance consultants urge expanding businesses to establish independent advisory boards and maintain routine external audits. Professional oversight helps growing enterprises navigate tax requirements, contractual obligations, and partnership transitions smoothly.`,
+
+      `Access to structured credit and patient equity capital remains a deciding factor for growing Kenyan businesses. Financial institutions that tailor lending products to local market realities help viable commercial ventures scale sustainably. WireOps Desk will continue tracking verified developments as corporate partnerships and regulatory filings progress.`,
     ],
 
     // ── 5. RELATIONSHIP & PERSONAL DISPUTE BEAT ──────────────────────────────
     relationship: [
-      `The disclosures have ignited broader public dialogue regarding the delicate balance between high-profile personal relationships and intense social media scrutiny in Kenya's entertainment scene. In an era where digital creators and public personalities frequently share intimate glimpses of their personal journeys, audience engagement can quickly evolve into overwhelming scrutiny when relationships experience strain. Media commentators note that public curiosity often intensifies emotional pressure. This highlights the necessity for clear boundaries between personal privacy and public commentary. Personal well-being and psychological peace must always remain the foremost priority for all parties involved.`,
+      `The public fallout sparked widespread debate across Kenyan entertainment platforms and digital forums. Airing private breakups on live broadcasts or social media invites intense public scrutiny. When business partnerships and personal ties overlap, ending a relationship becomes complicated. Legal advisors urge public personalities to protect their peace of mind and address financial disputes through formal legal channels.`,
 
-      `Across Kenyan social platforms and discussion forums, followers and entertainment peers have engaged in thoughtful conversations following the announcement. While digital audiences naturally dissect public statements and timelines, the prevailing sentiment has centered on empathy, maturity, and mutual respect. Cultural observers emphasize that navigating personal transitions under the public eye requires remarkable emotional strength, and commentators have commended individuals who prioritize long-term emotional well-being, clear communication, and personal safety over performative social media expectations.`,
+      `Radio call-in shows and online discussions drew mixed reactions from listeners across Nairobi. While followers dissected every claim, many urged both parties to resolve their disagreements privately away from microphones. Navigating a separation under the public glare is challenging. Close associates expressed hope that the two can resolve outstanding matters respectfully.`,
 
-      `Family counselors and relationship wellness practitioners in Nairobi observe that candid public discussions regarding personal milestones reflect an evolving cultural maturity among young adults. Mental health advocates stress that acknowledging relational challenges, seeking trusted counsel, and making decisive life adjustments are essential components of personal growth. Experts encourage individuals navigating complex relationships to maintain open communication, protect their personal peace, and seek supportive community networks during periods of major life change. Emotional wellness and personal safety remain vital priorities.`,
+      `Family counselors and relationship mediators in Nairobi point out that public conflicts often stem from unspoken financial friction. When two creators build joint commercial brands, separating personal lives disrupts business operations. Experts advise taking time out from online commentary to address core grievances through private arbitration.`,
 
-      `Industry analysts point out that digital collaboration models in Kenya are evolving rapidly, with many creators establishing formal business structures that clearly delineate creative work from personal dynamics. In past years, shared content channels frequently blurred commercial contracts with domestic partnerships, leading to abrupt disruptions when relationships ended. Modern entertainment management firms are now advising talent to protect individual intellectual property, maintain separate financial accounts, and establish dispute protocols from the outset to avoid public fallout.`,
+      `Talent managers stress that joint creator channels require formal legal contracts from the outset. Handshake arrangements frequently collapse when personal partnerships sour. Media agencies now advise influencers to maintain distinct bank accounts and documented revenue-sharing agreements to prevent painful public fallout.`,
 
-      `Civic educators and peer mentors have also highlighted the responsibility that influential personalities hold when sharing personal experiences with youthful audiences. Open discussions about setting healthy boundaries, identifying toxic behaviors, and taking courageous steps toward self-preservation provide valuable life lessons for followers facing similar challenges in their private lives. Healthy dialogue fosters emotional resilience across the wider creative community.`,
+      `Taking time away from public platforms often gives creators space to rebuild focus. Dedicated supporters hope both parties can eventually channel their energy back into creative work. WireOps Desk will continue monitoring verified details as formal statements or legal clarifications emerge.`,
 
-      `Looking forward, industry observers expect ${subjectLabel} to redirect creative energies toward independent projects, fresh collaborations, and solo professional formats. Loyal supporters have expressed enthusiasm for content that reflects authentic individual growth, resilience, and personal evolution. Fresh starts bring renewed artistic focus. As Kenya's digital entertainment space continues to mature, audiences are demonstrating a clear preference for transparency, genuine personal fortitude, and dedication to creative excellence. WireOps Desk will continue providing fair, balanced, and verified reporting on developments surrounding ${subjectLabel} and related creative projects.`,
+      `Mental health advocates in Kenya emphasize that viral relationship controversies take a heavy emotional toll on everyone involved. Constant online scrutiny and speculative commentary can quickly overwhelm public personalities. Setting clear personal boundaries and seeking qualified guidance helps individuals navigate painful transitions with dignity.`,
+
+      `Digital audience analysts observe that Kenyan social media users increasingly differentiate between genuine grievance and manufactured drama. Followers respect public figures who handle private matters with composure and restraint. Moving past bitter exchanges preserves personal credibility and protects long-term professional relationships.`,
     ],
 
     // ── 6. DIGITAL COMEDY & SATIRE BEAT ──────────────────────────────────────
     comedy: [
-      `The viral momentum demonstrates how contemporary Kenyan comedy creators leverage short-form digital platforms to build passionate online followings. Humorists and content producers across Nairobi and Western Kenya are redefining digital entertainment through spontaneous audience engagement, relatable social commentary, and character-driven sketches that mirror everyday societal quirks.`,
+      `Kenya's digital comedy space continues expanding at a rapid pace across online video platforms. Independent comedians across Nairobi, Eldoret, and Western Kenya produce short-form skits that reflect everyday Kenyan life. Honest humor grounded in shared social experiences consistently draws enthusiastic audience engagement.`,
 
-      `Talent managers and digital monetization specialists note that sustainable comedic branding requires steady production discipline, continuous script development, and audience trust. By cultivating interactive livestreams and recurring skit formats, content creators have established direct relationships with viewers, transforming casual digital impressions into loyal community followings that sustain commercial partnerships.`,
+      `Talent managers note that sustained creative discipline separates top comedians from one-hit viral personalities. Creators who post regular content and invest in original scripts frequently secure profitable corporate endorsements and live hosting gigs. Direct connection with followers keeps the digital comedy sector growing.`,
 
-      `Social commentators point out that satire and comedic livestreams often serve as important cathartic spaces for Kenyan audiences navigating economic and personal pressures. The spontaneous humor and candid peer exchanges offer lighthearted respite while reflecting shared cultural realities across generation cohorts.`,
+      `Live stand-up shows and theatre nights in Nairobi draw packed houses of comedy enthusiasts. Quality humor provides welcome relief from daily economic pressures. Comedians who polish their delivery and test material before live crowds build enduring performance careers.`,
 
-      `As East Africa's creator economy continues to mature, independent comics are increasingly treating digital production as a structured enterprise. Industry stakeholders anticipate further original programming and collaborative showcases from emerging humorists in the coming months. WireOps Desk will provide ongoing updates across the regional comedy landscape.`,
+      `Production crews behind top digital creators are upgrading their camera work, lighting, and audio equipment. Viewers expect cinematic production standards even in brief social media sketches. Better production values help local comedy compete effectively on international platforms.`,
+
+      `Industry advocates urge young comics to protect their intellectual property and register their creative trademarks. Understanding media contracts and usage rights prevents predatory commercial deals. Professional representation ensures creators retain fair shares of the commercial revenue generated by their viral sketches. WireOps Desk will track verified comedy updates and tour schedules.`,
     ],
 
     // ── 7. MUSIC & RECORDING ARTS BEAT ───────────────────────────────────────
     music: [
-      `The announcement has generated notable enthusiasm among music critics and followers across the region's dynamic recording sector. Broadcasters and streaming editors highlighted how contemporary Kenyan musicians are successfully blending authentic indigenous rhythms with contemporary urban production, asserting cultural pride while expanding international streaming reach.`,
+      `The announcement stirred excitement across the Kenyan music community and regional streaming channels. Radio broadcasters and club DJs noted that contemporary audiences appreciate live instrumentation paired with authentic African sounds. Blending traditional percussion with crisp studio production continues to win loyal supporters across Nairobi, Kisumu, and Eldoret.`,
 
-      `Producers and sound engineers throughout Nairobi note that sustained commercial momentum hinges on meticulous sonic discipline, regular studio output, and active listener engagement. As streaming access widens across East Africa, recording artists who maintain creative authenticity while delivering high-grade audio experiences are earning dedicated followings across diverse demographics.`,
+      `Studio producers in Nairobi stress that consistent song releases and disciplined stage performances keep recording artists relevant over time. Live concerts in major towns draw dedicated music lovers who sing along to every lyric. Direct crowd connection matters far more than short-lived digital streaming metrics.`,
 
-      `Industry analysts emphasize the vital role of radio programmers, live curators, and playlist editors in championing homegrown musical projects. Collective advocacy from broadcasting outlets and digital platforms ensures that authentic Kenyan recordings receive the sustained airplay necessary to establish enduring cultural relevance.`,
+      `Radio programmers and music directors play a critical role in championing homegrown talent across the country. Consistent daytime airplay enables regional artists to tour widely, secure corporate endorsements, and build lasting sustainable careers in a competitive industry.`,
 
-      `Looking ahead, regional music enthusiasts eagerly anticipate accompanying audiovisual releases, collaborative singles, and forthcoming live appearances. WireOps Desk will continue providing timely coverage as additional production milestones are unveiled.`,
+      `Live performance venues across Nairobi, Nakuru, and Mombasa report strong ticket sales for well-organized local showcases. Music fans appreciate punctual schedules, balanced sound engineering, and high-energy live bands. Artists who respect ticket buyers build enduring followings that span generations.`,
+
+      `Independent record labels and artist managers emphasize the importance of copyright registration and transparent royalty tracking. Enforcing intellectual property rights ensures that musicians earn fair compensation from digital streaming, ringback tones, and broadcast licensing agreements.`,
+
+      `Collaborations between established icons and emerging songwriters continue to push East African music into fresh territory. Studio sessions that blend seasoned experience with youthful energy produce memorable tracks that resonate with diverse audiences across the continent. WireOps Desk will provide updates as new tour dates and studio projects are confirmed.`,
     ],
 
     // ── 8. FILM, TELEVISION & CINEMA BEAT ────────────────────────────────────
     film: [
-      `The production milestone signals another promising stride for Kenya's screen and dramatic arts landscape. Industry commentators observe that East African screenwriters, directors, and actors are steadily crafting compelling visual narratives that resonate with local audiences while commanding attention across regional and international festival circuits.`,
+      `The production milestone signals promising growth for the Kenyan cinema and television landscape. Local screenwriters, cinematographers, and directors are developing authentic stories that reflect real-life experiences across the country. Audiences connect deeply with relatable characters, believable dialogue, and genuine local settings.`,
 
-      `Film distributors and cinema programmers note that audience demand for locally produced feature films and episodic dramas has surged significantly. Viewers increasingly gravitate toward stories featuring relatable characters, authentic colloquial dialogue, and nuanced portrayals of contemporary East African life, encouraging production companies to invest in higher production values and broader casting calls.`,
+      `Cinema operators and streaming platforms report rising demand for Kenyan feature films and scripted series. Viewers actively seek out homegrown stories delivered with sharp visual cinematography and compelling acting performances. Production companies are answering that demand by raising technical benchmarks on local film sets.`,
 
-      `Industry advocates also highlight the ongoing necessity for institutional support, structured production funding, and comprehensive intellectual property protection. Stakeholders throughout the film ecosystem continue to champion favorable filming policies and collaborative training workshops designed to elevate crew expertise and technical execution.`,
+      `Film industry advocates emphasize that fair crew compensation, structured call sheets, and transparent contracts remain essential to building an enduring screen sector. Practical production workshops help young camera operators, sound recordists, and lighting technicians sharpen their crafts.`,
 
-      `With production milestones advancing across multiple regional projects, cinema enthusiasts look forward to theatrical screenings and streaming releases in the upcoming season. WireOps Desk will maintain comprehensive coverage of Kenya's burgeoning screen industry.`,
+      `Regional film festivals and community screenings across Nairobi, Kisumu, and Mombasa provide vital distribution avenues for independent filmmakers. Meeting audiences in person helps storytellers refine future projects. Direct feedback from local viewers strengthens the entire creative pipeline.`,
+
+      `Financing models for Kenyan screen productions are gradually evolving beyond donor grants toward private equity and brand sponsorships. Investors who recognize the commercial viability of East African storytelling are funding ambitious local projects. WireOps Desk will maintain comprehensive coverage of Kenya's emerging screen industry.`,
     ],
 
-    // ── 9. CRIME, COURTS & LEGAL PROCEEDINGS BEAT ────────────────────────────
+    // ── 9. CRIME, COURTS & LEGAL PROCEEDINGS BEAT ────────────────────
     crime_legal: [
-      `The legal developments have drawn close scrutiny from civil society observers and legal analysts monitoring procedural fairness and institutional accountability. Legal commentators emphasize that adherence to constitutional due process safeguards public faith in administrative justice mechanisms, ensuring that contested matters are adjudicated through established statutory channels rather than unverified public speculation.`,
+      `The legal developments have drawn close scrutiny from court observers, advocates, and civil society groups in Nairobi. Legal analysts stress that due process protects all citizens equally under the law. Disputed claims must be tested before formal tribunals with verified evidence rather than argued through uncorroborated online speculation.`,
 
-      `Courtroom observers noted that transparent documentation, formal witness testimony, and verified factual records remain indispensable foundations of administrative proceedings. Judicial officers and investigative authorities continue to underline that due process protections must be scrupulously observed across all stages of public inquiries and dispute resolutions.`,
+      `Courtroom watchers noted that signed affidavits, sworn witness testimony, and verified financial audit records remain the bedrock of any judicial inquiry. Seasoned magistrates and advocates agree that procedural fairness and transparency must guide every court hearing to maintain public confidence.`,
 
-      `Legal analysts in Nairobi point out that public cases involving notable personalities frequently serve as important touchstones for wider statutory interpretations. Observers anticipate that subsequent hearings will clarify the statutory thresholds governing the contested issues, providing valuable judicial precedent for comparable matters in the future.`,
+      `High-profile disputes often establish crucial judicial precedents for related matters under Kenyan jurisprudence. Legal practitioners anticipate that forthcoming sessions will clarify contested statutory points. Transparent court records ensure that justice is seen to be done by the general public.`,
 
-      `Formal proceedings are scheduled to resume in accordance with standard registry calendars, with legal representatives preparing subsequent filings for judicial review. WireOps Desk will provide verified follow-up reporting as official court filings and administrative rulings are placed on the formal record.`,
+      `Judicial reporting requires strict factual discipline to prevent pre-judging matters that remain before open courts. Responsible newsrooms verify registry documents and official rulings before publishing claims. Accurate reporting safeguards both legal integrity and the public interest.`,
+
+      `Formal proceedings are scheduled to resume in accordance with official court calendar dates. WireOps Desk will provide balanced, verified follow-up reporting as formal filings and judicial orders are placed on the public record.`,
     ],
 
     // ── 10. LIVE EVENTS & FESTIVALS BEAT ─────────────────────────────────────
     event: [
-      `Event organizers and venue managers emphasize that meticulous logistical coordination, comprehensive security protocols, and prompt attendee communication remain critical benchmarks for staging successful live gatherings. Large-scale public events serve as vital economic catalysts for host communities, stimulating local transport services, hospitality venues, and youth technical crews throughout the surrounding area.`,
+      `Event organizers and venue directors emphasize that attendee safety, thorough sound checks, and orderly gate procedures determine the success of major live events. Large festivals stimulate local economic activity, creating casual employment for security personnel, stage crews, ticket attendants, and food vendors.`,
 
-      `Production coordinators in Nairobi and Western Kenya note that audience expectations for live performances have evolved considerably. Modern attendees prioritize seamless ticketing systems, dependable sound reinforcement, clear sightlines, and orderly crowd management, prompting event promoters to partner with seasoned staging specialists to ensure safe and memorable experiences.`,
+      `Concert attendees in Nairobi, Kisumu, and Eldoret expect dependable sound amplification, clear sightlines, and secure parking. Promoters who respect ticket buyers, honor advertised artist lineups, and adhere to start times build strong brand loyalty among entertainment enthusiasts.`,
 
-      `Regional tourism and cultural commentators point out that prominent festivals play a significant role in showcasing local talent and celebrating community identity. Successful events strengthen inter-county cultural exchanges and draw visitors from across the country, highlighting the enduring appeal of vibrant live gatherings across East Africa.`,
+      `Live cultural festivals and music tours across counties celebrate heritage and bring communities together in celebration. Well-managed concert series showcase the vibrant appetite for live performance across East Africa while generating positive commercial returns for surrounding hospitality businesses.`,
 
-      `Organizers confirmed that planning for subsequent calendar events is advancing smoothly, with technical teams conducting final site surveys and logistical briefings. WireOps Desk will continue tracking verified event schedules and administrative announcements.`,
+      `Technical teams and audio engineers confirmed that venue preparations and equipment calibration are proceeding according to plan. Promoters are working alongside local law enforcement to ensure smooth traffic flow and crowd security around the venue perimeter.`,
+
+      `Sustainable event management requires proactive waste disposal, adequate sanitation facilities, and clear emergency exit corridors. Promoters who invest in professional venue logistics earn regulatory approvals and repeat patrons. WireOps Desk will continue tracking verified concert schedules and ticketing details.`,
     ],
 
     // ── 11. GENERAL CELEBRITY & NOTABLE PERSONALITIES BEAT ───────────────────
     celebrity_general: [
-      `The public milestone reflects the dynamic nature of East Africa's media and creative sectors. Professionals throughout the region noted that adaptability, authentic audience engagement, and disciplined public communications remain essential factors in sustaining a meaningful public profile across modern multimedia channels.`,
+      `The broadcast controversy quickly gained traction across Nairobi entertainment circles and regional digital platforms. Media commentators noted that modern audiences expect straightforward answers and verifiable facts from public personalities. Word spread rapidly across morning radio shows and video streams as fans discussed the claims in real time.`,
 
-      `Media commentators in Nairobi point out that digital platforms have fundamentally transformed how regional audiences interact with public figures. Audiences now expect consistent engagement, transparent communication, and genuine professionalism, making reputation resilience more critical than short-lived viral exposure.`,
+      `Digital communication platforms have transformed how Kenyans follow high-profile disputes. Followers no longer wait for polished corporate press statements. They expect direct, authentic clarification when misunderstandings arise. That shift makes prompt, documented communication essential whenever conflicting claims surface online.`,
 
-      `Cultural observers also emphasize the importance of community solidarity and professional mentorship within Kenya's creative arts. Established practitioners and emerging talents frequently collaborate to navigate industry transitions, exchange technical expertise, and champion ethical production standards that benefit the broader creative fraternity.`,
+      `Industry veterans advise younger creators and artists to safeguard their professional futures through formal written agreements. Informal understandings rarely hold up when business collaborations face strain. Retaining signed contracts and independent legal counsel prevents contentious disputes from spilling into the public domain.`,
 
-      `Public relations strategists in Nairobi emphasize that public controversies or viral rumors necessitate disciplined factual communication. In an era where digital commentary accelerates uncorroborated narratives, public figures who address speculation through verified statements and structured media interviews preserve their professional integrity while discouraging sensationalism.`,
+      `Communication strategists in Nairobi emphasize that public controversies demand quick, factual engagement. Online commentary moves at high speed, and prolonged silence often fuels speculative rumors. Public figures who provide documented facts and composed responses preserve long-term credibility with audiences and commercial brand partners.`,
 
-      `Broadcast and entertainment analysts across Kenya observe that enduring artist careers are built on consistent creative output and mutual respect with media partners. Industry veterans point out that professional boundaries and transparent collaboration between recording artists, radio presenters, and event promoters foster a healthy creative ecosystem that elevates East African talent nationally.`,
+      `Experienced broadcasters point out that lasting media careers are built on consistent creative output and mutual respect. Sensational headlines may generate temporary viral attention, but enduring professional stature requires steady work and personal integrity. Kenyan audiences value authentic talent above manufactured controversy.`,
 
-      `Legal and talent management consultants note that reputation management has become a sophisticated component of contemporary celebrity careers. Experienced managers advise public figures to maintain formal documentation, structured communication protocols, and clear stakeholder agreements to mitigate misunderstandings before they escalate into public disputes.`,
+      `Talent managers across Nairobi urge public figures to maintain clear boundaries between personal relationships and commercial operations. Shared finances and informal ventures frequently lead to bitter fallouts. Independent accounting, clear ownership ledgers, and formal dispute resolution procedures keep creative projects on track.`,
 
-      `Regional culture commentators highlight that veteran performers serve as critical anchors for Kenya's contemporary entertainment landscape. Their insights and industry longevity offer valuable guidance for the next generation of creative talents working across music, broadcast media, and digital production.`,
+      `Entertainment journalists continue monitoring the developing situation closely. Public interviews and social media statements have sparked lively debate among listeners and followers. WireOps Desk will provide balanced follow-up reporting as official statements or verified clarifications are made available.`,
 
-      `Looking to the future, industry advisors anticipate focused progression across upcoming creative and professional commitments. WireOps Desk will provide timely coverage as further verified details emerge.`,
+      `Reputation advisors stress that public figures who acknowledge mistakes and communicate honestly recover faster from media storms. Audiences appreciate humility and direct accountability. Handling public friction with dignity demonstrates maturity and reassures commercial sponsors.`,
     ],
   };
 
@@ -178,26 +199,58 @@ export function generateContextualExpansionParagraphs(
   // Specific fallbacks for matatu transport to avoid generic entertainment drift
   if (beat === "matatu_transport") {
     const transitFallbacks = [
-      `Urban planning experts and transit logistics analysts in Nairobi observe that the sustained growth of custom matatus illustrates the intersection of urban mobility and youth entrepreneurship. As commuter corridors continue to expand across Nairobi and surrounding counties, professional fleet operations that prioritize passenger safety alongside distinctive visual aesthetics will define the future of Kenya's public transport sector.`,
-      `Transport SACCO leaders and road safety advocates emphasize that technical compliance with National Transport and Safety Authority guidelines remains the cornerstone of lasting commercial success. Commuter confidence depends on disciplined route scheduling, transparent fare structures, and qualified driving personnel, ensuring the matatu culture continues to thrive responsibly.`,
+      `Urban planning scholars and transit logistics analysts in Nairobi observe that custom matatus bridge essential gaps in city mobility. Commuter corridors continue expanding into neighboring counties. Professional fleet operations that balance passenger safety with urban design will shape the future of mass transit across Kenya.`,
+      `Transport SACCO officials and road safety advocates emphasize that technical compliance remains the foundation of long-term commercial success. Passenger confidence depends on disciplined scheduling, transparent fare structures, and qualified driving crews. Upholding these professional standards protects both operators and passengers.`,
+      `Fleet owners who invest in routine mechanical maintenance and fair driver compensation record significantly lower accident rates. Experienced operators recognize that cutting corners on vehicle maintenance costs far more in the long run. Professional management transforms informal transit into an enduring enterprise.`,
+      `Digital payment integration continues gaining ground across commuter routes in Nairobi and surrounding metropolitan hubs. Cashless fare collection curbs revenue loss and improves financial accountability for vehicle owners. Modernization efforts reflect a broader shift toward formal, dependable public transit systems.`,
     ];
-    return transitFallbacks.filter((cand) => {
+    const filteredTransit = transitFallbacks.filter((cand) => {
       const snippet = cand.slice(0, 35).toLowerCase();
       return !existingBody.toLowerCase().includes(snippet);
     });
+    if (filteredTransit.length > 0) return filteredTransit;
   }
 
   // Fallback for inverted-pyramid depth without topic drift
   const universalFallbacks = [
-    `Media ethics scholars and senior editors in Nairobi emphasize that responsible reporting requires balancing public curiosity with verification rigor. As information circulates rapidly across messaging apps and online discussion spaces, independent newsrooms play a crucial role in providing measured, fact-checked context that separates verified developments from uncorroborated commentary.`,
-    `Audiences in Kenya and across the East African diaspora continue to seek comprehensive coverage that respects the complexities of contemporary public life. As digital media channels expand, the demand for verified facts, respectful discourse, and journalistic fairness remains essential for building lasting reader trust. WireOps Desk remains committed to upholding these foundational principles across all published dispatches.`,
-    `Communications strategists across East Africa observe that verified public engagement and transparent media briefings serve as vital tools for defusing digital misinformation. When high-profile public matters enter digital discussion spaces, stakeholders who communicate with speed, clarity, and factual discipline protect their long-term institutional reputations.`,
-    `Digital content analysts in Nairobi highlight that contemporary audiences have developed a heightened awareness of editorial accuracy. Readers actively cross-reference breaking dispatches against verified primary records, penalizing speculative commentary while rewarding news organizations that uphold disciplined verification practices.`,
-    `Sector analysts emphasize that sustainable creative and commercial initiatives depend on structured governance frameworks. Organizations that invest in documented operational policies, professional dispute resolution mechanisms, and transparent stakeholder communication establish enduring credibility across Kenya and the wider continent.`,
-    `Economic analysts in Western Kenya and Nairobi point out that creative and commercial enterprises generate significant ripple effects throughout local supply chains. From production logistics and hospitality services to digital marketing and youth employment, organized industry initiatives continue to play an expanding role in Kenya's economic trajectory.`,
+    `Newsrooms in Nairobi and regional broadcast desks continue monitoring listener responses following the broadcast. Radio listeners and social media users engaged in spirited discussion throughout the morning, trading views on the competing accounts. Editorial desks have reached out to both parties for formal clarification and documented records.`,
+
+    `In Kenya's fast-moving entertainment sector, business disagreements between collaborators frequently surface during live broadcasts. Broadcasters and talent representatives point out that formal agreements and documented receipts provide the clearest path to settling disputed claims. When financial friction spills onto public airwaves, both listeners and commercial partners look for verifiable facts.`,
+
+    `Entertainment reporters in Nairobi noted that morning talk shows frequently serve as platforms for public disputes. Morning hosts often field direct calls from listeners who demand accountability from featured personalities. Station managers have reminded presenters to maintain balanced questioning and offer all mentioned parties an immediate opportunity to respond on air.`,
+
+    `Digital discussions across local messaging channels and social video platforms showed keen public interest in the developing story. Fans and sector observers expressed hope that the individuals involved can resolve their differences constructively through formal arbitration. Verified documentation remains the deciding factor when resolving claims over shared projects or unpaid remuneration.`,
+
+    `Experienced producers in Nairobi emphasize that clear operational records protect everyone involved in creative collaborations. Signing formal contracts, keeping transparent payment vouchers, and using recognized banking channels help prevent public disputes before they escalate. Industry veterans recommend that creative partners engage qualified advisors whenever negotiating contract terms or revenue splits.`,
+
+    `Regional correspondents in Western Kenya and urban centers report that audiences value straight reporting over unverified speculation. Readers actively follow verified news updates to understand the practical details behind high-profile disputes. WireOps Desk will continue tracking verified developments and update the reporting as formal statements or official records are provided.`,
+
+    `Local legal practitioners in Nairobi point out that contractual disputes should ideally be resolved through mediation rather than public exchanges. Resolving matters through accredited arbiters or written settlements saves both time and professional goodwill. When public statements are made, preserving documentary proof remains essential for all participants.`,
+
+    `News desks across the country maintain strict verification standards when covering disputes between public figures. Every name, monetary claim, and attributed statement must align with verified records and direct testimony. Dedicated newsroom verification ensures readers receive accurate, balanced, and fair reporting on developing events.`,
   ];
 
-  return universalFallbacks.filter((cand) => {
+  const filteredUniversal = universalFallbacks.filter((cand) => {
+    if (
+      beat === "matatu_transport" &&
+      /\b(concert|album|festival|theatre|cinema|tour dates|tickets? on sale|gate charges|music)\b/i.test(cand)
+    ) {
+      return false;
+    }
+    const snippet = cand.slice(0, 35).toLowerCase();
+    return !existingBody.toLowerCase().includes(snippet);
+  });
+
+  if (filteredUniversal.length > 0) return filteredUniversal;
+
+  // Extended perspectives ensuring expansion never runs dry before 1200 words
+  const extendedPerspectives = [
+    `Editorial desks and reporters across Nairobi continue gathering verified facts regarding ${topicTitle}. Correspondents observe that audience interest remains high as listeners seek confirmed details rather than rumors. WireOps Desk will publish verified follow-up details as soon as primary records become available.`,
+    `Reporters on the ground in Nairobi, Kisumu, and Eldoret report steady engagement from readers following this development. Local radio stations covered the topic during mid-morning commentary segments, inviting listener reactions and offering balanced perspectives. News desks will update this record as additional verifiable facts emerge.`,
+    `Community members and sector observers across the region note that transparent resolution of public controversies strengthens mutual trust. Experienced industry participants advise those involved to address substantive issues directly and keep the public informed through verified updates.`,
+  ];
+
+  return extendedPerspectives.filter((cand) => {
     const snippet = cand.slice(0, 35).toLowerCase();
     return !existingBody.toLowerCase().includes(snippet);
   });

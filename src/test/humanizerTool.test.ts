@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import { executeHumanizer, calculateBurstiness } from "@/lib/editorial/humanizerTool";
+import { analyzeAiContent } from "@/lib/aiContentDetector";
 
 describe("Human-Initiated Editorial Humanizer Tool", () => {
   it("STRICT MANDATE: throws an error if called automatically without explicit editor authorization", () => {
@@ -82,5 +83,128 @@ Moreover, the agency confirmed that all pending applications will be processed b
     expect(result.diffs[0].accepted).toBe(true);
     // Should remove synthetic opener "In a significant development"
     expect(result.humanizedText).not.toContain("In a significant development");
+  });
+
+  describe("QuillBot 86% Failure Remediation on Real Radio Clash Draft", () => {
+    const radioClashDraft = `On Thursday morning, Sarah Mtalii and Simon Kabu clashed live on Radio Jambo over unpaid salary claims totaling KSh 1.2 million.
+"I worked for three months without receiving my agreed contract pay," said Sarah Mtalii during the heated broadcast.
+Simon Kabu denied the claims on air, stating that all financial obligations had been settled through official accounts.
+
+The public milestone reflects the active nature of East Africa's media and creative sectors. Professionals throughout the region noted that adaptability, authentic audience engagement, and disciplined public communications remain essential factors in sustaining a meaningful public profile across modern multimedia channels. "Authentic storytelling remains the backbone of East African cultural journalism," noted media analyst Martin Wanyama. "Audiences respond warmly when public figures communicate with transparency."
+
+Media commentators in Nairobi point out that digital platforms have fundamentally transformed how regional audiences interact with public figures. Audiences now expect consistent engagement, transparent communication, and genuine professionalism. This made reputation resilience more critical than short-lived viral exposure.`;
+
+    it("transforms copy into punchy newsroom prose with high burstiness, eliminating QuillBot-flagged corporate filler", () => {
+      const result = executeHumanizer({
+        text: radioClashDraft,
+        headline: "Sarah Mtalii, Simon Kabu clash live on radio over separation, alleged unpaid salaries",
+        lede: "Sarah Mtalii and Simon Kabu traded accusations live on radio Thursday morning over claims of unpaid salaries.",
+        initiatedByEditor: true,
+        editorId: "editor-wire-101",
+        editorName: "Senior Newsroom Desk",
+        style: "natural_newsroom",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.diffs.length).toBeGreaterThanOrEqual(3);
+
+      // 1. Corporate filler phrases purged
+      expect(result.humanizedText).not.toContain("The public milestone reflects");
+      expect(result.humanizedText).not.toContain("active nature of East Africa's media");
+      expect(result.humanizedText).not.toContain("sustaining a meaningful public profile");
+      expect(result.humanizedText).not.toContain("reputation resilience more critical than short-lived viral exposure");
+
+      // 2. Synthetic placeholder Martin Wanyama quote is naturalized, not re-injected verbatim
+      expect(result.humanizedText).not.toContain('"Authentic storytelling remains the backbone of East African cultural journalism,"');
+
+      // 3. Genuine interviewee quotes and real facts are 100% preserved
+      expect(result.humanizedText).toContain("Sarah Mtalii");
+      expect(result.humanizedText).toContain("Simon Kabu");
+      expect(result.humanizedText).toContain("Radio Jambo");
+      expect(result.humanizedText).toContain("KSh 1.2 million");
+      expect(result.humanizedText).toContain('"I worked for three months without receiving my agreed contract pay,"');
+
+      // 4. Burstiness score is healthy
+      expect(result.burstinessScore).toBeGreaterThanOrEqual(3.0);
+
+      // 5. Clears AI detection with 0% AI
+      const aiAudit = analyzeAiContent(result.humanizedText);
+      expect(aiAudit.score).toBe(0);
+      expect(aiAudit.quillBotBreakdown.aiGeneratedScore).toBe(0);
+      expect(aiAudit.quillBotBreakdown.humanWrittenScore).toBe(100);
+    });
+
+    it("applies conversational style with natural contractions and engaging flow", () => {
+      const draft = `The singer did not attend the rehearsal because she was not feeling well. Furthermore, they could not reach an agreement.`;
+      const res = executeHumanizer({
+        text: draft,
+        initiatedByEditor: true,
+        editorId: "editor-conv",
+        style: "conversational",
+      });
+
+      expect(res.humanizedText).toContain("didn't");
+      expect(res.humanizedText).toContain("wasn't");
+      expect(res.humanizedText).toContain("couldn't");
+    });
+
+    it("applies investigative style with documentation-first evidentiary tone", () => {
+      const draft = `Commentators noted that the company claimed that payments were settled. In addition, the director stated that all vouchers were filed.`;
+      const res = executeHumanizer({
+        text: draft,
+        initiatedByEditor: true,
+        editorId: "editor-inv",
+        style: "investigative",
+      });
+
+      expect(res.humanizedText).toContain("verified records indicate that");
+      expect(res.humanizedText).toContain("documented statements");
+    });
+
+    it("applies compact_brief style with crisp mobile wire alert brevity", () => {
+      const draft = `The commission met in Nairobi in order to finalize guidelines due to the fact that new regulations take effect. In addition, they confirmed dates.`;
+      const res = executeHumanizer({
+        text: draft,
+        initiatedByEditor: true,
+        editorId: "editor-brief",
+        style: "compact_brief",
+      });
+
+      expect(res.humanizedText).not.toContain("in order to");
+      expect(res.humanizedText).not.toContain("due to the fact that");
+      expect(res.humanizedText).toContain("to");
+      expect(res.humanizedText).toContain("because");
+    });
+
+    it("deduplicates headline repetition at the start of the body", () => {
+      const repeatingDraft = `Sarah Mtalii, Simon Kabu clash live on radio over separation, alleged unpaid salaries. The incident occurred during the breakfast broadcast.\n\n"I worked without pay," said Sarah Mtalii.`;
+      const res = executeHumanizer({
+        text: repeatingDraft,
+        headline: "Sarah Mtalii, Simon Kabu clash live on radio over separation, alleged unpaid salaries",
+        initiatedByEditor: true,
+        editorId: "editor-dedup",
+      });
+
+      // Does not repeat the exact headline string at paragraph start
+      expect(res.humanizedText.split("\n\n")[0].startsWith("Sarah Mtalii, Simon Kabu clash live on radio over separation, alleged unpaid salaries.")).toBe(false);
+      // Genuine quote preserved
+      expect(res.humanizedText).toContain('"I worked without pay," said Sarah Mtalii.');
+    });
+
+    it("cleanly naturalizes synthetic placeholder commentator quotes while preserving genuine interviewee quotes", () => {
+      const mixedText = `"I will not work under these unfair conditions," said event coordinator Grace Akinyi in Nairobi.\n\n"Authentic storytelling remains the backbone of East African cultural journalism," noted media analyst Martin Wanyama. "Audiences respond warmly when public figures communicate with transparency."`;
+      const res = executeHumanizer({
+        text: mixedText,
+        initiatedByEditor: true,
+        editorId: "editor-quotes",
+      });
+
+      // Genuine interviewee quote is 100% preserved
+      expect(res.humanizedText).toContain('"I will not work under these unfair conditions," said event coordinator Grace Akinyi in Nairobi.');
+      // Synthetic placeholder quote is converted to narrative without quotation marks
+      expect(res.humanizedText).not.toContain('"Authentic storytelling remains the backbone of East African cultural journalism,"');
+      expect(res.humanizedText).not.toContain('"Audiences respond warmly when public figures communicate with transparency."');
+      expect(res.quotesPreserved).toBe(1);
+    });
   });
 });

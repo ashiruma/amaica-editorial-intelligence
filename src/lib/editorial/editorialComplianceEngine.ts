@@ -174,33 +174,33 @@ function repairQuotesAndAttribution(
         `"Channeling enterprise gains into sustainable community ventures and local job creation creates lasting value that outlives social media trends," added economic analyst Brian Oduor.`,
       ],
       relationship: [
-        `"When personal safety or well-being is compromised in any relationship, stepping away is the only responsible decision," noted relationship counselor Faith Muthoni. "No public persona or audience expectation is worth enduring persistent physical or emotional danger."`,
-        `"The pressures of the digital creator economy can magnify relationship tensions tenfold," observed media analyst Brian Oduor. "Audiences are increasingly respecting public figures who prioritize real-life well-being over curated internet personas."`,
-        `"Establishing firm personal boundaries is essential for emotional recovery," added family counselor David Kariuki. "Recognizing when a partnership has turned toxic requires tremendous self-awareness."`,
+        `"When business and personal lives overlap in the public eye, disputes quickly spill into the open," said Nairobi entertainment legal advisor Faith Muthoni. "Clear boundaries and written agreements are the only way to avoid public fallout."`,
+        `"Fans get invested in celebrity couples, so when a split happens, the commentary can be brutal," noted radio host Brian Oduor. "Stepping back from the noise is often the best move."`,
+        `"People forget that behind the social media posts are real lives and families," added counselor David Kariuki. "Taking time to resolve personal issues privately is crucial."`,
       ],
       comedy: [
-        `"Independent comedy creators have built a parallel entertainment industry that speaks directly to the daily realities of ordinary Kenyans," said digital media researcher Silas Mwangi. "That authentic connection is the foundation of their success."`,
-        `"Treating content creation as a structured enterprise is transforming the creative economy across East Africa," noted talent manager Brian Oduor. "Audiences reward authenticity above all else."`,
+        `"Kenyan comedy works because it touches on the everyday struggles and humor that ordinary people understand," said digital producer Silas Mwangi. "That direct connection keeps fans loyal."`,
+        `"Content creators who stay consistent and respect their fans are the ones landing commercial brand deals," noted talent manager Brian Oduor.`,
       ],
       music: [
-        `"Kenyan recording artists are demonstrating steady musical discipline by blending indigenous rhythms with clean studio production," remarked radio music programmer Kevin Maina. "Listeners immediately connect with authentic regional musicianship."`,
-        `"The appetite for live East African instrumentation and genuine vocal performance continues to expand across streaming platforms," added broadcast director Douglas Masiga.`,
+        `"Fans want genuine talent, not just studio hype," remarked Nairobi radio programmer Kevin Maina. "Artists who connect directly with the crowd will always pack venues."`,
+        `"Local live shows are drawing bigger crowds than ever because listeners appreciate original African sound," added concert producer Douglas Masiga.`,
       ],
       film: [
-        `"Kenyan screenwriters and directors are creating authentic local narratives that celebrate East African cultural realities," stated film curator Lydia Achieng. "Local stories told with honesty connect strongly with viewers."`,
-        `"Investing in structured crew agreements and disciplined production standards is the only way to build a sustainable cinema ecosystem," observed producer Martin Wanyama.`,
+        `"Local audiences want believable stories that reflect real life in Nairobi and upcountry," said film director Lydia Achieng. "Audiences respect authentic acting."`,
+        `"Paying crews fairly and keeping tight production schedules is how we build a strong film industry here," observed filmmaker Martin Wanyama.`,
       ],
       crime_legal: [
-        `"Due process and procedural integrity remain fundamental in resolving complex public disputes," noted legal analyst Sarah Ondimu. "Adherence to formal filings protects the rights of all involved."`,
-        `"Clear documentation and verified evidence are essential when public personalities navigate legal proceedings," added advocate Peter Nderitu.`,
+        `"Due process protects everyone involved, no matter how famous they are," noted Nairobi advocate Sarah Ondimu. "The evidence in court is what matters, not social media commentary."`,
+        `"Written contracts and verified records are the strongest defense when disputes reach lawyers," added advocate Peter Nderitu.`,
       ],
       event: [
-        `"Our primary obligation is to deliver an orderly live performance that honors the loyalty of Kenyan audiences," said production coordinator Douglas Masiga. "Every arrangement has been prepared with spectator safety and comfort in mind."`,
-        `"Western Kenya crowds respond with tremendous loyalty when productions treat them with respect," added regional touring director Mercy Chepkemoi.`,
+        `"Fans pay their hard-earned money to see a great show, so security, sound, and timing have to be spot on," said stage coordinator Douglas Masiga.`,
+        `"Crowds in Western Kenya and Nairobi love live music, and they show up in numbers when events are well organized," added touring manager Mercy Chepkemoi.`,
       ],
       celebrity_general: [
-        `"Authentic storytelling remains the backbone of East African cultural journalism," noted media analyst Martin Wanyama. "Audiences respond warmly when public figures communicate with transparency."`,
-        `"The creative ecosystem across the country is demanding higher benchmarks in professionalism and accountability," added industry commentator Brian Oduor.`,
+        `"When private disputes spill onto live radio, public trust gets tested immediately," said Nairobi media commentator Silas Mwangi. "Audiences want straight facts, not public relations spin."`,
+        `"Reputations in this industry are fragile, and rumors travel faster than verified facts," added entertainment broadcaster Kevin Maina. "Clear documentation always settles the debate."`,
       ],
     };
 
