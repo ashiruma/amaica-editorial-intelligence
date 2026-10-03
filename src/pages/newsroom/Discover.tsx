@@ -422,13 +422,18 @@ export default function Discover() {
             content = scrape.content;
           } else {
             // Edge scraper returned fallback or failed, use client resilient reader
-            const fallbackScrape = await scrapeStoryResilient(story.source_url);
-            if (fallbackScrape.content && fallbackScrape.content.length > 200) {
-              content = fallbackScrape.content;
-              if (!story.image_url && fallbackScrape.image_url) {
-                story.image_url = fallbackScrape.image_url;
+            try {
+              const fallbackScrape = await scrapeStoryResilient(story.source_url);
+              if (fallbackScrape.content && fallbackScrape.content.length > 200) {
+                content = fallbackScrape.content;
+                if (!story.image_url && fallbackScrape.image_url) {
+                  story.image_url = fallbackScrape.image_url;
+                }
+              } else {
+                usedFallback = true;
+                content = [story.title, story.excerpt].filter(Boolean).join("\n\n");
               }
-            } else {
+            } catch {
               usedFallback = true;
               content = [story.title, story.excerpt].filter(Boolean).join("\n\n");
             }

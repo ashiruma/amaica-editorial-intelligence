@@ -45,10 +45,31 @@ const LIVE_FEEDS: LiveFeedSource[] = [
     weight: 1.2,
   },
   {
+    name: "The Star Kenya",
+    url: "https://www.the-star.co.ke/rss/news",
+    defaultRegion: "national",
+    defaultCategory: "politics",
+    weight: 1.2,
+  },
+  {
     name: "Standard Entertainment",
     url: "https://www.standardmedia.co.ke/rss/entertainment.php",
     defaultRegion: "national",
     defaultCategory: "celebrity",
+    weight: 1.1,
+  },
+  {
+    name: "KBC National News",
+    url: "https://www.kbc.co.ke/feed/",
+    defaultRegion: "national",
+    defaultCategory: "politics",
+    weight: 1.1,
+  },
+  {
+    name: "Capital FM Breaking",
+    url: "https://www.capitalfm.co.ke/news/feed/",
+    defaultRegion: "national",
+    defaultCategory: "politics",
     weight: 1.1,
   },
   {
@@ -247,11 +268,19 @@ export default async function handler(req: any, res: any) {
 
           let title = stripHtml(titleMatch[1]);
           // Clean publisher suffix e.g. " - Citizen Digital"
-          const cleanTitle = title.replace(/\s*-\s*[A-Za-z0-9.]+\s*$/, "").trim();
+          let publisherSuffix = "";
+          const pubSuffixMatch = title.match(/\s*-\s*([A-Za-z0-9.\s]+)$/);
+          if (pubSuffixMatch) {
+            publisherSuffix = pubSuffixMatch[1].trim();
+          }
+          const cleanTitle = title.replace(/\s*-\s*[A-Za-z0-9.\s]+$/, "").trim();
           if (cleanTitle.length < 15 || cleanTitle.toLowerCase() === "google news") continue;
 
+          const sourceTagMatch = block.match(/<source\s+url=["']([^"']+)["']>([\s\S]*?)<\/source>/i);
+          const resolvedSource = sourceTagMatch?.[2]?.trim() || publisherSuffix || feed.name;
+
           const sourceUrl = decodeHtmlEntities(linkMatch[1]);
-          const excerpt = descMatch ? stripHtml(descMatch[1]) : `${cleanTitle}. Reported via ${feed.name}.`;
+          const excerpt = descMatch ? stripHtml(descMatch[1]) : `${cleanTitle}. Reported via ${resolvedSource}.`;
           const pubDate = pubMatch ? new Date(pubMatch[1]).toISOString() : new Date().toISOString();
 
           // Extract thumbnail or image if present
@@ -275,7 +304,7 @@ export default async function handler(req: any, res: any) {
           stories.push({
             id,
             title: cleanTitle,
-            source: feed.name,
+            source: resolvedSource,
             source_url: sourceUrl,
             excerpt: excerpt.slice(0, 350),
             image_url: imageUrl,

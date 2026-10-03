@@ -400,8 +400,13 @@ export async function scrapeStoryResilient(
 
   // Verification of extracted content
   if (!scrapedContent || scrapedContent.length < 100) {
+    if (domain.includes("google.com")) {
+      throw new Error(
+        `Google News redirect links mask the underlying publisher. Please use the direct article link from the original publisher (e.g. Citizen Digital, Standard, The Star).`
+      );
+    }
     throw new Error(
-      `Could not extract readable article text from ${domain}. The link may require a paid subscription or is currently unavailable.`
+      `Could not extract readable article text from ${domain}. The link may be paywalled, access-restricted, or currently unavailable.`
     );
   }
 
