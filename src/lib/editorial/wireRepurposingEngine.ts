@@ -41,6 +41,11 @@ import {
 import { detectCategory, detectRegion } from "@/lib/localScraper";
 import { countWords, stripEmojis } from "@/lib/articleValidation";
 import { sanitizeUntrustedInput } from "@/lib/security/promptSandbox";
+import {
+  decodeHtmlEntities,
+  purgePhotoArtifactsAndCaptions,
+  purgeSyntheticFeedAttribution,
+} from "./htmlEntityDecoder";
 
 export interface TrendingWireLead {
   id: string;
@@ -454,7 +459,9 @@ function synthesizeNaturalAmaicaStory(
   category = "celebrity"
 ): { headline: string; lede: string; body: string } {
   // 1. Clean and normalize source text
-  const cleanSource = rawContent
+  const decodedSource = decodeHtmlEntities(rawContent);
+  const withoutCaptions = purgePhotoArtifactsAndCaptions(decodedSource);
+  const cleanSource = purgeSyntheticFeedAttribution(withoutCaptions)
     .replace(/^#+\s+[^\n]+/gm, "")
     .replace(/!\[.*?\]\(.*?\)/g, "")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
@@ -483,7 +490,13 @@ function synthesizeNaturalAmaicaStory(
         lower.includes("subscribe") ||
         lower.includes("whatsapp") ||
         lower.includes("cookie policy") ||
-        lower.includes("terms of service")
+        lower.includes("terms of service") ||
+        lower.includes("photo/") ||
+        lower.includes("photo:") ||
+        lower.includes("photo by") ||
+        lower.includes("during a past event") ||
+        lower.includes("in this file photo") ||
+        lower.includes("news.google.com")
       ) {
         return false;
       }
@@ -509,18 +522,42 @@ function formatJournalisticSourceName(domain: string): string {
   if (d.includes("tuko")) return "Tuko";
   if (d.includes("capital")) return "Capital FM Kenya";
   if (d.includes("kbc")) return "KBC";
+  if (
+    d.includes("google") ||
+    d.includes("news.google") ||
+    d.includes("feed") ||
+    d.includes("rss") ||
+    d.includes("yahoo") ||
+    d.includes("bing") ||
+    d.includes("syndicate") ||
+    d.includes("wireops") ||
+    d.includes("localhost")
+  ) {
+    return "regional news reports";
+  }
   return domain.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0] || "regional news reports";
 }
 
   // 4. Formulate opening lede (fact-first, 18-35 words)
   const sourceName = formatJournalisticSourceName(sourceDomain);
   let lede = "";
-  if (rawSentences.length > 0 && countWords(rawSentences[0]) >= 15 && countWords(rawSentences[0]) <= 35 && !rawSentences[0].includes("http")) {
-    lede = rawSentences[0];
-  } else {
-    lede = `${headline}, following reports published by ${sourceName} earlier this week.`;
+  if (rawSentences.length > 0) {
+    const candidateLede = purgeSyntheticFeedAttribution(purgePhotoArtifactsAndCaptions(rawSentences[0]));
+    if (
+      countWords(candidateLede) >= 15 &&
+      countWords(candidateLede) <= 35 &&
+      !candidateLede.includes("http") &&
+      !/photo/i.test(candidateLede) &&
+      !/google/i.test(candidateLede)
+    ) {
+      lede = candidateLede;
+    }
+  }
+  if (!lede) {
+    lede = headline.endsWith(".") ? headline : `${headline}.`;
   }
   if (!lede.endsWith(".")) lede += ".";
+  lede = purgeSyntheticFeedAttribution(purgePhotoArtifactsAndCaptions(decodeHtmlEntities(lede)));
 
   // 5. Detect story beat and subject
   const beat = detectStoryBeat(headline, cleanSource, category);
@@ -716,8 +753,12 @@ export async function repurposeWireStory(options: {
   onProgress?.("Repurposing into Amaica Media continuous inverted-pyramid prose...");
 
   // Step 2: Synthesize journalistic story (natural flow, zero emojis, prompt sandboxed, no formulaic outline headers)
-  const cleanTitle = stripEmojis(sanitizeUntrustedInput(scrapedTitle || `News Update from ${domain}`));
-  const cleanContent = stripEmojis(sanitizeUntrustedInput(scrapedContent));
+  const cleanTitle = decodeHtmlEntities(stripEmojis(sanitizeUntrustedInput(scrapedTitle || `News Update from ${domain}`)));
+  const cleanContent = purgeSyntheticFeedAttribution(
+    purgePhotoArtifactsAndCaptions(
+      decodeHtmlEntities(stripEmojis(sanitizeUntrustedInput(scrapedContent)))
+    )
+  );
   const synthesized = synthesizeNaturalAmaicaStory(
     cleanTitle,
     cleanContent,

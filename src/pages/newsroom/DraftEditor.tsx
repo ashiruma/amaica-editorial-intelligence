@@ -16,6 +16,7 @@ import {
 import { auditEditorialPolicy, morphStoryWithPolicy, type PolicyAuditResult } from "@/lib/editorial/policyGovernanceEngine";
 import { publishArticleToWordPress } from "@/lib/wordpress/wordpressConnector";
 import { HumanizerModal } from "@/components/editorial/HumanizerModal";
+import { decodeHtmlEntities } from "@/lib/editorial/htmlEntityDecoder";
 import { StylebookCheckModal } from "@/components/editor/StylebookCheckModal";
 import { PublishPreflightModal } from "@/components/publishing/PublishPreflightModal";
 import type { PublishArticleResponse } from "@/lib/publishing/publisherService";
@@ -607,11 +608,12 @@ export default function DraftEditor() {
       cleanedLede = ledeRes.humanizedText;
       ledeReplacements = ledeRes.replacementsMade;
     }
+    const cleanHeadline = draft.headline ? decodeHtmlEntities(draft.headline) : draft.headline;
     const total = bodyRes.replacementsMade + ledeReplacements;
-    if (total === 0) {
+    if (total === 0 && cleanHeadline === draft.headline) {
       toast.info("No formulaic AI clichés or uniform cadence detected to adjust.");
     } else {
-      update({ body: bodyRes.humanizedText, lede: cleanedLede });
+      update({ headline: cleanHeadline, body: bodyRes.humanizedText, lede: cleanedLede });
       toast.success(`Humanized: ${total} adjustment${total === 1 ? "" : "s"} made (clichés stripped, sentence cadence & short punchy rhythm applied)!`);
     }
   };

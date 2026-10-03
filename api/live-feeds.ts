@@ -75,20 +75,70 @@ const WESTERN_KEYWORDS = [
 ];
 
 function decodeHtmlEntities(str: string): string {
-  return str
+  if (!str) return "";
+  let text = str
     .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&nbsp;/g, " ")
+    .replace(/&rsquo\.\s*S\b/g, "'s")
+    .replace(/&rsquo\.\s*s\b/g, "'s")
+    .replace(/&#8217\.\s*S\b/gi, "'s")
+    .replace(/&#39\.\s*S\b/gi, "'s")
+    .replace(/&rsquo;?/gi, "'")
+    .replace(/&lsquo;?/gi, "'")
+    .replace(/&rdquo;?/gi, '"')
+    .replace(/&ldquo;?/gi, '"')
+    .replace(/&quot;?/gi, '"')
+    .replace(/&#39;?/gi, "'")
+    .replace(/&apos;?/gi, "'")
+    .replace(/&nbsp;?/gi, " ")
+    .replace(/&mdash;?/gi, " — ")
+    .replace(/&ndash;?/gi, " – ")
+    .replace(/&hellip;?/gi, "...")
+    .replace(/&percnt;?/gi, "%")
+    .replace(/&amp;?/gi, "&")
+    .replace(/&lt;?/gi, "<")
+    .replace(/&gt;?/gi, ">");
+
+  // Decode decimal entities
+  text = text.replace(/&#(\d+);?/g, (_match, decStr) => {
+    const code = parseInt(decStr, 10);
+    if (isNaN(code)) return _match;
+    if (code === 8217 || code === 8216 || code === 39) return "'";
+    if (code === 8220 || code === 8221 || code === 34) return '"';
+    if (code === 8212) return " — ";
+    if (code === 8211) return " – ";
+    if (code === 8230) return "...";
+    if (code === 160) return " ";
+    if (code === 37) return "%";
+    try { return String.fromCharCode(code); } catch { return _match; }
+  });
+
+  // Decode hex entities
+  text = text.replace(/&#x([0-9a-fA-F]+);?/g, (_match, hexStr) => {
+    const code = parseInt(hexStr, 16);
+    if (isNaN(code)) return _match;
+    if (code === 0x2017 || code === 0x2018 || code === 0x2019 || code === 0x27) return "'";
+    if (code === 0x201c || code === 0x201d || code === 0x22) return '"';
+    if (code === 0x2014) return " — ";
+    if (code === 0x2013) return " – ";
+    if (code === 0x2026) return "...";
+    if (code === 0xa0) return " ";
+    if (code === 0x25) return "%";
+    try { return String.fromCharCode(code); } catch { return _match; }
+  });
+
+  return text
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/([A-Za-z]+)\s+('(?:s|t|d|ll|re|ve|m))\b/gi, "$1$2")
     .trim();
 }
 
 function stripHtml(str: string): string {
-  return decodeHtmlEntities(str.replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
+  let clean = decodeHtmlEntities(str.replace(/<[^>]+>/g, ""));
+  // Strip photo tags
+  clean = clean.replace(/\s*\.?\s*\b(?:PHOTO|Photo|IMAGE|Image)\s*[/|:@]\s*@?[A-Za-z0-9_./@-]+/gi, ".");
+  // Strip feed attribution
+  clean = clean.replace(/,\s*(?:following|according to|based on)?\s*reports published by (?:news\.google\.com|google\.com|[a-z0-9.-]+\.[a-z]{2,})(?:\s+(?:earlier this week|recently|today|yesterday|this week|on\s+[A-Za-z]+))?\.?/gi, ".");
+  return clean.replace(/\s+/g, " ").trim();
 }
 
 function detectRegion(text: string, fallback: "kakamega" | "western_kenya" | "national" | "world"): "kakamega" | "western_kenya" | "national" | "world" {

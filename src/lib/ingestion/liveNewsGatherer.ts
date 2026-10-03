@@ -15,6 +15,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { safeGetItem, safeSetItem } from "@/lib/safeStorage";
 import { calculateTrendingVelocityScore, CURATED_TRENDING_LEADS, type TrendingWireLead } from "@/lib/editorial/wireRepurposingEngine";
 import { scrapeKenyanEntertainmentPortals } from "@/lib/scraperService";
+import {
+  decodeHtmlEntities,
+  purgePhotoArtifactsAndCaptions,
+  purgeSyntheticFeedAttribution,
+} from "@/lib/editorial/htmlEntityDecoder";
 
 export interface DiscoveredWireStory {
   id: string;
@@ -89,22 +94,28 @@ export class LiveNewsGatherer {
         if (res.ok) {
           const data = await res.json();
           if (data?.success && Array.isArray(data.stories) && data.stories.length > 0) {
-            gathered = data.stories.map((s: any) => ({
-              id: s.id,
-              title: s.title,
-              source: s.source,
-              source_url: s.source_url,
-              excerpt: s.excerpt,
-              image_url: s.image_url,
-              region: s.region || "national",
-              category: s.category || "community",
-              status: "new",
-              published_at: s.published_at || new Date().toISOString(),
-              created_at: s.created_at || new Date().toISOString(),
-              highlights: [s.excerpt].filter(Boolean),
-              preview_summary: s.excerpt,
-              trendingScore: s.trendingScore ?? calculateTrendingVelocityScore(s),
-            }));
+            gathered = data.stories.map((s: any) => {
+              const cleanTitle = decodeHtmlEntities(s.title || "");
+              const cleanExcerpt = s.excerpt
+                ? purgeSyntheticFeedAttribution(purgePhotoArtifactsAndCaptions(decodeHtmlEntities(s.excerpt)))
+                : null;
+              return {
+                id: s.id,
+                title: cleanTitle,
+                source: s.source,
+                source_url: s.source_url,
+                excerpt: cleanExcerpt,
+                image_url: s.image_url,
+                region: s.region || "national",
+                category: s.category || "community",
+                status: "new",
+                published_at: s.published_at || new Date().toISOString(),
+                created_at: s.created_at || new Date().toISOString(),
+                highlights: [cleanExcerpt].filter(Boolean) as string[],
+                preview_summary: cleanExcerpt,
+                trendingScore: s.trendingScore ?? calculateTrendingVelocityScore(s),
+              };
+            });
             onProgress?.(`Gathered ${gathered.length} live stories from wire sources`);
           }
         }

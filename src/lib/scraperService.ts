@@ -1,6 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { detectCategory, detectRegion } from "@/lib/localScraper";
 import { SSRFValidator } from "@/lib/scraper/ipValidator";
+import {
+  decodeHtmlEntities,
+  purgePhotoArtifactsAndCaptions,
+  purgeSyntheticFeedAttribution,
+} from "@/lib/editorial/htmlEntityDecoder";
 
 export interface ScrapedStoryResult {
   success: boolean;
@@ -124,7 +129,11 @@ export function extractBestImage(markdown: string, metaImage?: string | null): s
 export function cleanMarkdownContent(rawMarkdown: string, storyTitle = ""): string {
   if (!rawMarkdown) return "";
 
-  const lines = rawMarkdown.split("\n");
+  const decodedMarkdown = decodeHtmlEntities(rawMarkdown);
+  const withoutCaptions = purgePhotoArtifactsAndCaptions(decodedMarkdown);
+  const sanitizedMarkdown = purgeSyntheticFeedAttribution(withoutCaptions);
+
+  const lines = sanitizedMarkdown.split("\n");
   const cleaned: string[] = [];
 
   // Cutoff markers indicating the end of the primary article
@@ -244,7 +253,8 @@ export function cleanMarkdownContent(rawMarkdown: string, storyTitle = ""): stri
     cleaned.push(line);
   }
 
-  return cleaned.join("\n\n").trim();
+  const result = cleaned.join("\n\n").trim();
+  return purgeSyntheticFeedAttribution(purgePhotoArtifactsAndCaptions(result));
 }
 
 /**

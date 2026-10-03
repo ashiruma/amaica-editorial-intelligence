@@ -12,6 +12,11 @@
  */
 
 import { SSRFValidator } from "./ipValidator";
+import {
+  decodeHtmlEntities,
+  purgePhotoArtifactsAndCaptions,
+  purgeSyntheticFeedAttribution,
+} from "@/lib/editorial/htmlEntityDecoder";
 
 export interface ScrapedArticleData {
   url: string;
@@ -195,13 +200,13 @@ export class SSRFHardenedScraper {
       html.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i) ||
       html.match(/<meta\s+name=["']twitter:title["']\s+content=["'](.*?)["']/i) ||
       html.match(/<title[^>]*>(.*?)<\/title>/i);
-    const title = titleMatch ? this.decodeHtmlEntities(titleMatch[1]).trim() : "Wire Lead";
+    const title = titleMatch ? decodeHtmlEntities(titleMatch[1]).trim() : "Wire Lead";
 
     // Excerpt / Description extraction
     const descMatch =
       html.match(/<meta\s+property=["']og:description["']\s+content=["'](.*?)["']/i) ||
       html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/i);
-    const excerpt = descMatch ? this.decodeHtmlEntities(descMatch[1]).trim() : undefined;
+    const excerpt = descMatch ? purgeSyntheticFeedAttribution(decodeHtmlEntities(descMatch[1])).trim() : undefined;
 
     // Hero image extraction
     const imgMatch =
@@ -220,7 +225,7 @@ export class SSRFHardenedScraper {
     const authorMatch =
       html.match(/<meta\s+name=["']author["']\s+content=["'](.*?)["']/i) ||
       html.match(/rel=["']author["'][^>]*>(.*?)<\/a>/i);
-    const author = authorMatch ? this.decodeHtmlEntities(authorMatch[1]).trim() : undefined;
+    const author = authorMatch ? decodeHtmlEntities(authorMatch[1]).trim() : undefined;
 
     // Published date extraction
     const dateMatch =
@@ -238,13 +243,15 @@ export class SSRFHardenedScraper {
     const paragraphMatches = cleanHtml.match(/<p\b[^>]*>(.*?)<\/p>/gis) || [];
     const paragraphs = paragraphMatches
       .map((p) => p.replace(/<[^>]+>/g, " ").trim())
-      .map((p) => this.decodeHtmlEntities(p))
+      .map((p) => decodeHtmlEntities(p))
       .filter((p) => p.length > 25); // Ignore navigation crumbs
 
-    const bodyText = paragraphs.join("\n\n");
+    const rawBody = paragraphs.join("\n\n");
+    // Clean photo credit captions and synthetic feed attribution
+    const cleanBodyText = purgeSyntheticFeedAttribution(purgePhotoArtifactsAndCaptions(rawBody));
 
     // Compute simple hash for deduplication
-    const contentHash = this.computeHash(`${title}|${bodyText.slice(0, 500)}`);
+    const contentHash = this.computeHash(`${title}|${cleanBodyText.slice(0, 500)}`);
 
     return {
       url: sourceUrl,
@@ -253,7 +260,7 @@ export class SSRFHardenedScraper {
       author,
       publishedDate,
       excerpt,
-      bodyText,
+      bodyText: cleanBodyText,
       heroImageUrl,
       contentHash,
       sourceDomain: domain,
@@ -273,12 +280,6 @@ export class SSRFHardenedScraper {
   }
 
   private static decodeHtmlEntities(str: string): string {
-    return str
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&nbsp;/g, " ");
+    return decodeHtmlEntities(str);
   }
 }

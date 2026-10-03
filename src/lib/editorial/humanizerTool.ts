@@ -22,6 +22,19 @@ import {
   dissolveFormulaicHeaders,
 } from "@/lib/aiContentDetector";
 import { applyStylebookCorrections } from "./kenyanStylebookEngine";
+import {
+  decodeHtmlEntities,
+  purgePhotoArtifactsAndCaptions,
+  purgeSyntheticFeedAttribution,
+} from "./htmlEntityDecoder";
+import {
+  breakLongSentence,
+  injectPunchyJournalisticSentence,
+  MAX_SENTENCE_WORDS,
+  countSentenceWords,
+  engineerTextBurstiness,
+  splitIntoSentences,
+} from "./sentenceCadenceEngine";
 import type { FactLockReport } from "@/types/editorialIntelligence";
 
 export type HumanizeStyle =
@@ -216,14 +229,19 @@ function naturalizeSyntheticQuotes(para: string): { text: string; count: number 
  * sentence length variation, and eliminate robotic AI transitions while
  * strictly safeguarding genuine direct quotes.
  */
-function humanizeParagraphCadence(
+export function humanizeParagraphCadence(
   para: string,
-  style: HumanizeStyle = "natural_newsroom"
+  style: HumanizeStyle = "natural_newsroom",
+  paragraphIndex = 0
 ): { text: string; changes: string[] } {
   const changes: string[] = [];
 
+  // 0. Decode entities and clean photo captions
+  const decodedPara = decodeHtmlEntities(para);
+  const cleanPara = purgeSyntheticFeedAttribution(purgePhotoArtifactsAndCaptions(decodedPara));
+
   // 1. Naturalize any synthetic placeholder commentator quotes before tokenization
-  const { text: naturalizedPara, count: naturalizedQuotesCount } = naturalizeSyntheticQuotes(para);
+  const { text: naturalizedPara, count: naturalizedQuotesCount } = naturalizeSyntheticQuotes(cleanPara);
   if (naturalizedQuotesCount > 0) {
     changes.push("Naturalized placeholder commentator quote into flowing newsroom analysis");
   }
@@ -278,107 +296,30 @@ function humanizeParagraphCadence(
     }
   }
 
-  // 5. Address sentence monotony: Break compound sentences (> 18 words)
-  const sentences = protectedPara.split(/(?<=[.!?])\s+/).filter(Boolean);
+  // 5. Address sentence monotony: Enforce hard cap (<= 25 words) on all non-quote sentences
+  const sentences = splitIntoSentences(protectedPara);
   const polishedSentences: string[] = [];
 
   for (const s of sentences) {
-    const wordCount = s.split(/\s+/).length;
-
-    // Check if sentence contains protected quote token — do not split tokens
     if (s.includes("__QUOTE_TOKEN_")) {
       polishedSentences.push(s);
       continue;
     }
 
-    if (wordCount > 18 && s.includes(", which ")) {
-      const parts = s.split(", which ");
-      if (parts.length === 2) {
-        const s1 = parts[0].trim() + ".";
-        const s2 = "This " + parts[1].trim();
-        polishedSentences.push(s1, s2);
-        changes.push("Divided compound sentence at ', which' for punchier burstiness");
-        continue;
-      }
+    const broken = breakLongSentence(s, MAX_SENTENCE_WORDS);
+    if (broken.length > 1) {
+      changes.push(`Divided sentence into ${broken.length} punchy statements (capped at 25 words)`);
     }
-
-    if (wordCount > 16 && s.includes(", while ")) {
-      const parts = s.split(", while ");
-      if (parts.length === 2) {
-        const s1 = parts[0].trim() + ".";
-        const s2 = "Meanwhile, " + parts[1].trim();
-        polishedSentences.push(s1, s2);
-        changes.push("Divided sentence at ', while' to create varied sentence rhythm");
-        continue;
-      }
-    }
-
-    if (wordCount > 16 && s.includes(", where ")) {
-      const parts = s.split(", where ");
-      if (parts.length === 2) {
-        const s1 = parts[0].trim() + ".";
-        const s2 = "There, " + parts[1].trim();
-        polishedSentences.push(s1, s2);
-        changes.push("Divided sentence at ', where'");
-        continue;
-      }
-    }
-
-    if (wordCount > 18 && /,\s*and\s+(he|she|they|it|the\s+[a-z]+|officials?|authorities|police|investigators?|analysts?|commentators?|listeners?|fans?)\s+([a-z]+)\b/i.test(s)) {
-      const mod = s.replace(
-        /,\s*and\s+(he|she|they|it|the\s+[a-z]+|officials?|authorities|police|investigators?|analysts?|commentators?|listeners?|fans?)\s+([a-z]+)\b/i,
-        (_, subj, verb) => `. ${subj.charAt(0).toUpperCase() + subj.slice(1)} ${verb}`
-      );
-      polishedSentences.push(mod);
-      changes.push("Divided compound 'and' clause into separate active sentence");
-      continue;
-    }
-
-    if (wordCount > 16 && /,\s*(making|highlighting|providing|ensuring|reflecting|underscoring|demonstrating|allowing|fostering|prompting)\s+([^.]+)/i.test(s)) {
-      const mod = s.replace(/,\s*(making|highlighting|providing|ensuring|reflecting|underscoring|demonstrating|allowing|fostering|prompting)\s+([^.]+)/i, (_, part, rest) => {
-        const pastVerbs: Record<string, string> = {
-          making: "made",
-          highlighting: "highlighted",
-          providing: "provided",
-          ensuring: "ensured",
-          reflecting: "reflected",
-          underscoring: "underscored",
-          demonstrating: "demonstrated",
-          allowing: "allowed",
-          fostering: "fostered",
-          prompting: "prompted",
-        };
-        return `. This ${pastVerbs[part.toLowerCase()] || "prompted"} ${rest}`;
-      });
-      polishedSentences.push(mod);
-      changes.push("Converted trailing participial tail into active sentence");
-      continue;
-    }
-
-    if (wordCount > 18 && s.includes("; ")) {
-      const parts = s.split("; ");
-      polishedSentences.push(parts[0].trim() + ".", parts[1].trim());
-      changes.push("Replaced semicolon with separate journalistic sentence");
-      continue;
-    }
-
-    polishedSentences.push(s);
+    polishedSentences.push(...broken);
   }
 
-  // 6. Adaptive burstiness injection for uniform paragraphs (sentences >= 2, no short sentence <= 7 words)
-  const lengths = polishedSentences.map((s) => s.split(/\s+/).length);
-  const hasShort = lengths.some((l) => l <= 7);
-  if (polishedSentences.length >= 2 && !hasShort && lengths.every((l) => l > 14)) {
-    const first = polishedSentences[0];
-    if (first.includes(", but ")) {
-      const parts = first.split(", but ");
-      polishedSentences[0] = parts[0].trim() + ".";
-      polishedSentences.splice(1, 0, "But " + parts[1].trim());
-      changes.push("Injected punchy short sentence to break uniform rhythm");
-    }
+  // 6. Active injection of very-short punchy journalistic sentences (3–8 words)
+  const withPunch = injectPunchyJournalisticSentence(polishedSentences, paragraphIndex);
+  if (withPunch.length > polishedSentences.length) {
+    changes.push("Injected punchy journalistic short sentence (3–8 words) to elevate burstiness & perplexity");
   }
 
-  protectedPara = polishedSentences.join(" ");
+  protectedPara = withPunch.join(" ");
 
   // 7. Style-specific adjustments
   if (style === "natural_newsroom") {
@@ -455,14 +396,26 @@ export function executeHumanizer(request: HumanizeRequest): HumanizeResult {
     throw new Error("Cannot humanize empty text.");
   }
 
+  // 0. Decode HTML entities and purge photo captions / synthetic feed metadata
+  const decodedText = decodeHtmlEntities(text);
+  const withoutPhotos = purgePhotoArtifactsAndCaptions(decodedText);
+  const cleanInputText = purgeSyntheticFeedAttribution(withoutPhotos);
+
+  const cleanHeadline = request.headline
+    ? decodeHtmlEntities(request.headline)
+    : undefined;
+  const cleanLede = request.lede
+    ? purgeSyntheticFeedAttribution(purgePhotoArtifactsAndCaptions(decodeHtmlEntities(request.lede)))
+    : undefined;
+
   // 1. Lock all initial protected facts and quotes
-  const initialFacts = extractProtectedFacts(text);
+  const initialFacts = extractProtectedFacts(cleanInputText);
   const initialQuotes = initialFacts.filter((f) => f.type === "quotation");
   // Only genuine quotes (not synthetic corporate boilerplates) are strictly enforced in quote retention
   const genuineQuotes = initialQuotes.filter((q) => !isSyntheticBoilerplateQuote(q.value));
 
   // 2. Dissolve any markdown / formulaic headings first
-  const cleanHeaderBody = dissolveFormulaicHeaders(text);
+  const cleanHeaderBody = dissolveFormulaicHeaders(cleanInputText);
 
   // 3. Process paragraph-by-paragraph to build granular diffs
   const paragraphs = cleanHeaderBody
@@ -471,17 +424,17 @@ export function executeHumanizer(request: HumanizeRequest): HumanizeResult {
     .filter(Boolean);
 
   // 3b. Advance opening paragraph if it repeats the headline or lede verbatim
-  if (paragraphs.length > 0 && request.headline) {
-    const normHeadline = request.headline.toLowerCase().replace(/[^\w]/g, "");
+  if (paragraphs.length > 0 && cleanHeadline) {
+    const normHeadline = cleanHeadline.toLowerCase().replace(/[^\w]/g, "");
     const firstPara = paragraphs[0];
-    const sents = firstPara.split(/(?<=[.!?])\s+/);
+    const sents = splitIntoSentences(firstPara);
     if (sents.length > 0) {
       const normFirstSent = sents[0].toLowerCase().replace(/[^\w]/g, "");
       if (
         normHeadline.length > 15 &&
         (normFirstSent.startsWith(normHeadline.slice(0, 30)) || normHeadline.startsWith(normFirstSent.slice(0, 30)))
       ) {
-        sents[0] = "The dispute unfolded live on air, drawing immediate public reactions following reports published earlier this week.";
+        sents[0] = "The developments drew immediate public reactions across regional news circles.";
         paragraphs[0] = sents.join(" ");
       }
     }
@@ -497,7 +450,7 @@ export function executeHumanizer(request: HumanizeRequest): HumanizeResult {
     const { cleaned: deClichePara, replacementsMade } = cleanAiClichesLocally(originalPara);
 
     // Apply cadence & burstiness transformation
-    const { text: cadencedPara, changes: cadenceChanges } = humanizeParagraphCadence(deClichePara, style);
+    const { text: cadencedPara, changes: cadenceChanges } = humanizeParagraphCadence(deClichePara, style, i);
 
     // Track changes
     const changesMade = [
@@ -559,8 +512,8 @@ export function executeHumanizer(request: HumanizeRequest): HumanizeResult {
     editorId: request.editorId,
     originalText: text,
     humanizedText: humanizedBody,
-    headline: request.headline,
-    lede: request.lede,
+    headline: cleanHeadline,
+    lede: cleanLede,
     diffs,
     factReport: finalFactReport,
     entitiesPreserved: Math.max(0, finalFactReport.totalFactsCount - finalFactReport.modifiedFacts.length),

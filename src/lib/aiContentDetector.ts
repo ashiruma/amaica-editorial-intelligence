@@ -9,6 +9,17 @@
  * 4. Local reporting grounding credits (rewards authentic Kenyan facts & venues)
  */
 
+import {
+  decodeHtmlEntities,
+  purgePhotoArtifactsAndCaptions,
+  purgeSyntheticFeedAttribution,
+} from "./editorial/htmlEntityDecoder";
+import {
+  engineerTextBurstiness,
+  breakLongSentence,
+  MAX_SENTENCE_WORDS,
+} from "./editorial/sentenceCadenceEngine";
+
 export type AiRiskTier = "human" | "mixed" | "elevated" | "heavy_ai";
 
 export type FlaggedPhrase = {
@@ -595,10 +606,11 @@ export function analyzeSentenceBySentence(text: string): AnalyzedSentence[] {
     // Direct quotes must never be penalized for length
     const isDirectQuote =
       /^["'“‘]/.test(sentence.trim()) ||
+      /["“][^"”]{5,}["”]/i.test(sentence) ||
       /"[^"]{10,}"\s*(said|told|explained|confirmed|stated|lamented|remarked|tweeted|posted|added|noted)/i.test(sentence);
 
-    // Check overly long compound sentences (>34 words) on non-quotes
-    if (!isDirectQuote && wordCount >= 34) {
+    // Check overly long compound sentences (>=26 words) on non-quotes
+    if (!isDirectQuote && wordCount >= 26) {
       score += 15;
       reasons.push(`Overly long compound sentence (${wordCount} words)`);
     }
@@ -646,8 +658,8 @@ export function calculateBurstiness(sentences: string[]): SentenceMetrics {
       averageWordsPerSentence: len,
       stdDev: 0,
       burstinessVerdict: "moderate",
-      shortSentenceCount: len <= 6 && len > 0 ? 1 : 0,
-      shortSentenceRatio: len <= 6 && len > 0 ? 1 : 0,
+      shortSentenceCount: len <= 8 && len >= 3 ? 1 : 0,
+      shortSentenceRatio: len <= 8 && len >= 3 ? 1 : 0,
       hasLongSentences: len >= 26,
     };
   }
@@ -659,12 +671,12 @@ export function calculateBurstiness(sentences: string[]): SentenceMetrics {
   const variance = lengths.reduce((acc, l) => acc + Math.pow(l - mean, 2), 0) / lengths.length;
   const stdDev = Math.sqrt(variance);
 
-  const shortSentenceCount = lengths.filter((l) => l <= 6).length;
+  const shortSentenceCount = lengths.filter((l) => l <= 8 && l >= 3).length;
   const shortSentenceRatio = lengths.length > 0 ? Math.round((shortSentenceCount / lengths.length) * 100) / 100 : 0;
   const hasLongSentences = sentences.some((s) => {
     const isQuote = /^["'“‘]/.test(s.trim()) || /"[^"]{10,}"\s*(said|told|added|stated)/i.test(s);
     const len = s.split(/\s+/).filter(Boolean).length;
-    return !isQuote && len >= 34;
+    return !isQuote && len >= 26;
   });
 
   let burstinessVerdict: "natural" | "moderate" | "robotic_uniform" = "natural";
@@ -1038,8 +1050,13 @@ export function dissolveFormulaicHeaders(text: string): string {
  * Basic / Standard Clean: Surgical replacement of clichés
  */
 export function cleanAiClichesLocally(text: string): { cleaned: string; replacementsMade: number } {
+  // Decode HTML entities and purge photo captions / synthetic feed artifacts first
+  const decoded = decodeHtmlEntities(text);
+  const withoutPhotos = purgePhotoArtifactsAndCaptions(decoded);
+  const cleanInput = purgeSyntheticFeedAttribution(withoutPhotos);
+
   // Dissolve robotic outline headings into natural flowing prose
-  let cleaned = dissolveFormulaicHeaders(text);
+  let cleaned = dissolveFormulaicHeaders(cleanInput);
   let replacementsMade = 0;
   if (cleaned !== text) {
     replacementsMade += 1;
@@ -1589,7 +1606,7 @@ export function cleanAiClichesLocally(text: string): { cleaned: string; replacem
     [/,\s*shaping\s+/gi, ". This shaped "],
     [/,\s*inspiring\s+/gi, ". This inspired "],
     [/,\s*defining\s+/gi, ". This defined "],
-    [/;\s*/g, ". "],
+    [/(?<!&[a-zA-Z0-9#]{1,10});\s*/g, ". "],
   ];
 
   for (const [re, rep] of participials) {
@@ -2059,6 +2076,21 @@ export function humanizeText(text: string, mode: HumanizeMode = "journalistic"):
     changesSummary.push("Restructured sentence architecture to maximize burstiness & human cadence");
   }
 
+  // 3. Cadence & Burstiness Engineering for Ultra & Journalistic modes:
+  // Strictly enforces the <=25 word hard cap on non-quote sentences,
+  // actively injects 3-8 word punchy journalistic sentences,
+  // and targets average sentence length of ~14-19 words (matching human 23.2 benchmark, never ~29 words).
+  if (mode === "ultra" || mode === "journalistic") {
+    const burstEngine = engineerTextBurstiness(result, MAX_SENTENCE_WORDS);
+    if (burstEngine.text && burstEngine.text !== result) {
+      result = burstEngine.text;
+      replacementsCount += 1;
+      changesSummary.push(
+        `Calibrated cadence to ${burstEngine.avgWords} words/sentence, capped sentences at 25 words, and injected short punchy cadence`
+      );
+    }
+  }
+
   // Clean up any double spaces, orphan punctuation, or multiple newlines (preserving paragraph breaks)
   result = result
     .replace(/[ \t]{2,}/g, " ")
@@ -2121,6 +2153,10 @@ export function rewriteSentence(sentence: string, mode: HumanizeMode = "journali
   } else {
     cleaned = splitCompoundSentences(cleaned, 16).text;
   }
+
+  // 4. Enforce 25-word hard cap on rewritten sentences
+  const broken = breakLongSentence(cleaned, MAX_SENTENCE_WORDS);
+  cleaned = broken.join(" ");
 
   cleaned = cleaned
     .replace(/[ \t]{2,}/g, " ")
