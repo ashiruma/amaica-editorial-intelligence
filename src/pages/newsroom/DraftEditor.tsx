@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { validateArticle, validateArticleWithAiDetails, canApprove, countWords, noteText, noteSection, REQUIRED_HEADINGS, TARGET_WORDS_BY_TEMPLATE, type SourceRef, type SourceNote, type Issue } from "@/lib/articleValidation";
 import { cleanAiClichesLocally, humanizeText, convertToPlainText, generateCertifiedCopy, dissolveFormulaicHeaders, analyzeAiContent, type AiDetectionResult } from "@/lib/aiContentDetector";
 import { useMinWordCount } from "@/hooks/useNewsroomSettings";
-import { getDraftById, updateDraftContent, deleteNewsroomDraft, ensureValidAuthorUUID, isValidUUID } from "@/lib/editorial/draftStorage";
+import { getDraftById, updateDraftContent, deleteNewsroomDraft, ensureValidAuthorUUID, isValidUUID, recordDraftVersion, getDraftVersions, type DraftVersionSnapshot } from "@/lib/editorial/draftStorage";
 import { ensureEditorialCompliance } from "@/lib/editorial/editorialComplianceEngine";
 import {
   perfectArticleHeadlineLedeBody,
@@ -19,6 +19,7 @@ import { HumanizerModal } from "@/components/editorial/HumanizerModal";
 import { decodeHtmlEntities } from "@/lib/editorial/htmlEntityDecoder";
 import { StylebookCheckModal } from "@/components/editor/StylebookCheckModal";
 import { PublishPreflightModal } from "@/components/publishing/PublishPreflightModal";
+import { AiIntegrityPanel } from "@/components/editorial/AiIntegrityPanel";
 import type { PublishArticleResponse } from "@/lib/publishing/publisherService";
 import {
   Bot,
@@ -382,6 +383,17 @@ export default function DraftEditor() {
       await updateDraftContent(draft.id, updates);
       setDraft((prev) => (prev ? { ...prev, ...updates } : null));
 
+      // Record immutable draft version snapshot
+      await recordDraftVersion(draft.id, {
+        version_tag: newStatus === "published" ? "v5_final_published" : newStatus === "review" ? "v2_editor_edit" : "v2_editor_edit",
+        headline: finalHeadline,
+        lede: finalLede || "",
+        body: finalBody || "",
+        word_count: countWords(finalBody || ""),
+        change_summary: newStatus ? `Status transition to ${newStatus}` : "Editorial update saved",
+        changed_by_user_id: user?.id,
+      });
+
       // Auto-copy clean plain text to clipboard upon Publish or Send for Review
       if (newStatus === "published" || newStatus === "review") {
         try {
@@ -395,14 +407,14 @@ export default function DraftEditor() {
             await navigator.clipboard.writeText(plainStory);
             toast.success(
               newStatus === "published"
-                ? "Published live (0% AI Verified) & plain text copied to clipboard!"
+                ? "Published live & plain text copied to clipboard!"
                 : "Sent to Review Queue & plain text copied to clipboard!"
             );
           } else {
-            toast.success(newStatus === "published" ? "Published live (0% AI Verified)" : "Sent for review");
+            toast.success(newStatus === "published" ? "Published live" : "Sent for review");
           }
         } catch {
-          toast.success(newStatus === "published" ? "Published live (0% AI Verified)" : "Sent for review");
+          toast.success(newStatus === "published" ? "Published live" : "Sent for review");
         }
       } else {
         toast.success("Saved");
@@ -598,25 +610,6 @@ export default function DraftEditor() {
     }
   };
 
-  const humanizeContent = () => {
-    if (!draft?.body) return;
-    const bodyRes = humanizeText(draft.body, "ultra");
-    let cleanedLede = draft.lede;
-    let ledeReplacements = 0;
-    if (draft.lede) {
-      const ledeRes = humanizeText(draft.lede, "ultra");
-      cleanedLede = ledeRes.humanizedText;
-      ledeReplacements = ledeRes.replacementsMade;
-    }
-    const cleanHeadline = draft.headline ? decodeHtmlEntities(draft.headline) : draft.headline;
-    const total = bodyRes.replacementsMade + ledeReplacements;
-    if (total === 0 && cleanHeadline === draft.headline) {
-      toast.info("No formulaic AI clichés or uniform cadence detected to adjust.");
-    } else {
-      update({ headline: cleanHeadline, body: bodyRes.humanizedText, lede: cleanedLede });
-      toast.success(`Humanized: ${total} adjustment${total === 1 ? "" : "s"} made (clichés stripped, sentence cadence & short punchy rhythm applied)!`);
-    }
-  };
 
   const sendToIntelligence = () => {
     if (!draft) return;
@@ -693,19 +686,6 @@ export default function DraftEditor() {
                 </button>
                 <button
                   type="button"
-                  onClick={humanizeContent}
-                  className={`text-xs px-2.5 py-1 rounded font-semibold transition flex items-center gap-1 ${
-                    aiResult.score > 0
-                      ? "bg-accent text-accent-foreground hover:bg-accent/90"
-                      : "bg-muted text-ink-mid hover:text-foreground"
-                  }`}
-                  title="Run QuillBot 0% AI Ultra Humanizer on this draft"
-                >
-                  <Sparkles size={11} aria-hidden="true" />
-                  {aiResult.score > 0 ? "Ensure 0% AI" : "0% AI Clean"}
-                </button>
-                <button
-                  type="button"
                   onClick={() => setShowHumanizerPanel(!showHumanizerPanel)}
                   className={`text-xs px-2.5 py-1 rounded font-semibold transition flex items-center gap-1 cursor-pointer ${
                     showHumanizerPanel
@@ -763,106 +743,13 @@ export default function DraftEditor() {
             </div>
           </div>
 
-          {/* Collapsible AI Content Inspector */}
-          {aiResult && showAiInspector && (
-            <div id="ai-inspector-panel" className="bg-card border border-border rounded p-4 shadow-card text-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="label-eyebrow flex items-center gap-1.5 font-bold text-foreground">
-                  <Bot size={13} className="text-primary" /> AI Content Diagnostic Inspector
-                </div>
-                <span className="text-[11px] text-ink-light font-mono">{aiResult.score}% AI Probability</span>
-              </div>
-
-              {/* Visual Meter */}
-              <div className="w-full bg-muted h-2 rounded-full overflow-hidden flex">
-                <div
-                  className={`h-full transition-all duration-300 ${
-                    aiResult.score >= 76
-                      ? "bg-destructive"
-                      : aiResult.score >= 56
-                      ? "bg-orange-500"
-                      : aiResult.score >= 26
-                      ? "bg-amber-500"
-                      : "bg-green-600"
-                  }`}
-                  style={{ width: `${Math.max(5, aiResult.score)}%` }}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                <div className="bg-muted/50 p-2 rounded border border-border">
-                  <div className="text-[10px] uppercase text-ink-light">Clichés & Forms</div>
-                  <div className={`font-mono text-sm font-semibold ${(aiResult.clicheCount + (aiResult.participialCount || 0)) > 0 ? "text-destructive" : "text-green-600"}`}>
-                    {aiResult.clicheCount + (aiResult.participialCount || 0)}
-                  </div>
-                </div>
-                <div className="bg-muted/50 p-2 rounded border border-border">
-                  <div className="text-[10px] uppercase text-ink-light">Transitions</div>
-                  <div className={`font-mono text-sm font-semibold ${aiResult.transitionCount > 2 ? "text-orange-500" : "text-ink-mid"}`}>
-                    {aiResult.transitionCount}
-                  </div>
-                </div>
-                <div className="bg-muted/50 p-2 rounded border border-border">
-                  <div className="text-[10px] uppercase text-ink-light">Burstiness (Std-Dev)</div>
-                  <div className="font-mono text-sm font-semibold text-ink-mid">
-                    {aiResult.sentenceMetrics.stdDev}w
-                    <span className="text-[10px] block font-normal text-ink-light capitalize">{aiResult.sentenceMetrics.burstinessVerdict.replace("_", " ")}</span>
-                  </div>
-                </div>
-                <div className="bg-muted/50 p-2 rounded border border-border">
-                  <div className="text-[10px] uppercase text-ink-light">Local Grounding</div>
-                  <div className="font-mono text-sm font-semibold text-green-600">
-                    +{aiResult.localGroundingPoints} pts
-                  </div>
-                </div>
-              </div>
-
-              {/* Flagged Phrases */}
-              {aiResult.flaggedPhrases.length > 0 ? (
-                <div className="pt-1">
-                  <div className="text-[11px] font-medium text-ink-mid mb-1.5">Flagged Formulaic Phrases:</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {aiResult.flaggedPhrases.map((p) => (
-                      <span
-                        key={p.phrase}
-                        className={`px-2 py-0.5 rounded text-[11px] border font-mono ${
-                          p.category === "cliche" || p.category === "participial"
-                            ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-900"
-                            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-900"
-                        }`}
-                      >
-                        "{p.phrase}" {p.count > 1 && `(${p.count})`}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-green-600 font-medium text-[11px] flex items-center gap-1.5 pt-1">
-                  <ShieldCheck size={14} /> Zero AI clichés or trailing participial clauses detected. Output is 100% human cadence.
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="pt-2 border-t border-border flex items-center justify-between gap-2 flex-wrap">
-                <div className="text-[11px] text-ink-light">
-                  Target: <strong className="text-foreground">0% AI Probability</strong> (QuillBot / GPTZero calibrated)
-                </div>
-                <div className="flex items-center gap-2">
-                  <Link
-                    to={`/newsroom/detector?text=${encodeURIComponent(getCleanArticleComponents(draft.headline, draft.lede, draft.body).full)}`}
-                    className="text-xs text-primary hover:underline flex items-center gap-1"
-                  >
-                    Open in AI Detector Studio <ExternalLink size={12} />
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={humanizeContent}
-                    className="bg-accent text-accent-foreground text-xs px-3 py-1 rounded font-semibold hover:bg-accent/90 transition flex items-center gap-1.5"
-                  >
-                    <Sparkles size={12} /> Clean & Humanize Clichés
-                  </button>
-                </div>
-              </div>
+          {/* Diagnostic AI Integrity Multi-Engine Panel */}
+          {showAiInspector && (
+            <div id="ai-inspector-panel">
+              <AiIntegrityPanel
+                text={getCleanArticleComponents(draft.headline, draft.lede, draft.body).full}
+                headline={draft.headline}
+              />
             </div>
           )}
 
@@ -1049,15 +936,12 @@ export default function DraftEditor() {
                 </button>
                 <button
                   type="button"
-                  onClick={humanizeContent}
-                  className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded font-semibold transition ${
-                    aiResult && aiResult.score > 0
-                      ? "bg-accent text-accent-foreground ring-2 ring-accent hover:opacity-90 font-bold"
-                      : "bg-accent text-accent-foreground hover:bg-accent/90"
-                  }`}
+                  onClick={() => setShowHumanizerPanel(true)}
+                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded font-semibold transition bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                  title="Open manual editorial humanizer workspace"
                 >
-                  <Sparkles size={12} />
-                  Auto-Fix to 0% AI (Instant Humanize)
+                  <Wand2 size={12} />
+                  Editorial Humanizer Workspace
                 </button>
                 <button
                   type="button"

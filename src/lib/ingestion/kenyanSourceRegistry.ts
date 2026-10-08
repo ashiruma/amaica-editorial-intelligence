@@ -349,4 +349,73 @@ export class KenyanSourceRegistry {
     const src = this.findByDomain(domain);
     return src ? src.credibility_tier : "unverified_source";
   }
+
+  /**
+   * Maps existing or custom domain credibility to the 4-tier Editorial Source Hierarchy.
+   */
+  public static getEditorialTier(domain: string): "TIER_1_OFFICIAL" | "TIER_2_ESTABLISHED_MEDIA" | "TIER_3_REGIONAL_SPECIALIST" | "TIER_4_SOCIAL_UNVERIFIED" {
+    const src = this.findByDomain(domain);
+    if (!src) return "TIER_4_SOCIAL_UNVERIFIED";
+
+    switch (src.credibility_tier) {
+      case "official_source":
+        return "TIER_1_OFFICIAL";
+      case "global_national_established":
+        return "TIER_2_ESTABLISHED_MEDIA";
+      case "regional_established":
+      case "trusted_local_source":
+        return "TIER_3_REGIONAL_SPECIALIST";
+      case "social_source":
+      case "unverified_source":
+      case "low_confidence_source":
+      default:
+        return "TIER_4_SOCIAL_UNVERIFIED";
+    }
+  }
+
+  /**
+   * Returns numeric geographic priority weight (1 = highest priority Kakamega, 12 = International).
+   */
+  public static getGeographicPriority(geography: string): number {
+    const geo = (geography || "").toLowerCase();
+    if (geo.includes("kakamega")) return 1;
+    if (geo.includes("vihiga")) return 2;
+    if (geo.includes("bungoma")) return 3;
+    if (geo.includes("busia")) return 4;
+    if (geo.includes("siaya")) return 5;
+    if (geo.includes("trans nzoia") || geo.includes("trans_nzoia")) return 6;
+    if (geo.includes("nandi")) return 7;
+    if (geo.includes("western")) return 8;
+    if (geo.includes("kenya") || geo.includes("national")) return 9;
+    if (geo.includes("east africa") || geo.includes("east_africa")) return 10;
+    if (geo.includes("africa")) return 11;
+    return 12;
+  }
+
+  /**
+   * Tests feed or portal connectivity without scraping.
+   */
+  public static async testSource(url: string): Promise<{ success: boolean; status: number; latencyMs: number; errorMessage?: string }> {
+    const start = Date.now();
+    try {
+      const res = await fetch(url, {
+        method: "HEAD",
+        headers: { "User-Agent": "WireOps-Desk-HealthCheck/2.0" },
+      });
+      return {
+        success: res.ok,
+        status: res.status,
+        latencyMs: Date.now() - start,
+      };
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      return {
+        success: false,
+        status: 0,
+        latencyMs: Date.now() - start,
+        errorMessage,
+      };
+    }
+  }
 }
+

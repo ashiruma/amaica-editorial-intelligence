@@ -575,14 +575,6 @@ export function morphStoryWithPolicy(input: ArticleCheckInput): StoryMorphResult
     }
   }
 
-  // Step 9: Run QuillBot Ultra Humanizer to eliminate AI clichés (Article 13)
-  const cleanedText = cleanAiClichesLocally(body).cleaned;
-  const humanized = humanizeText(cleanedText, "natural");
-  if (humanized.humanizedText && humanized.humanizedText !== body) {
-    body = humanized.humanizedText;
-    appliedFixes.push("Humanized prose and purged all AI clichés for 0% AI Turnitin clearance (Article 13).");
-  }
-
   // Final count and audit
   words = countWords(body);
   paragraphs = extractParagraphs(body);
@@ -605,3 +597,71 @@ export function morphStoryWithPolicy(input: ArticleCheckInput): StoryMorphResult
     appliedFixes,
   };
 }
+
+/**
+ * Extracts actionable, non-destructive PolicyReviewFlags from an article check.
+ * Allows editors to review, dismiss with reason, or escalate to senior editors.
+ */
+export function extractPolicyReviewFlags(input: ArticleCheckInput): import("@/types/intelligence").PolicyReviewFlag[] {
+  const audit = auditEditorialPolicy(input);
+  const flags: import("@/types/intelligence").PolicyReviewFlag[] = [];
+  const fullText = `${input.headline || ""} ${input.lede || ""} ${input.body || ""}`;
+
+  for (const article of audit.articles) {
+    if (!article.passed) {
+      let severity: import("@/types/intelligence").EditorialPolicyFlagSeverity = "MEDIUM";
+      if (article.severity === "error") severity = "HIGH";
+      if (article.articleNumber === 4 || article.articleNumber === 9 || article.articleNumber === 11) {
+        severity = "BLOCKER";
+      }
+
+      flags.push({
+        id: `flag-art-${article.articleNumber}-${Date.now()}`,
+        ruleCode: `RULE_ARTICLE_${article.articleNumber}`,
+        articleNumber: article.articleNumber,
+        category: article.title,
+        title: `Policy Article ${article.articleNumber}: ${article.title}`,
+        description: article.message,
+        severity,
+        suggestedAction: article.recommendation,
+        status: "ACTIVE",
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  // Specific Right of Reply check
+  if (audit.rightOfReplyRequired) {
+    flags.push({
+      id: `flag-reply-${Date.now()}`,
+      ruleCode: "RULE_RIGHT_OF_REPLY",
+      articleNumber: 3,
+      category: "Fairness & Right of Reply",
+      title: "Mandatory Right of Reply Opportunity",
+      description: "Allegations or accusations identified. Article requires statement confirming affected parties were contacted or offered opportunity to reply.",
+      severity: "BLOCKER",
+      suggestedAction: "Incorporate response from accused party or append formal Right of Reply clause.",
+      status: "ACTIVE",
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  // Specific Child & Vulnerable Persons Protection check
+  if (audit.minorProtectionTriggered) {
+    flags.push({
+      id: `flag-child-${Date.now()}`,
+      ruleCode: "RULE_CHILD_PROTECTION",
+      articleNumber: 4,
+      category: "Protection of Children & Vulnerable Persons",
+      title: "Minors / Vulnerable Persons Mentioned",
+      description: "Reporting involves children or vulnerable subjects. Verify privacy protections and ensure no identifying details expose minors to harm.",
+      severity: "BLOCKER",
+      suggestedAction: "Redact identifying details, names, school names, or facial images of minors.",
+      status: "ACTIVE",
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  return flags;
+}
+

@@ -373,3 +373,83 @@ export async function deleteAllNewsroomDrafts(): Promise<{ success: boolean; del
 
   return { success: true, deletedCount };
 }
+
+export interface DraftVersionSnapshot {
+  id: string;
+  article_id: string;
+  version_number: number;
+  version_tag: string;
+  headline: string;
+  lede: string;
+  body: string;
+  word_count: number;
+  changed_by_user_id?: string;
+  change_summary?: string;
+  created_at: string;
+}
+
+const LOCAL_VERSIONS_KEY = "amaica_draft_version_snapshots";
+
+/**
+ * Records an immutable snapshot of a draft version.
+ */
+export async function recordDraftVersion(
+  draftId: string,
+  snapshot: Omit<DraftVersionSnapshot, "id" | "article_id" | "version_number" | "created_at">
+): Promise<DraftVersionSnapshot> {
+  const existing = getDraftVersions(draftId);
+  const nextVersionNumber = existing.length + 1;
+  const newSnapshot: DraftVersionSnapshot = {
+    id: `ver-${draftId}-${nextVersionNumber}`,
+    article_id: draftId,
+    version_number: nextVersionNumber,
+    created_at: new Date().toISOString(),
+    ...snapshot,
+  };
+
+  // 1. Local Storage
+  try {
+    const raw = safeGetItem(LOCAL_VERSIONS_KEY);
+    const map: Record<string, DraftVersionSnapshot[]> = raw ? JSON.parse(raw) : {};
+    if (!map[draftId]) map[draftId] = [];
+    map[draftId].push(newSnapshot);
+    safeSetItem(LOCAL_VERSIONS_KEY, JSON.stringify(map));
+  } catch (err) {
+    console.warn("Could not save local version snapshot:", err);
+  }
+
+  // 2. Supabase article_versions table
+  try {
+    await supabase.from("article_versions").insert({
+      article_id: draftId,
+      version_number: nextVersionNumber,
+      version_tag: snapshot.version_tag,
+      headline: snapshot.headline,
+      lede: snapshot.lede,
+      body: snapshot.body,
+      word_count: snapshot.word_count,
+      change_summary: snapshot.change_summary || null,
+      changed_by_user_id: snapshot.changed_by_user_id || null,
+    } as any);
+  } catch (err) {
+    console.warn("Remote article_versions insert failed:", err);
+  }
+
+  return newSnapshot;
+}
+
+/**
+ * Retrieves all recorded immutable version snapshots for a draft.
+ */
+export function getDraftVersions(draftId: string): DraftVersionSnapshot[] {
+  try {
+    const raw = safeGetItem(LOCAL_VERSIONS_KEY);
+    if (!raw) return [];
+    const map: Record<string, DraftVersionSnapshot[]> = JSON.parse(raw);
+    return map[draftId] || [];
+  } catch (err) {
+    console.warn("Could not get draft versions:", err);
+    return [];
+  }
+}
+

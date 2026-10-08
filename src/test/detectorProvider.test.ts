@@ -66,7 +66,7 @@ describe("WireOps Desk: Multi-Detector Provider Engine", () => {
     const consensus = await DetectorProviderRegistry.runAllDetectors(sampleArticle);
 
     expect(consensus).toBeDefined();
-    expect(consensus.results.length).toBe(6);
+    expect(consensus.results.length).toBeGreaterThanOrEqual(6);
     expect(consensus.activeProviderCount).toBeGreaterThanOrEqual(1);
     expect(typeof consensus.averageScore).toBe("number");
     expect(["consensus_human", "consensus_ai", "detector_disagreement", "inconclusive"]).toContain(

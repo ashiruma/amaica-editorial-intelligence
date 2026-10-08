@@ -474,3 +474,178 @@ export interface PlagiarismCheckResponse {
   latencyMs: number;
   errorMessage?: string;
 }
+
+// ==========================================
+// 8. AMAICA EDITORIAL OPERATING SYSTEM DOMAIN
+// ==========================================
+
+export type EditorialSourceTier =
+  | "TIER_1_OFFICIAL"          // Government, Authorities, Courts, Parliament, County Governments, Statements
+  | "TIER_2_ESTABLISHED_MEDIA" // Established Kenyan news organizations
+  | "TIER_3_REGIONAL_SPECIALIST" // Regional, Specialist, Blogs, Smaller publications
+  | "TIER_4_SOCIAL_UNVERIFIED";  // Social media, Unverified public sources, User-generated material
+
+export type CanonicalGeographicPriority =
+  | "kakamega"        // Priority 1
+  | "vihiga"          // Priority 2
+  | "bungoma"         // Priority 3
+  | "busia"           // Priority 4
+  | "siaya"           // Priority 5
+  | "trans_nzoia"     // Priority 6
+  | "nandi"           // Priority 7
+  | "western_kenya"   // Priority 8
+  | "kenya"           // Priority 9
+  | "east_africa"     // Priority 10
+  | "africa"          // Priority 11
+  | "international";  // Priority 12
+
+export const GEOGRAPHIC_PRIORITY_ORDER: Record<CanonicalGeographicPriority, number> = {
+  kakamega: 1,
+  vihiga: 2,
+  bungoma: 3,
+  busia: 4,
+  siaya: 5,
+  trans_nzoia: 6,
+  nandi: 7,
+  western_kenya: 8,
+  kenya: 9,
+  east_africa: 10,
+  africa: 11,
+  international: 12,
+};
+
+export type CanonicalEditorialCategory =
+  | "politics"
+  | "government"
+  | "county_affairs"
+  | "business"
+  | "economy"
+  | "agriculture"
+  | "education"
+  | "health"
+  | "community"
+  | "crime"
+  | "courts"
+  | "environment"
+  | "climate"
+  | "technology"
+  | "sports"
+  | "entertainment"
+  | "culture"
+  | "religion"
+  | "youth"
+  | "human_interest"
+  | "international"
+  | "other";
+
+export type AdvancedVerificationStatus =
+  | "UNVERIFIED"
+  | "PARTIALLY_VERIFIED"
+  | "CORROBORATED"
+  | "OFFICIALLY_CONFIRMED"
+  | "CONTESTED"
+  | "DISPUTED"
+  | "EDITOR_VERIFIED";
+
+export interface ConflictingClaimVariant {
+  sourceName: string;
+  sourceTier: EditorialSourceTier;
+  claimText: string;
+  figureOrDate?: string;
+}
+
+export interface ConflictingClaimGroup {
+  topic: string;
+  variants: ConflictingClaimVariant[];
+  editorialRecommendation: string;
+}
+
+export interface StoryComparisonDossier {
+  clusterId: string;
+  workingHeadline: string;
+  sources: Array<{
+    sourceName: string;
+    sourceDomain: string;
+    tier: EditorialSourceTier;
+    reportedAt?: string;
+    headline: string;
+    summary: string;
+  }>;
+  agreements: Array<{
+    claimText: string;
+    supportingSources: string[];
+  }>;
+  conflicts: ConflictingClaimGroup[];
+  unconfirmed: Array<{
+    claimText: string;
+    sourceName: string;
+  }>;
+  unknown: Array<{
+    aspect: string;
+    reason: string;
+  }>;
+}
+
+export interface EditorialBrief {
+  id: string;
+  clusterId: string;
+  whatHappened: string;
+  whereLocation: string;
+  whenTime: string;
+  whoInvolved: string[];
+  confirmedFacts: string[];
+  reportedClaims: string[];
+  unconfirmedElements: string[];
+  conflictingClaims: string[];
+  officialStatements: string[];
+  backgroundContext: string[];
+  whyItMatters: string;
+  amaicaRelevance: string;
+  recommendedAngles: string[];
+  verificationGaps: string[];
+  investigativeQuestions: string[];
+  generatedAt: string;
+}
+
+export type EditorialPolicyFlagSeverity = "BLOCKER" | "HIGH" | "MEDIUM" | "ADVISORY";
+
+export type EditorialPolicyFlagStatus = "ACTIVE" | "DISMISSED" | "ESCALATED" | "RESOLVED";
+
+export interface PolicyReviewFlag {
+  id: string;
+  ruleCode: string;
+  articleNumber: number;
+  category: string;
+  title: string;
+  description: string;
+  severity: EditorialPolicyFlagSeverity;
+  violatingSnippet?: string;
+  suggestedAction: string;
+  status: EditorialPolicyFlagStatus;
+  dismissReason?: string;
+  dismissedByUserId?: string;
+  dismissedAt?: string;
+  createdAt: string;
+}
+
+export type EditorialRiskRating = "LOW" | "MODERATE" | "HIGH" | "REVIEW_REQUIRED";
+
+export interface MultiDetectorScanSummary {
+  riskRating: EditorialRiskRating;
+  summaryVerdict: string;
+  sentenceLevelFlags: Array<{
+    paragraphIndex: number;
+    sentenceText: string;
+    reason: string;
+  }>;
+  providerResults: DetectorAnalysisResponse[];
+}
+
+export type NewsroomUserRole =
+  | "SUPER_ADMIN"
+  | "MANAGING_EDITOR"
+  | "SENIOR_EDITOR"
+  | "EDITOR"
+  | "REPORTER"
+  | "VIEWER";
+

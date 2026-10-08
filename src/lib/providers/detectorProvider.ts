@@ -392,6 +392,133 @@ export class DetectorProviderRegistry {
   }
 
   /**
+   * 7. Originality.ai API Adapter
+   */
+  public static async analyzeOriginality(
+    req: DetectorAnalysisRequest
+  ): Promise<DetectorAnalysisResponse> {
+    const start = Date.now();
+    const apiKey = getEnvVar("ORIGINALITY_API_KEY");
+
+    if (!apiKey) {
+      return {
+        providerName: "OriginalityAI",
+        status: "NOT_CONFIGURED",
+        aiScore: null,
+        confidence: "low",
+        latencyMs: 0,
+        errorMessage: "ORIGINALITY_API_KEY is not configured in newsroom environment.",
+      };
+    }
+
+    try {
+      const res = await fetch("https://api.originality.ai/api/v1/scan/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-OAI-API-KEY": apiKey,
+        },
+        body: JSON.stringify({ content: req.text }),
+      });
+
+      if (!res.ok) {
+        return {
+          providerName: "OriginalityAI",
+          status: "SERVICE_UNAVAILABLE",
+          aiScore: null,
+          confidence: "low",
+          latencyMs: Date.now() - start,
+          errorMessage: `Originality.ai responded with HTTP ${res.status}`,
+        };
+      }
+
+      const data = await res.json();
+      const aiScoreRaw = data?.score?.ai;
+      const score = typeof aiScoreRaw === "number" ? Math.round(aiScoreRaw * 100) : null;
+
+      return {
+        providerName: "OriginalityAI",
+        status: "SUCCESS",
+        aiScore: score,
+        confidence: "high",
+        latencyMs: Date.now() - start,
+        rawResponse: data,
+      };
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      return {
+        providerName: "OriginalityAI",
+        status: "SERVICE_UNAVAILABLE",
+        aiScore: null,
+        confidence: "low",
+        latencyMs: Date.now() - start,
+        errorMessage: errorMsg,
+      };
+    }
+  }
+
+  /**
+   * 8. Turnitin Status Adapter (Institutional Enterprise Only)
+   */
+  public static async analyzeTurnitin(): Promise<DetectorAnalysisResponse> {
+    return {
+      providerName: "Turnitin",
+      status: "NOT_CONFIGURED",
+      aiScore: null,
+      confidence: "low",
+      latencyMs: 0,
+      errorMessage: "Turnitin requires an official institutional enterprise LTI/API contract. No public developer API available.",
+    };
+  }
+
+  /**
+   * Computes qualitative Editorial Risk Rating without scientific certainty overstatement:
+   * LOW, MODERATE, HIGH, REVIEW_REQUIRED.
+   */
+  public static computeEditorialRiskRating(results: DetectorAnalysisResponse[]): {
+    riskRating: "LOW" | "MODERATE" | "HIGH" | "REVIEW_REQUIRED";
+    explanation: string;
+  } {
+    const active = results.filter((r) => r.status === "SUCCESS" && typeof r.aiScore === "number");
+    if (active.length === 0) {
+      return {
+        riskRating: "LOW",
+        explanation: "No external detector flags active. Internal heuristics clear.",
+      };
+    }
+
+    const anyHigh = active.some((r) => (r.aiScore as number) >= 70);
+    const anyModerate = active.some((r) => (r.aiScore as number) >= 40 && (r.aiScore as number) < 70);
+    const majorityFlagged = active.filter((r) => (r.aiScore as number) >= 50).length >= Math.ceil(active.length / 2);
+
+    if (majorityFlagged || (active.length > 1 && anyHigh)) {
+      return {
+        riskRating: "REVIEW_REQUIRED",
+        explanation: "Multiple independent detectors flag elevated probability of machine-generated prose. Manual editorial inspection required.",
+      };
+    }
+
+    if (anyHigh) {
+      return {
+        riskRating: "HIGH",
+        explanation: "Single detector indicates elevated AI probability. Editor review recommended.",
+      };
+    }
+
+    if (anyModerate) {
+      return {
+        riskRating: "MODERATE",
+        explanation: "Mixed signals detected across active engines. Review phrasing and attribution.",
+      };
+    }
+
+    return {
+      riskRating: "LOW",
+      explanation: "Active detectors report high human authorship confidence. Prose exhibits natural journalistic cadence.",
+    };
+  }
+
+  /**
    * Run all adapters and compute newsroom consensus across active providers.
    */
   public static async runAllDetectors(text: string): Promise<MultiDetectorConsensus> {
@@ -400,10 +527,12 @@ export class DetectorProviderRegistry {
     const results = await Promise.all([
       this.analyzeInternalEnsemble(req),
       this.analyzeCopyleaks(req),
+      this.analyzeOriginality(req),
       this.analyzeWinston(req),
       this.analyzeGPTZero(req),
       this.analyzeSapling(req),
       this.analyzeZeroGPT(req),
+      this.analyzeTurnitin(),
     ]);
 
     const activeResults = results.filter((r) => r.status === "SUCCESS" && r.aiScore !== null);

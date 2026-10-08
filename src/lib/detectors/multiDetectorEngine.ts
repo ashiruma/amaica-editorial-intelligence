@@ -42,10 +42,12 @@ export class MultiDetectorEngine {
     const promises: Promise<DetectorAnalysisResponse>[] = [
       DetectorProviderRegistry.analyzeInternalEnsemble(req),
       DetectorProviderRegistry.analyzeCopyleaks(req),
+      DetectorProviderRegistry.analyzeOriginality(req),
       DetectorProviderRegistry.analyzeWinston(req),
       DetectorProviderRegistry.analyzeGPTZero(req),
       DetectorProviderRegistry.analyzeSapling(req),
       DetectorProviderRegistry.analyzeZeroGPT(req),
+      DetectorProviderRegistry.analyzeTurnitin(),
     ];
 
     const results = await Promise.all(promises);
@@ -59,10 +61,12 @@ export class MultiDetectorEngine {
     const providers: { name: string; envVar: string }[] = [
       { name: "InternalEnsemble_v2.1", envVar: "" },
       { name: "Copyleaks", envVar: "COPYLEAKS_API_KEY" },
+      { name: "OriginalityAI", envVar: "ORIGINALITY_API_KEY" },
       { name: "WinstonAI", envVar: "WINSTON_API_KEY" },
       { name: "GPTZero", envVar: "GPTZERO_API_KEY" },
       { name: "SaplingAI", envVar: "SAPLING_API_KEY" },
       { name: "ZeroGPT", envVar: "ZEROGPT_API_KEY" },
+      { name: "Turnitin", envVar: "TURNITIN_ENTERPRISE_KEY" },
     ];
 
     return providers.map((p) => {

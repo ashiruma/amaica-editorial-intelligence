@@ -12,11 +12,15 @@
  */
 
 export type NewsroomRole =
+  | "VIEWER"
   | "INTERN_WRITER"
   | "REPORTER"
+  | "EDITOR"
   | "DESK_EDITOR"
+  | "SENIOR_EDITOR"
   | "MANAGING_EDITOR"
-  | "CHIEF_ADMIN";
+  | "CHIEF_ADMIN"
+  | "SUPER_ADMIN";
 
 export type NewsroomAction =
   | "CREATE_DRAFT"
@@ -32,14 +36,21 @@ export type NewsroomAction =
   | "MANAGE_SOURCES"
   | "ACCESS_SETTINGS"
   | "VIEW_AUDIT_LOGS"
-  | "CONFIGURE_CREDENTIALS";
+  | "CONFIGURE_CREDENTIALS"
+  | "DISMISS_POLICY_FLAG"
+  | "ESCALATE_POLICY_FLAG"
+  | "ASSIGN_STORY";
 
 export const ROLE_HIERARCHY: Record<NewsroomRole, number> = {
+  VIEWER: 0,
   INTERN_WRITER: 1,
   REPORTER: 2,
+  EDITOR: 3,
   DESK_EDITOR: 3,
-  MANAGING_EDITOR: 4,
-  CHIEF_ADMIN: 5,
+  SENIOR_EDITOR: 4,
+  MANAGING_EDITOR: 5,
+  CHIEF_ADMIN: 6,
+  SUPER_ADMIN: 7,
 };
 
 export class RbacAuthorizationError extends Error {
@@ -59,7 +70,7 @@ export class RbacAuthorizationError extends Error {
  */
 export function normalizeRole(role: string): NewsroomRole {
   const r = (role || "").toLowerCase().trim();
-  if (r === "admin" || r === "chief_admin" || r === "superadmin") {
+  if (r === "admin" || r === "chief_admin" || r === "superadmin" || r === "super_admin") {
     return "CHIEF_ADMIN";
   }
   if (r === "managing_editor" || r === "chief_editor" || r === "desk_lead") {
@@ -71,6 +82,9 @@ export function normalizeRole(role: string): NewsroomRole {
   if (r === "reporter" || r === "correspondent" || r === "journalist") {
     return "REPORTER";
   }
+  if (r === "viewer") {
+    return "VIEWER";
+  }
   return "INTERN_WRITER";
 }
 
@@ -81,7 +95,7 @@ export function getHighestRole(roles: string[] | string): NewsroomRole {
   const roleList = Array.isArray(roles) ? roles : [roles];
   if (roleList.length === 0) return "INTERN_WRITER";
 
-  let highest: NewsroomRole = "INTERN_WRITER";
+  let highest: NewsroomRole = "VIEWER";
   for (const r of roleList) {
     const norm = normalizeRole(r);
     if (ROLE_HIERARCHY[norm] > ROLE_HIERARCHY[highest]) {
@@ -95,20 +109,23 @@ export function getHighestRole(roles: string[] | string): NewsroomRole {
  * Core permission matrix defining actions allowed per role.
  */
 const PERMISSION_MATRIX: Record<NewsroomAction, NewsroomRole[]> = {
-  CREATE_DRAFT: ["INTERN_WRITER", "REPORTER", "DESK_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN"],
-  EDIT_OWN_DRAFT: ["INTERN_WRITER", "REPORTER", "DESK_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN"],
-  EDIT_ANY_DRAFT: ["DESK_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN"],
-  DELETE_OWN_DRAFT: ["REPORTER", "DESK_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN"],
-  DELETE_ANY_DRAFT: ["MANAGING_EDITOR", "CHIEF_ADMIN"],
-  TRIGGER_HUMANIZER: ["DESK_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN"],
-  TRIGGER_STYLEBOOK: ["INTERN_WRITER", "REPORTER", "DESK_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN"],
-  VERIFY_STORY: ["DESK_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN"],
-  SINGLE_SOURCE_SIGN_OFF: ["MANAGING_EDITOR", "CHIEF_ADMIN"],
-  PUBLISH_LIVE: ["MANAGING_EDITOR", "CHIEF_ADMIN"],
-  MANAGE_SOURCES: ["MANAGING_EDITOR", "CHIEF_ADMIN"],
-  ACCESS_SETTINGS: ["MANAGING_EDITOR", "CHIEF_ADMIN"],
-  VIEW_AUDIT_LOGS: ["DESK_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN"],
-  CONFIGURE_CREDENTIALS: ["CHIEF_ADMIN"],
+  CREATE_DRAFT: ["INTERN_WRITER", "REPORTER", "EDITOR", "DESK_EDITOR", "SENIOR_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  EDIT_OWN_DRAFT: ["INTERN_WRITER", "REPORTER", "EDITOR", "DESK_EDITOR", "SENIOR_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  EDIT_ANY_DRAFT: ["EDITOR", "DESK_EDITOR", "SENIOR_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  DELETE_OWN_DRAFT: ["REPORTER", "EDITOR", "DESK_EDITOR", "SENIOR_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  DELETE_ANY_DRAFT: ["MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  TRIGGER_HUMANIZER: ["EDITOR", "DESK_EDITOR", "SENIOR_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  TRIGGER_STYLEBOOK: ["INTERN_WRITER", "REPORTER", "EDITOR", "DESK_EDITOR", "SENIOR_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  VERIFY_STORY: ["EDITOR", "DESK_EDITOR", "SENIOR_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  SINGLE_SOURCE_SIGN_OFF: ["MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  PUBLISH_LIVE: ["MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  MANAGE_SOURCES: ["SENIOR_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  ACCESS_SETTINGS: ["MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  VIEW_AUDIT_LOGS: ["EDITOR", "DESK_EDITOR", "SENIOR_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  CONFIGURE_CREDENTIALS: ["CHIEF_ADMIN", "SUPER_ADMIN"],
+  DISMISS_POLICY_FLAG: ["SENIOR_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  ESCALATE_POLICY_FLAG: ["EDITOR", "DESK_EDITOR", "SENIOR_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
+  ASSIGN_STORY: ["SENIOR_EDITOR", "MANAGING_EDITOR", "CHIEF_ADMIN", "SUPER_ADMIN"],
 };
 
 /**
