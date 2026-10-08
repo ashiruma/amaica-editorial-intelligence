@@ -25,16 +25,19 @@ import {
   MapPin,
   TrendingUp,
   Layers,
+  RefreshCw,
 } from "lucide-react";
 
 interface LiveIntelligenceMonitorProps {
   clusters: StoryCluster[];
+  writingId?: string | null;
   onDraftCluster: (cluster: StoryCluster) => void;
   onRefresh?: () => void;
 }
 
 export const LiveIntelligenceMonitor: React.FC<LiveIntelligenceMonitorProps> = ({
   clusters,
+  writingId,
   onDraftCluster,
   onRefresh,
 }) => {
@@ -172,17 +175,32 @@ export const LiveIntelligenceMonitor: React.FC<LiveIntelligenceMonitorProps> = (
                 {/* Bottom Actions */}
                 <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
                   <button
+                    type="button"
                     onClick={() => setInspectingCluster(cluster)}
-                    className="text-xs px-2.5 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted font-medium transition-colors"
+                    className="text-xs px-2.5 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted font-medium transition-colors cursor-pointer"
                   >
                     Inspect Dossier
                   </button>
                   <button
-                    onClick={() => onDraftCluster(cluster)}
-                    className="text-xs bg-primary text-primary-foreground font-semibold px-3 py-1 rounded hover:bg-primary/90 transition-colors flex items-center gap-1 shadow-xs"
+                    type="button"
+                    disabled={Boolean(writingId)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDraftCluster(cluster);
+                    }}
+                    className="text-xs bg-primary text-primary-foreground font-semibold px-3 py-1 rounded hover:bg-primary/90 transition-colors flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
                   >
-                    <FileText size={12} />
-                    Draft Article
+                    {writingId === cluster.id ? (
+                      <>
+                        <RefreshCw size={12} className="animate-spin" />
+                        Drafting...
+                      </>
+                    ) : (
+                      <>
+                        <FileText size={12} />
+                        Draft Article
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -197,6 +215,7 @@ export const LiveIntelligenceMonitor: React.FC<LiveIntelligenceMonitorProps> = (
         isOpen={inspectingCluster !== null}
         onClose={() => setInspectingCluster(null)}
         onDraftArticle={onDraftCluster}
+        isDrafting={Boolean(writingId && inspectingCluster && writingId === inspectingCluster.id)}
       />
     </div>
   );

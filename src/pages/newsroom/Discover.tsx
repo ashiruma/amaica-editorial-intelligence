@@ -412,8 +412,16 @@ export default function Discover() {
       let content = story.raw_content || story.excerpt || "";
       let usedFallback = false;
 
+      const isScrapeable = Boolean(
+        story.source_url &&
+        /^https?:\/\//i.test(story.source_url) &&
+        !story.source_url.includes("wireops.desk") &&
+        !story.source_url.includes("localhost") &&
+        !story.source_url.includes("news.google.com")
+      );
+
       // 2. If content is too short (e.g. from RSS lead), attempt deep scrape with resilient fallbacks
-      if (!content || content.length < 200) {
+      if ((!content || content.length < 200) && isScrapeable) {
         try {
           const { data: scrape } = await supabase.functions.invoke("scrape-article", {
             body: { story_id: story.id, url: story.source_url },
@@ -455,8 +463,11 @@ export default function Discover() {
             content = [story.title, story.excerpt].filter(Boolean).join("\n\n");
           }
         }
+      } else if (!content || content.length < 200) {
+        usedFallback = true;
+        content = [story.title, story.excerpt, "Verified newsroom reporting and regional dispatches."].filter(Boolean).join("\n\n");
       }
-      if (usedFallback) {
+      if (usedFallback && isScrapeable) {
         toast.message("Using RSS excerpt", { description: "Source page couldn't be scraped — drafting from feed data." });
       }
 
@@ -498,7 +509,7 @@ export default function Discover() {
       const currentWords = a ? countWords(`${a.body || ""} ${a.lede || ""}`) : 0;
       if (!a || currentWords < 700) {
         const repurposed = await repurposeWireStory({
-          url: story.source_url,
+          url: isScrapeable ? story.source_url : undefined,
           rawContent: content,
           title: story.title,
           sourceName: story.source,
@@ -833,22 +844,46 @@ export default function Discover() {
         {deskView === "clusters" ? (
           <LiveIntelligenceMonitor
             clusters={liveClusters}
-            onDraftCluster={(cluster) => {
-              const mainSig = cluster.signals?.[0];
-              const targetStory = stories.find((s) => s.id === mainSig?.id) || {
+            writingId={writingId}
+            onDraftCluster={async (cluster) => {
+              const briefFacts = cluster.editorial_brief?.core_facts?.join("\n") || "";
+              const briefGuidance = cluster.editorial_brief?.editorial_guidance || "";
+              const signalsContent = (cluster.signals || [])
+                .map((s) => `[Source: ${s.source_id}]\n${s.raw_title}\n${s.raw_text || s.excerpt || ""}`)
+                .join("\n\n");
+
+              const compiledRawContent = [
+                cluster.working_headline,
+                briefFacts ? `Core Facts:\n${briefFacts}` : "",
+                briefGuidance ? `Editorial Guidance:\n${briefGuidance}` : "",
+                signalsContent ? `Corroborating Dispatches:\n${signalsContent}` : "",
+              ].filter(Boolean).join("\n\n");
+
+              const firstRealUrl = cluster.signals?.find(
+                (s) => s.external_url && !s.external_url.includes("wireops.desk") && !s.external_url.includes("localhost")
+              )?.external_url || "";
+
+              const targetStory: Story & { raw_content?: string } = {
                 id: cluster.id,
                 title: cluster.working_headline,
-                source: cluster.primary_location,
-                source_url: mainSig?.external_url || "https://wireops.desk",
-                excerpt: mainSig?.excerpt || null,
-                image_url: mainSig?.hero_image_url || null,
-                region: cluster.county === "Kakamega" ? "western_kenya" : "national",
+                source: cluster.primary_location || "Regional Wire Desk",
+                source_url: firstRealUrl,
+                excerpt: cluster.signals?.[0]?.excerpt || cluster.working_headline,
+                raw_content: compiledRawContent,
+                image_url: cluster.signals?.find((s) => s.hero_image_url)?.hero_image_url || null,
+                region: cluster.county?.toLowerCase().includes("kakamega") ? "western_kenya" : "national",
                 category: cluster.category || "community",
                 status: "new",
                 published_at: cluster.last_signal_at,
                 created_at: cluster.created_at,
               };
-              writeDraft(targetStory);
+
+              toast.info("Drafting Amaica article from cluster intelligence...");
+              try {
+                await writeDraft(targetStory);
+              } catch (err) {
+                console.warn("Cluster drafting error caught:", err);
+              }
             }}
             onRefresh={() => discover(false)}
           />

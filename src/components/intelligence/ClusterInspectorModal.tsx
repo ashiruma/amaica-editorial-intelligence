@@ -27,6 +27,7 @@ import {
   HelpCircle,
   Copy,
   Check,
+  RefreshCw,
 } from "lucide-react";
 import { StoryComparisonEngine } from "@/lib/verification/storyComparisonEngine";
 import { EditorialBriefGenerator } from "@/lib/editorial/editorialBriefGenerator";
@@ -38,6 +39,7 @@ interface ClusterInspectorModalProps {
   onClose: () => void;
   onDraftArticle: (cluster: StoryCluster) => void;
   onFlagDispute?: (cluster: StoryCluster) => void;
+  isDrafting?: boolean;
 }
 
 export const ClusterInspectorModal: React.FC<ClusterInspectorModalProps> = ({
@@ -46,6 +48,7 @@ export const ClusterInspectorModal: React.FC<ClusterInspectorModalProps> = ({
   onClose,
   onDraftArticle,
   onFlagDispute,
+  isDrafting,
 }) => {
   const [activeTab, setActiveTab] = useState<"lineage" | "comparison" | "brief">("comparison");
   const [copiedBrief, setCopiedBrief] = useState(false);
@@ -440,15 +443,25 @@ export const ClusterInspectorModal: React.FC<ClusterInspectorModalProps> = ({
             </button>
             <button
               type="button"
+              disabled={isDrafting}
               onClick={() => {
                 onClose();
                 onDraftArticle(cluster);
               }}
-              className="text-xs bg-primary text-primary-foreground font-semibold px-4 py-1.5 rounded hover:bg-primary/90 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+              className="text-xs bg-primary text-primary-foreground font-semibold px-4 py-1.5 rounded hover:bg-primary/90 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
             >
-              <FileText size={14} />
-              Draft Continuous Article
-              <ArrowRight size={12} />
+              {isDrafting ? (
+                <>
+                  <RefreshCw size={14} className="animate-spin" />
+                  Drafting Article...
+                </>
+              ) : (
+                <>
+                  <FileText size={14} />
+                  Draft Continuous Article
+                  <ArrowRight size={12} />
+                </>
+              )}
             </button>
           </div>
         </div>

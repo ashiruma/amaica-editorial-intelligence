@@ -98,6 +98,21 @@ describe("WireOps Desk: Live Intelligence Monitor Component", () => {
     expect(onDraft).toHaveBeenCalledWith(mockClusters[0]);
   });
 
+  it("shows drafting state and disables button when writingId matches cluster id", () => {
+    const onDraft = vi.fn();
+    render(
+      <LiveIntelligenceMonitor
+        clusters={mockClusters}
+        writingId="cluster-1"
+        onDraftCluster={onDraft}
+      />
+    );
+
+    expect(screen.getByText("Drafting...")).toBeDefined();
+    const draftingBtn = screen.getByText("Drafting...").closest("button");
+    expect(draftingBtn?.hasAttribute("disabled")).toBe(true);
+  });
+
   it("strictly enforces the Zero-Emoji Workplace Standard", () => {
     const { container } = render(
       <LiveIntelligenceMonitor clusters={mockClusters} onDraftCluster={vi.fn()} />

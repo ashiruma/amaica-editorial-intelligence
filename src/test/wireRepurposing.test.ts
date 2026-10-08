@@ -166,6 +166,21 @@ The sold-out showcase highlights a resurgence in East Africa's commercial live m
       expect(result.fullArticleText).toContain("15,000");
     });
 
+    it("repurposes wire story safely even when url is unscrapeable or placeholder domain", async () => {
+      const result = await repurposeWireStory({
+        title: "Kakamega County Commissions New Road Modernization Project",
+        url: "https://wireops.desk",
+        rawContent: "Kakamega County Governor Fernandes Barasa has commissioned an extensive road infrastructure upgrading project spanning multiple sub-counties.",
+        sourceName: "Kakamega County Government",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.headline).toContain("Kakamega");
+      expect(result.wordCount).toBeGreaterThanOrEqual(700);
+      expect(result.body.length).toBeGreaterThan(100);
+      expect(result.aiScore).toBe(0);
+    });
+
     it("calculates trending velocity scores giving highest priority to breaking viral entertainment news", () => {
       const breakingLead = {
         title: "Mags reveals why she left relationship with Alma, says she feared ending up in a body bag",
